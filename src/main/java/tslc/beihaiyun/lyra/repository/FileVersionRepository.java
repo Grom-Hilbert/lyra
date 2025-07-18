@@ -1,6 +1,6 @@
 package tslc.beihaiyun.lyra.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,7 +15,7 @@ import java.util.Optional;
  * 提供文件版本相关的数据库操作
  */
 @Repository
-public interface FileVersionRepository extends JpaRepository<FileVersion, Long> {
+public interface FileVersionRepository extends BaseRepository<FileVersion, Long>, CustomRepository<FileVersion, Long> {
 
     /**
      * 根据文件查找所有版本

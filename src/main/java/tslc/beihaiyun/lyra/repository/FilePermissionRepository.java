@@ -1,6 +1,6 @@
 package tslc.beihaiyun.lyra.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,7 +18,7 @@ import java.util.Optional;
  * 提供文件权限相关的数据库操作
  */
 @Repository
-public interface FilePermissionRepository extends JpaRepository<FilePermission, Long> {
+public interface FilePermissionRepository extends BaseRepository<FilePermission, Long>, CustomRepository<FilePermission, Long> {
 
     /**
      * 根据文件查找权限列表

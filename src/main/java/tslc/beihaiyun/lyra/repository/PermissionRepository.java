@@ -1,6 +1,5 @@
 package tslc.beihaiyun.lyra.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,7 +13,7 @@ import java.util.List;
  * 提供权限相关的数据库操作
  */
 @Repository
-public interface PermissionRepository extends JpaRepository<Permission, Long> {
+public interface PermissionRepository extends BaseRepository<Permission, Long>, CustomRepository<Permission, Long> {
 
     /**
      * 根据权限名称查找权限

@@ -1,6 +1,5 @@
 package tslc.beihaiyun.lyra.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -14,7 +13,7 @@ import java.util.List;
  * 提供角色相关的数据库操作
  */
 @Repository
-public interface RoleRepository extends JpaRepository<Role, Long> {
+public interface RoleRepository extends BaseRepository<Role, Long>, CustomRepository<Role, Long> {
 
     /**
      * 根据角色名称查找角色

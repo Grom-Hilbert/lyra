@@ -1,6 +1,5 @@
 package tslc.beihaiyun.lyra.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -16,7 +15,7 @@ import java.util.Optional;
  * 提供文件夹相关的数据库操作
  */
 @Repository
-public interface FolderRepository extends JpaRepository<FolderEntity, Long> {
+public interface FolderRepository extends BaseRepository<FolderEntity, Long>, CustomRepository<FolderEntity, Long> {
 
     /**
      * 根据路径查找文件夹

@@ -2,7 +2,6 @@ package tslc.beihaiyun.lyra.repository;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -18,7 +17,7 @@ import java.util.Optional;
  * 提供文件相关的数据库操作
  */
 @Repository
-public interface FileRepository extends JpaRepository<FileEntity, Long> {
+public interface FileRepository extends BaseRepository<FileEntity, Long>, CustomRepository<FileEntity, Long> {
 
     /**
      * 根据路径查找文件

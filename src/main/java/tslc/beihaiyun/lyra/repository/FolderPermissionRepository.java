@@ -1,6 +1,6 @@
 package tslc.beihaiyun.lyra.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -19,7 +19,7 @@ import java.util.Optional;
  * 提供文件夹权限相关的数据库操作
  */
 @Repository
-public interface FolderPermissionRepository extends JpaRepository<FolderPermission, Long> {
+public interface FolderPermissionRepository extends BaseRepository<FolderPermission, Long>, CustomRepository<FolderPermission, Long> {
 
     /**
      * 根据文件夹查找权限列表
