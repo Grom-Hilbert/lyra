@@ -1,0 +1,139 @@
+# Default configuration for Lyra Document Management System
+# This file contains all default settings
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: lyra
+  
+  # Database Configuration
+  datasource:
+    sqlite:
+      url: jdbc:sqlite:./data/lyra.db
+      driver-class-name: org.sqlite.JDBC
+    mysql:
+      url: jdbc:mysql://localhost:3306/lyra?useSSL=false&serverTimezone=UTC
+      username: ${DB_USERNAME:lyra}
+      password: ${DB_PASSWORD:password}
+      driver-class-name: com.mysql.cj.jdbc.Driver
+    postgresql:
+      url: jdbc:postgresql://localhost:5432/lyra
+      username: ${DB_USERNAME:lyra}
+      password: ${DB_PASSWORD:password}
+      driver-class-name: org.postgresql.Driver
+  
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+  
+  # File Upload Configuration
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+      enabled: true
+  
+  # Security Configuration
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope: openid,profile,email
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope: user:email
+
+# File Storage Configuration
+lyra:
+  storage:
+    base-path: ${STORAGE_PATH:./storage}
+    temp-path: ${TEMP_PATH:./temp}
+    max-file-size: 100MB
+    allowed-extensions: 
+      - txt
+      - pdf
+      - doc
+      - docx
+      - xls
+      - xlsx
+      - ppt
+      - pptx
+      - jpg
+      - jpeg
+      - png
+      - gif
+      - zip
+      - rar
+  
+  # Version Control Configuration
+  version-control:
+    git:
+      enabled: true
+      repository-path: ${GIT_REPO_PATH:./git-repos}
+    
+  # WebDAV Configuration
+  webdav:
+    enabled: true
+    path: /webdav
+    
+  # Security Configuration
+  security:
+    jwt:
+      secret: ${JWT_SECRET:lyra-secret-key-change-in-production}
+      expiration: 86400 # 24 hours
+    password:
+      min-length: 8
+      require-uppercase: true
+      require-lowercase: true
+      require-numbers: true
+      require-special-chars: false
+
+# Management/Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    tslc.beihaiyun.lyra: INFO
+    org.springframework.security: WARN
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: ./logs/lyra.log
+
+# OpenAPI/Swagger Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
