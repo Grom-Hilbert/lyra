@@ -1,0 +1,244 @@
+# NFS PersistentVolume
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: lyra-nfs-pv
+  labels:
+    app: lyra
+    storage-type: nfs
+spec:
+  capacity:
+    storage: 100Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: nfs
+  nfs:
+    server: 192.168.1.100  # 替换为你的NFS服务器IP
+    path: /exports/lyra-storage
+  mountOptions:
+    - rw
+    - sync
+    - hard
+    - intr
+
+---
+# NFS PersistentVolumeClaim
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: lyra-nfs-pvc
+  namespace: lyra
+  labels:
+    app: lyra
+    storage-type: nfs
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Gi
+  storageClassName: nfs
+
+---
+# ConfigMap for NFS configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: lyra-nfs-config
+  namespace: lyra
+  labels:
+    app: lyra
+data:
+  application.yml: |
+    lyra:
+      storage:
+        primary: nfs
+        nfs:
+          enabled: true
+          server: 192.168.1.100
+          export-path: /exports/lyra-storage
+          mount-point: /mnt/nfs-storage
+          mount-options: rw,sync,hard,intr
+          max-file-size: 104857600
+          connection-timeout: 30000
+          read-timeout: 60000
+          retry-count: 3
+
+---
+# Lyra Deployment with NFS storage
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: lyra-nfs
+  namespace: lyra
+  labels:
+    app: lyra
+    storage-type: nfs
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lyra
+      storage-type: nfs
+  template:
+    metadata:
+      labels:
+        app: lyra
+        storage-type: nfs
+    spec:
+      containers:
+      - name: lyra
+        image: lyra:latest
+        ports:
+        - containerPort: 8080
+          name: http
+        env:
+        - name: STORAGE_TYPE
+          value: "nfs"
+        - name: NFS_ENABLED
+          value: "true"
+        - name: NFS_SERVER
+          value: "192.168.1.100"
+        - name: NFS_EXPORT_PATH
+          value: "/exports/lyra-storage"
+        - name: NFS_MOUNT_POINT
+          value: "/mnt/nfs-storage"
+        - name: NFS_MOUNT_OPTIONS
+          value: "rw,sync,hard,intr"
+        - name: DB_TYPE
+          value: "sqlite"
+        - name: DB_PATH
+          value: "/data/lyra.db"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: lyra-secrets
+              key: jwt-secret
+        volumeMounts:
+        - name: nfs-storage
+          mountPath: /mnt/nfs-storage
+        - name: data-storage
+          mountPath: /data
+        - name: config-volume
+          mountPath: /app/config
+          readOnly: true
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: nfs-storage
+        persistentVolumeClaim:
+          claimName: lyra-nfs-pvc
+      - name: data-storage
+        persistentVolumeClaim:
+          claimName: lyra-data-pvc
+      - name: config-volume
+        configMap:
+          name: lyra-nfs-config
+      restartPolicy: Always
+
+---
+# Service for Lyra
+apiVersion: v1
+kind: Service
+metadata:
+  name: lyra-nfs-service
+  namespace: lyra
+  labels:
+    app: lyra
+    storage-type: nfs
+spec:
+  selector:
+    app: lyra
+    storage-type: nfs
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: lyra-nfs-ingress
+  namespace: lyra
+  labels:
+    app: lyra
+    storage-type: nfs
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "100m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: lyra-nfs.example.com  # 替换为你的域名
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: lyra-nfs-service
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - lyra-nfs.example.com
+    secretName: lyra-nfs-tls
+
+---
+# HorizontalPodAutoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: lyra-nfs-hpa
+  namespace: lyra
+  labels:
+    app: lyra
+    storage-type: nfs
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: lyra-nfs
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

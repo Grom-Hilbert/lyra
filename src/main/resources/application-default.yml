@@ -60,9 +60,38 @@ spring:
 # File Storage Configuration
 lyra:
   storage:
-    base-path: ${STORAGE_PATH:./storage}
+    # Primary storage type: local, nfs, s3
+    primary: ${STORAGE_TYPE:local}
+    
+    # Local filesystem storage
+    local:
+      root: ${STORAGE_PATH:./storage}
+      max-file-size: 104857600 # 100MB
+    
+    # NFS network filesystem storage
+    nfs:
+      enabled: ${NFS_ENABLED:false}
+      server: ${NFS_SERVER:}
+      export-path: ${NFS_EXPORT_PATH:/exports/lyra-storage}
+      mount-point: ${NFS_MOUNT_POINT:/mnt/nfs-storage}
+      mount-options: ${NFS_MOUNT_OPTIONS:rw,sync,hard,intr}
+      max-file-size: 104857600 # 100MB
+      connection-timeout: 30000 # 30 seconds
+      read-timeout: 60000 # 60 seconds
+      retry-count: 3
+    
+    # S3 compatible object storage
+    s3:
+      enabled: ${S3_ENABLED:false}
+      endpoint: ${S3_ENDPOINT:}
+      region: ${S3_REGION:us-east-1}
+      access-key: ${S3_ACCESS_KEY:}
+      secret-key: ${S3_SECRET_KEY:}
+      bucket: ${S3_BUCKET:lyra-storage}
+      max-file-size: 104857600 # 100MB
+    
+    # Common settings
     temp-path: ${TEMP_PATH:./temp}
-    max-file-size: 100MB
     allowed-extensions: 
       - txt
       - pdf

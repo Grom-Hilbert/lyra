@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  lyra-nfs:
+    image: lyra:latest
+    container_name: lyra-nfs
+    privileged: true  # NFS挂载需要特权模式
+    ports:
+      - "8080:8080"
+    environment:
+      # 存储配置
+      - STORAGE_TYPE=nfs
+      - NFS_ENABLED=true
+      - NFS_SERVER=192.168.1.100
+      - NFS_EXPORT_PATH=/exports/lyra-storage
+      - NFS_MOUNT_POINT=/mnt/nfs-storage
+      - NFS_MOUNT_OPTIONS=rw,sync,hard,intr
+      
+      # 数据库配置
+      - DB_TYPE=sqlite
+      - DB_PATH=/data/lyra.db
+      
+      # 安全配置
+      - JWT_SECRET=your-secret-key-change-in-production
+      
+      # 日志配置
+      - LOGGING_LEVEL_ROOT=INFO
+      - LOGGING_LEVEL_LYRA=DEBUG
+    volumes:
+      # 数据库持久化
+      - lyra-data:/data
+      # 系统cgroup（NFS挂载需要）
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+      # 临时文件
+      - lyra-temp:/tmp/lyra
+    networks:
+      - lyra-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    depends_on:
+      - nfs-server
+
+  # 示例NFS服务器（用于测试）
+  nfs-server:
+    image: itsthenetwork/nfs-server-alpine:latest
+    container_name: nfs-server
+    privileged: true
+    environment:
+      - SHARED_DIRECTORY=/exports/lyra-storage
+    volumes:
+      - nfs-storage:/exports/lyra-storage
+    ports:
+      - "2049:2049"
+    networks:
+      - lyra-network
+    restart: unless-stopped
+
+  # 可选：Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: lyra-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - lyra-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+volumes:
+  lyra-data:
+    driver: local
+  lyra-temp:
+    driver: local
+  nfs-storage:
+    driver: local
+  redis-data:
+    driver: local
+
+networks:
+  lyra-network:
+    driver: bridge
