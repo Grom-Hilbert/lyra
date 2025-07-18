@@ -35,3 +35,8 @@ out/
 
 ### VS Code ###
 .vscode/
+.kiro/
+
+### NPM ###
+node_modules/
+package-lock.json
