@@ -1,5 +1,6 @@
 package tslc.beihaiyun.lyra.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -9,10 +10,10 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 
@@ -24,6 +25,9 @@ import java.util.Arrays;
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
+
+    @Value("${spring.security.oauth2.client.registration.google.client-id:}")
+    private String googleClientId;
 
     /**
      * 密码编码器
@@ -66,13 +70,6 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
             )
             
-            // OAuth2登录配置
-            .oauth2Login(oauth2 -> oauth2
-                .loginPage("/login")
-                .defaultSuccessUrl("/dashboard")
-                .failureUrl("/login?error")
-            )
-            
             // 表单登录配置
             .formLogin(form -> form
                 .loginPage("/login")
@@ -89,6 +86,15 @@ public class SecurityConfig {
                 .deleteCookies("JSESSIONID")
                 .permitAll()
             );
+
+        // 只有在配置了OAuth2客户端ID时才启用OAuth2登录
+        if (StringUtils.hasText(googleClientId)) {
+            http.oauth2Login(oauth2 -> oauth2
+                .loginPage("/login")
+                .defaultSuccessUrl("/dashboard")
+                .failureUrl("/login?error")
+            );
+        }
 
         return http.build();
     }

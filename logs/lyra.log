@@ -1078,3 +1078,11 @@ Caused by: java.lang.Throwable: null
 		at java.base/java.lang.ClassLoader.loadClass(ClassLoader.java:526)
 		at org.hibernate.boot.registry.classloading.internal.AggregatedClassLoader.findClass(AggregatedClassLoader.java:206)
 		... 143 common frames omitted
+2025-07-18 15:17:47 [main] INFO  tslc.beihaiyun.lyra.LyraApplication - Starting LyraApplication using Java 21.0.6 with PID 33532 (D:\Files\Projects\Java\lyra\build\classes\java\main started by skyfr in D:\Files\Projects\Java\lyra)
+2025-07-18 15:17:47 [main] INFO  tslc.beihaiyun.lyra.LyraApplication - No active profile set, falling back to 1 default profile: "default"
+2025-07-18 15:17:48 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-07-18 15:17:48 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 56 ms. Found 8 JPA repository interfaces.
+2025-07-18 15:21:48 [main] INFO  tslc.beihaiyun.lyra.LyraApplication - Starting LyraApplication using Java 21.0.6 with PID 31772 (D:\Files\Projects\Java\lyra\build\classes\java\main started by skyfr in D:\Files\Projects\Java\lyra)
+2025-07-18 15:21:48 [main] INFO  tslc.beihaiyun.lyra.LyraApplication - No active profile set, falling back to 1 default profile: "default"
+2025-07-18 15:21:50 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-07-18 15:21:50 [main] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 65 ms. Found 8 JPA repository interfaces.
