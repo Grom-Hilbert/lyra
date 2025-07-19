@@ -25,6 +25,8 @@ target/
 # IDE 文件
 .idea/
 .vscode/
+.cursor/
+.vibedev/
 *.iws
 *.iml
 *.ipr
