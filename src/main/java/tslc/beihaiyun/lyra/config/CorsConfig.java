@@ -12,9 +12,9 @@ import java.util.List;
 /**
  * CORS 跨域配置
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Configuration
 public class CorsConfig {

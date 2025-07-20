@@ -21,9 +21,9 @@ import static org.assertj.core.api.Assertions.*;
  * 数据库集成测试
  * 验证数据库配置、连接池和初始化脚本的正确性
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @SpringBootTest
 @ActiveProfiles("test")

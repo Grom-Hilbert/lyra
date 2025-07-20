@@ -13,9 +13,9 @@ import java.time.LocalDateTime;
  * 基础实体类
  * 包含审计字段，所有实体类都应继承此类
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @MappedSuperclass
 @EntityListeners(AuditingEntityListener.class)

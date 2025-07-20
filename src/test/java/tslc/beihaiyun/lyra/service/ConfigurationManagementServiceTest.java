@@ -24,9 +24,9 @@ import static org.mockito.Mockito.*;
 /**
  * ConfigurationManagementService 单元测试
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("配置管理服务测试")

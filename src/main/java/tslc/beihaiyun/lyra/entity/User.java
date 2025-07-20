@@ -12,9 +12,9 @@ import java.util.Set;
  * 用户实体类
  * 存储用户基本信息和认证相关数据
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

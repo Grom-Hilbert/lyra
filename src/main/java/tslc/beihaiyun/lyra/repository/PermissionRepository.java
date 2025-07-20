@@ -16,9 +16,9 @@ import java.util.Set;
  * 权限数据访问接口
  * 提供权限的CRUD操作和复杂查询方法
  *
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Repository
 public interface PermissionRepository extends JpaRepository<Permission, Long> {

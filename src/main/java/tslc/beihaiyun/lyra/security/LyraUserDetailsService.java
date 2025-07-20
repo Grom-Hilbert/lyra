@@ -23,9 +23,9 @@ import java.util.List;
  * 自定义用户详情服务
  * 从数据库加载用户信息和权限
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Service
 public class LyraUserDetailsService implements UserDetailsService {

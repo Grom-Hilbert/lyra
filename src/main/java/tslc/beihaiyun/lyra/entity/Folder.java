@@ -10,9 +10,9 @@ import java.util.Set;
  * 文件夹实体类
  * 支持层级结构和文件管理
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

@@ -14,7 +14,7 @@ import java.util.Optional;
  * 用户业务服务类
  * 处理用户相关的业务逻辑
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

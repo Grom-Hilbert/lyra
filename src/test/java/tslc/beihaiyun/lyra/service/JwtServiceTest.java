@@ -18,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * JwtService 单元测试
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @DisplayName("JWT服务测试")
 class JwtServiceTest {

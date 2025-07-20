@@ -18,9 +18,9 @@ import java.util.*;
  * 配置管理控制器
  * 提供系统配置的REST API管理接口
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @RestController
 @RequestMapping("/api/admin/config")

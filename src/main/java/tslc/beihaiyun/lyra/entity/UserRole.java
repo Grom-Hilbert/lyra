@@ -10,9 +10,9 @@ import java.time.LocalDateTime;
  * 用户角色关联实体类
  * 实现用户与角色的多对多关联关系
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

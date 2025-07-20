@@ -15,9 +15,9 @@ import java.util.regex.Pattern;
  * 配置验证器
  * 提供系统配置的深度验证功能
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Component
 public class ConfigurationValidator {

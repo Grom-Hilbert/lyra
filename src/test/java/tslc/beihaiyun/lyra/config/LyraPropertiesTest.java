@@ -14,9 +14,9 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * LyraProperties 配置类单元测试
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @DisplayName("Lyra配置属性测试")
 class LyraPropertiesTest {

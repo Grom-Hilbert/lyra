@@ -16,7 +16,7 @@ import java.util.Optional;
  * 权限管理服务类
  * 处理用户角色和空间权限相关的业务逻辑
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

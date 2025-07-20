@@ -24,9 +24,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * 配置管理服务
  * 负责处理配置的优先级、验证、热更新等功能
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Service
 public class ConfigurationManagementService {

@@ -9,9 +9,9 @@ import java.time.LocalDateTime;
  * 分享链接实体类
  * 支持文件和文件夹的分享功能
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

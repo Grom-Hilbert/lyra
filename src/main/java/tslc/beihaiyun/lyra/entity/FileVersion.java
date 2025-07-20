@@ -7,9 +7,9 @@ import jakarta.validation.constraints.*;
  * 文件版本实体类
  * 存储文件的历史版本信息
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

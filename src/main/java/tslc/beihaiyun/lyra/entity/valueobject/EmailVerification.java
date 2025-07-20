@@ -14,7 +14,7 @@ import java.util.Objects;
  * 邮箱验证值对象
  * 封装邮箱验证状态和相关业务逻辑
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

@@ -9,9 +9,9 @@ import org.springframework.test.context.ActiveProfiles;
  * 简单启动测试
  * 验证Spring Boot应用能否正常启动
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @SpringBootTest
 @ActiveProfiles("test")

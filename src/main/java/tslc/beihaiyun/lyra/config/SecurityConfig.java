@@ -26,9 +26,9 @@ import tslc.beihaiyun.lyra.security.JwtAuthenticationFilter;
  * Spring Security 安全配置
  * 配置认证、授权规则和安全过滤器链
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Configuration
 @EnableWebSecurity
@@ -61,8 +61,6 @@ public class SecurityConfig {
         return new BCryptPasswordEncoder();
     }
 
-
-
     /**
      * 认证管理器Bean
      * 用于处理认证请求
@@ -71,8 +69,6 @@ public class SecurityConfig {
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
     }
-
-
 
     /**
      * 安全过滤器链配置

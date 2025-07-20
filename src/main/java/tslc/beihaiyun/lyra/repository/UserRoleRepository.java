@@ -16,9 +16,9 @@ import java.util.Optional;
  * 用户角色关联Repository接口
  * 提供用户角色关联数据访问操作
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Repository
 public interface UserRoleRepository extends JpaRepository<UserRole, Long> {

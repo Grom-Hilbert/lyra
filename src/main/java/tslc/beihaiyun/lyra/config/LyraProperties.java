@@ -12,9 +12,9 @@ import jakarta.validation.constraints.*;
  * Lyra 应用配置属性
  * 支持多层配置体系：默认配置 -> 环境变量 -> 外部配置文件 -> 动态配置
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Component
 @Validated

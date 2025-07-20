@@ -12,7 +12,7 @@ import java.util.Objects;
  * 存储配额值对象
  * 封装存储配额和使用量的业务逻辑
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

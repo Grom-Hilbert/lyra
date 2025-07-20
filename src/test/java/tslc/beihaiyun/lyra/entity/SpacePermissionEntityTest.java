@@ -17,9 +17,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * 验证SpacePermission实体的字段约束、关联关系和业务逻辑
  * 特别测试权限继承和覆盖机制
  *
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @DisplayName("SpacePermission实体测试")
 class SpacePermissionEntityTest {

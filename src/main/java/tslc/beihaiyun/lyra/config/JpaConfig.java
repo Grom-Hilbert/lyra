@@ -15,9 +15,9 @@ import java.util.Optional;
  * JPA 配置类
  * 负责JPA审计和Repository扫描配置
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")

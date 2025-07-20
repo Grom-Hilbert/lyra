@@ -18,9 +18,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * SecurityConfig 集成测试
  * 验证Spring Security配置的正确性
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @SpringBootTest
 @ActiveProfiles("test")

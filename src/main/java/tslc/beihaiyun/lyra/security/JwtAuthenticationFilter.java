@@ -24,9 +24,9 @@ import java.io.IOException;
  * JWT认证过滤器
  * 从请求头中提取JWT令牌并验证用户身份
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {

@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * StorageQuota 值对象测试类
  * 测试存储配额的各项业务逻辑
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

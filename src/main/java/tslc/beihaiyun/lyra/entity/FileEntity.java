@@ -11,9 +11,9 @@ import java.util.Set;
  * 文件实体类
  * 存储文件基本信息和元数据
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

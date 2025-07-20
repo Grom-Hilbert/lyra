@@ -19,9 +19,9 @@ import java.util.Map;
  * JWT认证入口点
  * 处理未认证请求的异常，返回统一的错误响应
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Component
 public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {

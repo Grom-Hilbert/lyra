@@ -11,9 +11,9 @@ import java.util.Set;
  * 角色实体类
  * 定义系统中的角色信息
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

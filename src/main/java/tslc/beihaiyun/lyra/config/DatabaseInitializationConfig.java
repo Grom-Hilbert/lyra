@@ -20,9 +20,9 @@ import java.sql.SQLException;
  * 数据库初始化配置类
  * 负责数据库脚本执行、健康检查和初始化验证
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Slf4j
 @Configuration

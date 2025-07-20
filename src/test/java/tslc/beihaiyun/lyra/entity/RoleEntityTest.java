@@ -16,9 +16,9 @@ import static org.junit.jupiter.api.Assertions.*;
  * Role实体类单元测试
  * 验证字段约束、验证规则和业务方法
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @DisplayName("Role实体类测试")
 class RoleEntityTest {

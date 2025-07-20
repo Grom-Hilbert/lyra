@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Profile;
  * 测试配置类
  * 提供测试环境专用的配置和Bean
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

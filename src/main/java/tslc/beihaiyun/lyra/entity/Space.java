@@ -10,9 +10,9 @@ import java.util.Set;
  * 空间实体类
  * 代表用户的个人空间、企业空间或共享空间
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(

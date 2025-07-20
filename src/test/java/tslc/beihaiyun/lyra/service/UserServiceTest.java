@@ -22,7 +22,7 @@ import static org.mockito.Mockito.*;
  * UserService 测试类
  * 测试用户业务服务的各项功能
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
  * @since 2025-01-20
  */

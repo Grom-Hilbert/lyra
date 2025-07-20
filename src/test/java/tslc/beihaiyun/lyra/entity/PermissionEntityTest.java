@@ -15,9 +15,9 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Permission实体类单元测试
  * 验证Permission实体的字段约束、关联关系和业务逻辑
  *
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @DisplayName("Permission实体测试")
 class PermissionEntityTest {

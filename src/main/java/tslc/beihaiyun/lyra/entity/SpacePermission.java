@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
  * 定义用户在特定空间中的权限关联关系
  * 支持权限继承和覆盖机制
  * 
- * @author Lyra Team
+ * @author SkyFrost
  * @version 1.0.0
- * @since 2025-01-19
+ * @since 2025-07-20
  */
 @Entity
 @Table(
