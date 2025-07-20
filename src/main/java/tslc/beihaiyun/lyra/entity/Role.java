@@ -95,6 +95,25 @@ public class Role extends BaseEntity {
     private Set<UserRole> userRoles = new HashSet<>();
 
     /**
+     * 角色权限关联
+     * 一个角色可以拥有多个权限，一个权限可以被多个角色拥有
+     */
+    @ManyToMany(fetch = FetchType.LAZY, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+        name = "role_permissions",
+        joinColumns = @JoinColumn(name = "role_id", referencedColumnName = "id"),
+        inverseJoinColumns = @JoinColumn(name = "permission_id", referencedColumnName = "id"),
+        indexes = {
+            @Index(name = "idx_role_permission_role_id", columnList = "role_id"),
+            @Index(name = "idx_role_permission_permission_id", columnList = "permission_id")
+        },
+        uniqueConstraints = {
+            @UniqueConstraint(name = "uk_role_permission", columnNames = {"role_id", "permission_id"})
+        }
+    )
+    private Set<Permission> permissions = new HashSet<>();
+
+    /**
      * 角色类型枚举
      */
     public enum RoleType {
@@ -282,6 +301,101 @@ public class Role extends BaseEntity {
 
     public void setUserRoles(Set<UserRole> userRoles) {
         this.userRoles = userRoles;
+    }
+
+    public Set<Permission> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<Permission> permissions) {
+        this.permissions = permissions;
+    }
+
+    /**
+     * 添加权限
+     * 
+     * @param permission 权限对象
+     */
+    public void addPermission(Permission permission) {
+        if (permission != null) {
+            this.permissions.add(permission);
+            permission.getRoles().add(this);
+        }
+    }
+
+    /**
+     * 移除权限
+     * 
+     * @param permission 权限对象
+     */
+    public void removePermission(Permission permission) {
+        if (permission != null) {
+            this.permissions.remove(permission);
+            permission.getRoles().remove(this);
+        }
+    }
+
+    /**
+     * 检查是否拥有指定权限
+     * 
+     * @param permissionCode 权限代码
+     * @return true如果拥有该权限
+     */
+    public boolean hasPermission(String permissionCode) {
+        if (permissionCode == null || permissionCode.trim().isEmpty()) {
+            return false;
+        }
+        
+        return permissions.stream()
+                .anyMatch(permission -> permissionCode.equals(permission.getCode()) 
+                        && permission.getIsEnabled());
+    }
+
+    /**
+     * 检查是否拥有指定类型和类别的权限
+     * 
+     * @param resourceType 资源类型
+     * @param category 权限类别
+     * @return true如果拥有该权限
+     */
+    public boolean hasPermission(String resourceType, String category) {
+        if (resourceType == null || category == null) {
+            return false;
+        }
+        
+        return permissions.stream()
+                .anyMatch(permission -> resourceType.equals(permission.getResourceType())
+                        && category.equals(permission.getCategory())
+                        && permission.getIsEnabled());
+    }
+
+    /**
+     * 获取指定资源类型的所有权限
+     * 
+     * @param resourceType 资源类型
+     * @return 权限集合
+     */
+    public Set<Permission> getPermissionsByResourceType(String resourceType) {
+        if (resourceType == null) {
+            return new HashSet<>();
+        }
+        
+        return permissions.stream()
+                .filter(permission -> resourceType.equals(permission.getResourceType())
+                        && permission.getIsEnabled())
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    /**
+     * 获取所有启用的权限代码
+     * 
+     * @return 权限代码集合
+     */
+    public Set<String> getEnabledPermissionCodes() {
+        return permissions.stream()
+                .filter(Permission::getIsEnabled)
+                .map(Permission::getCode)
+                .collect(java.util.stream.Collectors.toSet());
     }
 
     @Override
