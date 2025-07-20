@@ -4,7 +4,7 @@
 
 ## 项目概述
 
-Lyra 是一个企业级云原生文档管理系统，旨在为中小型企业（10-100人）提供带有版本控制的文档管理服务。系统支持WebDAV协议，内置Git版本控制，可以作为插件扩展更多丰富功能。
+Lyra 是一个企业级云原生文档管理系统，旨在为中小型团队提供带有版本控制的文档管理服务。系统支持WebDAV协议，内置Git版本控制，可以使用插件扩展更多丰富功能。
 
 ### 核心特性
 
@@ -19,10 +19,44 @@ Lyra 是一个企业级云原生文档管理系统，旨在为中小型企业（
 ### 技术架构
 
 - **后端**: Spring Boot 3.5.x + Spring Security + JPA + Milton WebDAV
-- **前端**: Vue 3.5+ + TypeScript + Vite
+- **前端**: Vue 3.5+ + TypeScript + Vite + Element Plus
 - **数据库**: SQLite（默认）/ MySQL / PostgreSQL + Redis（可选）
 - **构建工具**: Gradle 8.x+
 - **部署**: Docker + Kubernetes + Helm
+
+## 开发进展
+
+### ✅ 已完成功能
+
+- **[1.1] Spring Boot后端项目骨架**
+  - ✅ Gradle 8.x多模块项目结构
+  - ✅ Spring Boot 3.5.x依赖管理
+  - ✅ 基础包结构和配置类
+  - ✅ 数据库配置和JPA集成
+  - ✅ 应用启动和健康检查
+
+- **[1.2] Vue 3前端项目结构**
+  - ✅ Vue 3.5.17 + TypeScript项目
+  - ✅ Vue Router路由系统
+  - ✅ Pinia状态管理
+  - ✅ Element Plus UI组件库
+  - ✅ Vite构建配置和自动导入
+  - ✅ 基础页面组件（登录、注册、仪表板）
+  - ✅ 开发服务器 (<http://localhost:3000/>)
+  - ✅ 生产构建验证
+
+### 🚧 进行中
+
+- **[1.3] 配置数据库集成** (下一步)
+
+### 📋 待开发
+
+- 核心数据模型实现
+- JWT认证系统
+- 权限控制系统
+- 文件存储和管理
+- WebDAV协议支持
+- 版本控制系统
 
 ## 快速开始
 
@@ -47,6 +81,22 @@ cd lyra
 ```bash
 # 构建项目
 ./gradlew build
+
+# 运行应用
+./gradlew bootRun
+```
+
+3. **前端启动**
+
+```bash
+# 进入前端目录
+cd src/main/typescript
+
+# 安装依赖
+pnpm install
+
+# 启动开发服务器
+pnpm dev
 
 # 启动开发服务器
 ./gradlew bootRun
@@ -90,18 +140,17 @@ helm install lyra ./deployments/helm/lyra
 
 ## 项目结构
 
-```
+```plaintext
 lyra/
 ├── src/
 │   ├── main/
 │   │   ├── java/tslc/beihaiyun/lyra/    # Java后端代码
 │   │   ├── typescript/                  # Vue前端代码
 │   │   └── resources/                   # 配置文件和静态资源
-│   └── test/                           # 测试代码
-├── docs/                               # 项目文档
-├── deployments/                        # 部署配置
-├── scripts/                            # 脚本文件
-└── .cursor/                           # Cursor AI 规则
+│   └── test/                            # 测试代码
+├── docs/                                # 项目文档
+├── deployments/                         # 部署配置
+└── scripts/                             # 脚本文件
 ```
 
 ## 开发指南

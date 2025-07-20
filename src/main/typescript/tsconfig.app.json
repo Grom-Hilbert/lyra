@@ -1,15 +1,18 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": [
+    "internal/vite-env.d.ts",
+    "internal/**/*",
+    "internal/**/*.vue"
+  ],
+  "exclude": ["internal/**/__tests__/*"],
   "compilerOptions": {
+    "composite": true,
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
-
-    /* Linting */
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "erasableSyntaxOnly": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
-  },
-  "include": ["internal/**/*.ts", "internal/**/*.tsx", "internal/**/*.vue"]
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./internal/*"]
+    },
+    "types": ["vite/client", "element-plus/global"]
+  }
 }
