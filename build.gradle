@@ -80,7 +80,7 @@ tasks.named('test') {
 // 编译配置
 tasks.withType(JavaCompile) {
 	options.encoding = 'UTF-8'
-	options.compilerArgs += ['-parameters']
+	options.compilerArgs += ['-parameters', '-Xlint:deprecation', '-Xlint:unchecked']
 }
 
 // JAR配置

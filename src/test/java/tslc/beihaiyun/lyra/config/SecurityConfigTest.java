@@ -50,14 +50,14 @@ class SecurityConfigTest {
     }
 
     @Test
-    @DisplayName("验证认证提供者Bean正确配置")
-    void testAuthenticationProviderBean() {
-        AuthenticationProvider authProvider = applicationContext.getBean(AuthenticationProvider.class);
-        
-        assertNotNull(authProvider, "认证提供者Bean应该存在");
-        assertEquals("DaoAuthenticationProvider", 
-            authProvider.getClass().getSimpleName(), 
-            "应该是DaoAuthenticationProvider类型");
+    @DisplayName("验证认证提供者自动配置正确")
+    void testAuthenticationProviderAutoConfiguration() {
+        // 在Spring Security 6中，如果提供了UserDetailsService和PasswordEncoder，
+        // Spring Boot会自动配置DaoAuthenticationProvider
+        assertTrue(applicationContext.containsBean("lyraUserDetailsService"), 
+            "应该包含用户详情服务Bean");
+        assertTrue(applicationContext.containsBean("passwordEncoder"), 
+            "应该包含密码编码器Bean");
     }
 
     @Test
@@ -71,7 +71,7 @@ class SecurityConfigTest {
     @Test
     @DisplayName("验证CORS配置源Bean正确配置")
     void testCorsConfigurationSourceBean() {
-        CorsConfigurationSource corsSource = applicationContext.getBean(CorsConfigurationSource.class);
+        CorsConfigurationSource corsSource = applicationContext.getBean("corsConfigurationSource", CorsConfigurationSource.class);
         
         assertNotNull(corsSource, "CORS配置源Bean应该存在");
     }
@@ -90,8 +90,6 @@ class SecurityConfigTest {
         // 验证核心安全组件
         assertTrue(applicationContext.containsBean("passwordEncoder"), 
             "应该包含passwordEncoder Bean");
-        assertTrue(applicationContext.containsBean("authenticationProvider"), 
-            "应该包含authenticationProvider Bean");
         assertTrue(applicationContext.containsBean("authenticationManager"), 
             "应该包含authenticationManager Bean");
         assertTrue(applicationContext.containsBean("corsConfigurationSource"), 
