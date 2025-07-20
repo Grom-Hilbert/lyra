@@ -43,7 +43,7 @@ dependencies {
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
 	runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 	
-	// WebDAV 支持 (预留，后续添加)
+	// WebDAV 支持 (暂时注释，需要确认正确版本)
 	// implementation 'io.milton:milton-servlet:3.0.0.180'
 	
 	// 工具库

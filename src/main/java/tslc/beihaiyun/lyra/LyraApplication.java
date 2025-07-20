@@ -2,8 +2,6 @@ package tslc.beihaiyun.lyra;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
-import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  * Lyra 企业级云原生文档管理系统主应用类
@@ -13,8 +11,6 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
  * @since 2025-01-19
  */
 @SpringBootApplication
-@EnableJpaRepositories
-@EnableTransactionManagement
 public class LyraApplication {
 
     /**
