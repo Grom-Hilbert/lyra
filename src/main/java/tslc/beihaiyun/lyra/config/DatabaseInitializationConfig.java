@@ -6,6 +6,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
@@ -39,6 +40,7 @@ public class DatabaseInitializationConfig {
      * @return 命令行执行器
      */
     @Bean
+    @Profile("!test")
     @ConditionalOnProperty(value = "lyra.database.init.enabled", havingValue = "true", matchIfMissing = true)
     public CommandLineRunner databaseInitializer(DataSource dataSource, JdbcTemplate jdbcTemplate) {
         return args -> {
