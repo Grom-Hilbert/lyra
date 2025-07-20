@@ -22,4 +22,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * 根据邮箱查找用户 - 基础方法
      */  
     Optional<User> findByEmail(String email);
+    
+    /**
+     * 根据用户名查找未删除的用户
+     */
+    Optional<User> findByUsernameAndDeletedFalse(String username);
+    
+    /**
+     * 根据邮箱查找未删除的用户
+     */
+    Optional<User> findByEmailAndDeletedFalse(String email);
 } 

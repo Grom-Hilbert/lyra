@@ -507,6 +507,13 @@ public class User extends BaseEntity {
         return getClass().hashCode();
     }
 
+    /**
+     * 判断用户是否被锁定
+     */
+    public Boolean getLocked() {
+        return lockedAt != null;
+    }
+
     @Override
     public String toString() {
         return "User{" +
