@@ -97,22 +97,6 @@ pnpm install
 
 # 启动开发服务器
 pnpm dev
-
-# 启动开发服务器
-./gradlew bootRun
-```
-
-3. **前端启动**
-
-```bash
-# 进入前端目录
-cd src/main/typescript
-
-# 安装依赖
-pnpm install
-
-# 启动开发服务器
-pnpm dev
 ```
 
 4. **访问应用**

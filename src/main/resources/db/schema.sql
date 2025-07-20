@@ -1,0 +1,251 @@
+-- ===========================================
+-- Lyra 企业级文档管理系统 - 数据库模式定义
+-- ===========================================
+
+-- 用户表
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    display_name VARCHAR(100),
+    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE, LOCKED
+    user_type VARCHAR(20) DEFAULT 'USER', -- USER, ADMIN, SYSTEM
+    quota_limit BIGINT DEFAULT 10737418240, -- 10GB in bytes
+    quota_used BIGINT DEFAULT 0,
+    last_login_at DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system'
+);
+
+-- 角色表
+CREATE TABLE IF NOT EXISTS roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(100),
+    description TEXT,
+    is_system BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system'
+);
+
+-- 用户角色关联表
+CREATE TABLE IF NOT EXISTS user_roles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    role_id INTEGER NOT NULL,
+    granted_by VARCHAR(50),
+    granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    UNIQUE(user_id, role_id)
+);
+
+-- 空间表
+CREATE TABLE IF NOT EXISTS spaces (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(20) DEFAULT 'PERSONAL', -- PERSONAL, ENTERPRISE, SHARED
+    owner_id INTEGER,
+    description TEXT,
+    quota_limit BIGINT DEFAULT 10737418240, -- 10GB in bytes
+    quota_used BIGINT DEFAULT 0,
+    version_control_enabled BOOLEAN DEFAULT TRUE,
+    version_control_mode VARCHAR(20) DEFAULT 'NORMAL', -- NORMAL, GIT
+    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, ARCHIVED
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 文件夹表
+CREATE TABLE IF NOT EXISTS folders (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) NOT NULL,
+    path VARCHAR(1000) NOT NULL,
+    parent_id INTEGER,
+    space_id INTEGER NOT NULL,
+    level INTEGER DEFAULT 0,
+    is_root BOOLEAN DEFAULT FALSE,
+    size_bytes BIGINT DEFAULT 0,
+    file_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE,
+    FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE,
+    UNIQUE(space_id, path)
+);
+
+-- 文件表
+CREATE TABLE IF NOT EXISTS files (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) NOT NULL,
+    original_name VARCHAR(255) NOT NULL,
+    path VARCHAR(1000) NOT NULL,
+    folder_id INTEGER,
+    space_id INTEGER NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    mime_type VARCHAR(100),
+    file_hash VARCHAR(64), -- SHA-256 hash
+    storage_path VARCHAR(1000) NOT NULL,
+    version INTEGER DEFAULT 1,
+    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, DELETED, ARCHIVED
+    is_public BOOLEAN DEFAULT FALSE,
+    download_count INTEGER DEFAULT 0,
+    last_modified_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL,
+    FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE,
+    UNIQUE(space_id, path)
+);
+
+-- 文件版本表
+CREATE TABLE IF NOT EXISTS file_versions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id INTEGER NOT NULL,
+    version_number INTEGER NOT NULL,
+    size_bytes BIGINT NOT NULL,
+    file_hash VARCHAR(64), -- SHA-256 hash
+    storage_path VARCHAR(1000) NOT NULL,
+    change_comment TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+    UNIQUE(file_id, version_number)
+);
+
+-- 权限表
+CREATE TABLE IF NOT EXISTS permissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(100),
+    description TEXT,
+    resource_type VARCHAR(50), -- SPACE, FOLDER, FILE, SYSTEM
+    action VARCHAR(50), -- READ, WRITE, DELETE, ADMIN, etc.
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system'
+);
+
+-- 角色权限关联表
+CREATE TABLE IF NOT EXISTS role_permissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    role_id INTEGER NOT NULL,
+    permission_id INTEGER NOT NULL,
+    granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    granted_by VARCHAR(50),
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
+    UNIQUE(role_id, permission_id)
+);
+
+-- 资源权限表（用于具体资源的权限控制）
+CREATE TABLE IF NOT EXISTS resource_permissions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    role_id INTEGER,
+    resource_type VARCHAR(50) NOT NULL, -- SPACE, FOLDER, FILE
+    resource_id INTEGER NOT NULL,
+    permission_type VARCHAR(50) NOT NULL, -- READ, WRITE, DELETE, ADMIN
+    granted_by VARCHAR(50),
+    granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expires_at DATETIME,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
+);
+
+-- 分享链接表
+CREATE TABLE IF NOT EXISTS share_links (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token VARCHAR(32) NOT NULL UNIQUE,
+    file_id INTEGER,
+    folder_id INTEGER,
+    space_id INTEGER NOT NULL,
+    access_type VARCHAR(20) DEFAULT 'READ', -- read, write
+    password_hash VARCHAR(255),
+    download_limit INTEGER,
+    download_count INTEGER DEFAULT 0,
+    expires_at DATETIME,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
+    FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
+    FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE
+);
+
+-- 操作日志表
+CREATE TABLE IF NOT EXISTS audit_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER,
+    action VARCHAR(50) NOT NULL, -- LOGIN, UPLOAD, DOWNLOAD, DELETE, etc.
+    resource_type VARCHAR(50), -- USER, FILE, FOLDER, SPACE, SYSTEM
+    resource_id INTEGER,
+    resource_name VARCHAR(255),
+    details TEXT, -- JSON format
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    success BOOLEAN DEFAULT TRUE,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);
+
+-- 系统配置表
+CREATE TABLE IF NOT EXISTS system_config (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    config_key VARCHAR(100) NOT NULL UNIQUE,
+    config_value TEXT,
+    data_type VARCHAR(20) DEFAULT 'STRING', -- STRING, NUMBER, BOOLEAN, JSON
+    description TEXT,
+    is_sensitive BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(50) DEFAULT 'system'
+);
+
+-- JWT黑名单表
+CREATE TABLE IF NOT EXISTS jwt_blacklist (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    token_id VARCHAR(50) NOT NULL UNIQUE,
+    user_id INTEGER,
+    expires_at DATETIME NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+CREATE INDEX IF NOT EXISTS idx_user_roles_user_id ON user_roles(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_roles_role_id ON user_roles(role_id);
+CREATE INDEX IF NOT EXISTS idx_spaces_owner_id ON spaces(owner_id);
+CREATE INDEX IF NOT EXISTS idx_spaces_type ON spaces(type);
+CREATE INDEX IF NOT EXISTS idx_folders_parent_id ON folders(parent_id);
+CREATE INDEX IF NOT EXISTS idx_folders_space_id ON folders(space_id);
+CREATE INDEX IF NOT EXISTS idx_folders_path ON folders(path);
+CREATE INDEX IF NOT EXISTS idx_files_folder_id ON files(folder_id);
+CREATE INDEX IF NOT EXISTS idx_files_space_id ON files(space_id);
+CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);
+CREATE INDEX IF NOT EXISTS idx_files_hash ON files(file_hash);
+CREATE INDEX IF NOT EXISTS idx_file_versions_file_id ON file_versions(file_id);
+CREATE INDEX IF NOT EXISTS idx_resource_permissions_user_id ON resource_permissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_resource_permissions_resource ON resource_permissions(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_share_links_token ON share_links(token);
+CREATE INDEX IF NOT EXISTS idx_share_links_file_id ON share_links(file_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
+CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_token_id ON jwt_blacklist(token_id);
+CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_expires_at ON jwt_blacklist(expires_at); 

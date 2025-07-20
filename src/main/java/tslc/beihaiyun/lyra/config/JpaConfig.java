@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
@@ -12,6 +13,7 @@ import java.util.Optional;
 
 /**
  * JPA 配置类
+ * 负责JPA审计和Repository扫描配置
  * 
  * @author Lyra Team
  * @version 1.0.0
@@ -20,6 +22,7 @@ import java.util.Optional;
 @Configuration
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
 @EnableTransactionManagement
+@EnableJpaRepositories(basePackages = "tslc.beihaiyun.lyra.repository")
 public class JpaConfig {
 
     /**
