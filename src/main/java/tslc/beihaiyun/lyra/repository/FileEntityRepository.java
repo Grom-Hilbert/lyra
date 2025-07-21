@@ -156,6 +156,16 @@ public interface FileEntityRepository extends JpaRepository<FileEntity, Long> {
     Page<FileEntity> findByStatus(FileEntity.FileStatus status, Pageable pageable);
 
     /**
+     * 分页查询空间下特定状态的文件
+     * 
+     * @param space 所属空间
+     * @param status 文件状态
+     * @param pageable 分页参数
+     * @return 文件分页结果
+     */
+    Page<FileEntity> findBySpaceAndStatus(Space space, FileEntity.FileStatus status, Pageable pageable);
+
+    /**
      * 根据空间和名称查找文件
      * 
      * @param space 所属空间
