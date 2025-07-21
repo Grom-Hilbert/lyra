@@ -3,6 +3,7 @@ package tslc.beihaiyun.lyra.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -246,6 +247,7 @@ public interface FolderRepository extends JpaRepository<Folder, Long> {
      * @param newPathPrefix 新路径前缀
      * @return 更新的记录数
      */
+    @Modifying
     @Query("UPDATE Folder f SET f.path = CONCAT(:newPathPrefix, SUBSTRING(f.path, LENGTH(:oldPathPrefix) + 1)) " +
            "WHERE f.path LIKE CONCAT(:oldPathPrefix, '%')")
     int updatePathsByPrefix(@Param("oldPathPrefix") String oldPathPrefix, @Param("newPathPrefix") String newPathPrefix);
