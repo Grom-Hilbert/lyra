@@ -39,7 +39,13 @@ public class JpaConfig {
                 "anonymousUser".equals(authentication.getPrincipal())) {
                 return Optional.of("system");
             }
-            return Optional.of(authentication.getName());
+            
+            String name = authentication.getName();
+            if (name == null || name.trim().isEmpty()) {
+                return Optional.of("system");
+            }
+            
+            return Optional.of(name);
         };
     }
 } 

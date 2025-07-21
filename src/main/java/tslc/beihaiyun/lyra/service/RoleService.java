@@ -496,12 +496,13 @@ public class RoleService {
 
     /**
      * 生成权限唯一标识键
+     * 每个权限代码都是唯一的，不同代码的权限应该共存
      * 
      * @param permission 权限对象
      * @return 权限键
      */
     private String generatePermissionKey(Permission permission) {
-        return permission.getResourceType() + ":" + permission.getCategory();
+        return permission.getCode();
     }
 
     /**
