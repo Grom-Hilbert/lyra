@@ -1,27 +1,21 @@
 package tslc.beihaiyun.lyra.service;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.mockito.Mockito;
 
 import tslc.beihaiyun.lyra.config.LyraProperties;
 
@@ -37,40 +31,41 @@ import tslc.beihaiyun.lyra.config.LyraProperties;
 class JwtServiceTest {
 
     private JwtService jwtService;
-    private UserDetails testUser;
+    private UserDetails testUserDetails;
 
     private TokenBlacklistService tokenBlacklistService;
 
     @BeforeEach
     void setUp() {
-        // 创建真实的配置对象而不是Mock
         LyraProperties lyraProperties = new LyraProperties();
-        LyraProperties.JwtConfig jwtConfig = lyraProperties.getJwt();
-        jwtConfig.setSecret("ThisIsATestSecretKeyForJWTThatIsLongEnoughForHS256Algorithm");
-        jwtConfig.setExpiration(3600000L); // 1小时
-        jwtConfig.setRefreshExpiration(86400000L); // 24小时
+        lyraProperties.getJwt().setSecret("testSecretKeyForJWTTokenGeneration");
+        lyraProperties.getJwt().setExpiration(3600000L); // 1小时
+        lyraProperties.getJwt().setRefreshExpiration(86400000L); // 24小时
 
-        jwtService = new JwtService(lyraProperties);
+        // 创建模拟的ApplicationContext
+        ApplicationContext mockApplicationContext = Mockito.mock(ApplicationContext.class);
         
-        // 创建Mock的TokenBlacklistService并注入到JwtService中
-        tokenBlacklistService = mock(TokenBlacklistService.class);
-        jwtService.setTokenBlacklistService(tokenBlacklistService);
+        // 创建TokenBlacklistService的模拟对象
+        tokenBlacklistService = Mockito.mock(TokenBlacklistService.class);
         
-        // 默认设置令牌不在黑名单中
-        when(tokenBlacklistService.isTokenBlacklisted(anyString())).thenReturn(false);
+        // 配置ApplicationContext返回TokenBlacklistService
+        when(mockApplicationContext.getBean(TokenBlacklistService.class))
+                .thenReturn(tokenBlacklistService);
 
-        // 创建测试用户
-        testUser = User.builder()
-            .username("testuser")
-            .password("password")
-            .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
-            .build();
+        jwtService = new JwtService(lyraProperties, mockApplicationContext);
+
+        // 创建测试用户详情
+        testUserDetails = User.builder()
+                .username("testuser")
+                .password("password")
+                .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
+                .build();
     }
 
     @Test
     @DisplayName("成功生成JWT令牌")
     void testGenerateToken() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         
         assertNotNull(token, "令牌不应该为空");
         assertFalse(token.isEmpty(), "令牌不应该为空字符串");
@@ -84,18 +79,18 @@ class JwtServiceTest {
     @Test
     @DisplayName("从令牌中提取用户名")
     void testExtractUsername() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         String extractedUsername = jwtService.extractUsername(token);
         
-        assertEquals(testUser.getUsername(), extractedUsername, "提取的用户名应该匹配");
+        assertEquals(testUserDetails.getUsername(), extractedUsername, "提取的用户名应该匹配");
     }
 
     @Test
     @DisplayName("验证有效令牌")
     void testIsTokenValid() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         
-        assertTrue(jwtService.isTokenValid(token, testUser), "有效令牌应该通过验证");
+        assertTrue(jwtService.isTokenValid(token, testUserDetails), "有效令牌应该通过验证");
         assertTrue(jwtService.isTokenValid(token), "有效令牌应该通过基础验证");
     }
 
@@ -104,20 +99,20 @@ class JwtServiceTest {
     void testIsTokenInvalid() {
         String invalidToken = "invalid.token.here";
         
-        assertFalse(jwtService.isTokenValid(invalidToken, testUser), "无效令牌应该验证失败");
+        assertFalse(jwtService.isTokenValid(invalidToken, testUserDetails), "无效令牌应该验证失败");
         assertFalse(jwtService.isTokenValid(invalidToken), "无效令牌应该基础验证失败");
     }
 
     @Test
     @DisplayName("生成刷新令牌")
     void testGenerateRefreshToken() {
-        String refreshToken = jwtService.generateRefreshToken(testUser);
+        String refreshToken = jwtService.generateRefreshToken(testUserDetails);
         
         assertNotNull(refreshToken, "刷新令牌不应该为空");
         assertFalse(refreshToken.isEmpty(), "刷新令牌不应该为空字符串");
         
         // 验证刷新令牌有效性
-        assertTrue(jwtService.isTokenValid(refreshToken, testUser), "刷新令牌应该有效");
+        assertTrue(jwtService.isTokenValid(refreshToken, testUserDetails), "刷新令牌应该有效");
     }
 
     @Test
@@ -127,20 +122,20 @@ class JwtServiceTest {
         extraClaims.put("role", "ADMIN");
         extraClaims.put("department", "IT");
         
-        String token = jwtService.generateToken(extraClaims, testUser);
+        String token = jwtService.generateToken(extraClaims, testUserDetails);
         
         assertNotNull(token, "带额外声明的令牌不应该为空");
-        assertTrue(jwtService.isTokenValid(token, testUser), "带额外声明的令牌应该有效");
+        assertTrue(jwtService.isTokenValid(token, testUserDetails), "带额外声明的令牌应该有效");
     }
 
     @Test
     @DisplayName("生成带用户ID的令牌")
     void testGenerateTokenWithUserId() {
         Long userId = 123L;
-        String token = jwtService.generateTokenWithUserId(testUser, userId);
+        String token = jwtService.generateTokenWithUserId(testUserDetails, userId);
         
         assertNotNull(token, "带用户ID的令牌不应该为空");
-        assertTrue(jwtService.isTokenValid(token, testUser), "带用户ID的令牌应该有效");
+        assertTrue(jwtService.isTokenValid(token, testUserDetails), "带用户ID的令牌应该有效");
         
         Long extractedUserId = jwtService.extractUserId(token);
         assertEquals(userId, extractedUserId, "提取的用户ID应该匹配");
@@ -149,7 +144,7 @@ class JwtServiceTest {
     @Test
     @DisplayName("获取令牌剩余有效时间")
     void testGetTokenRemainingTime() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         long remainingTime = jwtService.getTokenRemainingTime(token);
         
         assertTrue(remainingTime > 0, "剩余时间应该大于0");
@@ -159,7 +154,7 @@ class JwtServiceTest {
     @Test
     @DisplayName("刷新有效令牌")
     void testRefreshToken() {
-        String originalToken = jwtService.generateToken(testUser);
+        String originalToken = jwtService.generateToken(testUserDetails);
         
         // 等待一秒确保时间戳不同
         try {
@@ -168,11 +163,11 @@ class JwtServiceTest {
             Thread.currentThread().interrupt();
         }
         
-        String refreshedToken = jwtService.refreshToken(originalToken, testUser);
+        String refreshedToken = jwtService.refreshToken(originalToken, testUserDetails);
         
         assertNotNull(refreshedToken, "刷新后的令牌不应该为空");
         assertNotEquals(originalToken, refreshedToken, "刷新后的令牌应该与原令牌不同");
-        assertTrue(jwtService.isTokenValid(refreshedToken, testUser), "刷新后的令牌应该有效");
+        assertTrue(jwtService.isTokenValid(refreshedToken, testUserDetails), "刷新后的令牌应该有效");
     }
 
     @Test
@@ -181,14 +176,14 @@ class JwtServiceTest {
         String invalidToken = "invalid.token.here";
         
         assertThrows(IllegalArgumentException.class, 
-            () -> jwtService.refreshToken(invalidToken, testUser),
+            () -> jwtService.refreshToken(invalidToken, testUserDetails),
             "刷新无效令牌应该抛出异常");
     }
 
     @Test
     @DisplayName("提取过期时间")
     void testExtractExpiration() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         Date expiration = jwtService.extractExpiration(token);
         
         assertNotNull(expiration, "过期时间不应该为空");
@@ -198,7 +193,7 @@ class JwtServiceTest {
     @Test
     @DisplayName("提取不存在的用户ID返回null")
     void testExtractNonExistentUserId() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         Long userId = jwtService.extractUserId(token);
         
         assertNull(userId, "不存在的用户ID应该返回null");
@@ -213,8 +208,12 @@ class JwtServiceTest {
         expiredProperties.getJwt().setExpiration(1L); // 1毫秒
         expiredProperties.getJwt().setRefreshExpiration(86400000L);
         
-        JwtService expiredJwtService = new JwtService(expiredProperties);
-        String token = expiredJwtService.generateToken(testUser);
+        ApplicationContext mockApplicationContext = Mockito.mock(ApplicationContext.class);
+        TokenBlacklistService mockTokenBlacklistService = Mockito.mock(TokenBlacklistService.class);
+        when(mockApplicationContext.getBean(TokenBlacklistService.class)).thenReturn(mockTokenBlacklistService);
+
+        JwtService expiredJwtService = new JwtService(expiredProperties, mockApplicationContext);
+        String token = expiredJwtService.generateToken(testUserDetails);
         
         // 等待令牌过期
         try {
@@ -223,7 +222,7 @@ class JwtServiceTest {
             Thread.currentThread().interrupt();
         }
         
-        assertFalse(expiredJwtService.isTokenValid(token, testUser), "过期令牌应该验证失败");
+        assertFalse(expiredJwtService.isTokenValid(token, testUserDetails), "过期令牌应该验证失败");
     }
 
     @Test
@@ -235,7 +234,7 @@ class JwtServiceTest {
             .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
             .build();
         
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         
         assertFalse(jwtService.isTokenValid(token, anotherUser), 
             "其他用户的令牌应该验证失败");
@@ -244,10 +243,10 @@ class JwtServiceTest {
     @Test
     @DisplayName("令牌注销功能测试")
     void testLogoutToken() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         
         // 验证令牌初始有效
-        assertTrue(jwtService.isTokenValid(token, testUser), "令牌初始应该有效");
+        assertTrue(jwtService.isTokenValid(token, testUserDetails), "令牌初始应该有效");
         assertFalse(jwtService.isTokenLoggedOut(token), "令牌初始不应该被注销");
         
         // 注销令牌
@@ -258,7 +257,7 @@ class JwtServiceTest {
         
         // 验证令牌已被注销
         assertTrue(jwtService.isTokenLoggedOut(token), "令牌应该已被注销");
-        assertFalse(jwtService.isTokenValid(token, testUser), "已注销的令牌应该验证失败");
+        assertFalse(jwtService.isTokenValid(token, testUserDetails), "已注销的令牌应该验证失败");
         assertFalse(jwtService.isTokenValid(token), "已注销的令牌应该基础验证失败");
     }
 
@@ -281,7 +280,7 @@ class JwtServiceTest {
     @Test
     @DisplayName("检查未注销令牌的状态")
     void testCheckNonLoggedOutToken() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         
         assertFalse(jwtService.isTokenLoggedOut(token), 
             "未注销的令牌不应该显示为已注销");
@@ -302,10 +301,10 @@ class JwtServiceTest {
     @Test
     @DisplayName("黑名单集成测试 - 令牌验证与黑名单交互")
     void testTokenValidationWithBlacklist() {
-        String token = jwtService.generateToken(testUser);
+        String token = jwtService.generateToken(testUserDetails);
         
         // 令牌初始有效
-        assertTrue(jwtService.isTokenValid(token, testUser), "令牌初始应该有效");
+        assertTrue(jwtService.isTokenValid(token, testUserDetails), "令牌初始应该有效");
         
         // 注销令牌
         jwtService.logoutToken(token);
@@ -314,14 +313,14 @@ class JwtServiceTest {
         when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(true);
         
         // 验证令牌验证方法正确处理黑名单
-        assertFalse(jwtService.isTokenValid(token, testUser), 
+        assertFalse(jwtService.isTokenValid(token, testUserDetails), 
             "黑名单中的令牌应该验证失败（带用户验证）");
         assertFalse(jwtService.isTokenValid(token), 
             "黑名单中的令牌应该验证失败（基础验证）");
         
         // 验证刷新已注销的令牌应该失败
         assertThrows(IllegalArgumentException.class, 
-            () -> jwtService.refreshToken(token, testUser),
+            () -> jwtService.refreshToken(token, testUserDetails),
             "刷新已注销的令牌应该抛出异常");
     }
 } 

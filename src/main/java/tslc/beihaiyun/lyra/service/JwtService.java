@@ -10,6 +10,7 @@ import javax.crypto.SecretKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
@@ -36,19 +37,28 @@ public class JwtService {
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
 
     private final LyraProperties lyraProperties;
+    private final ApplicationContext applicationContext;
     private TokenBlacklistService tokenBlacklistService;
 
     @Autowired
-    public JwtService(LyraProperties lyraProperties) {
+    public JwtService(LyraProperties lyraProperties, ApplicationContext applicationContext) {
         this.lyraProperties = lyraProperties;
+        this.applicationContext = applicationContext;
     }
 
     /**
-     * 设置令牌黑名单服务（用于解决循环依赖）
+     * 延迟获取令牌黑名单服务（避免循环依赖）
      */
-    @Autowired(required = false)
-    public void setTokenBlacklistService(TokenBlacklistService tokenBlacklistService) {
-        this.tokenBlacklistService = tokenBlacklistService;
+    private TokenBlacklistService getTokenBlacklistService() {
+        if (tokenBlacklistService == null) {
+            try {
+                tokenBlacklistService = applicationContext.getBean(TokenBlacklistService.class);
+            } catch (Exception e) {
+                logger.debug("TokenBlacklistService not available: {}", e.getMessage());
+                return null;
+            }
+        }
+        return tokenBlacklistService;
     }
 
     /**
@@ -120,7 +130,8 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
             // 首先检查令牌是否在黑名单中
-            if (tokenBlacklistService != null && tokenBlacklistService.isTokenBlacklisted(token)) {
+            TokenBlacklistService blacklistService = getTokenBlacklistService();
+            if (blacklistService != null && blacklistService.isTokenBlacklisted(token)) {
                 logger.debug("令牌在黑名单中，验证失败");
                 return false;
             }
@@ -139,7 +150,8 @@ public class JwtService {
     public boolean isTokenValid(String token) {
         try {
             // 首先检查令牌是否在黑名单中
-            if (tokenBlacklistService != null && tokenBlacklistService.isTokenBlacklisted(token)) {
+            TokenBlacklistService blacklistService = getTokenBlacklistService();
+            if (blacklistService != null && blacklistService.isTokenBlacklisted(token)) {
                 logger.debug("令牌在黑名单中，验证失败");
                 return false;
             }
@@ -249,8 +261,9 @@ public class JwtService {
             throw new IllegalArgumentException("令牌不能为空");
         }
         
-        if (tokenBlacklistService != null) {
-            tokenBlacklistService.blacklistToken(token);
+        TokenBlacklistService blacklistService = getTokenBlacklistService();
+        if (blacklistService != null) {
+            blacklistService.blacklistToken(token);
             logger.debug("令牌已成功注销");
         } else {
             logger.warn("令牌黑名单服务未初始化，无法注销令牌");
@@ -276,8 +289,9 @@ public class JwtService {
      * @return 如果令牌已被注销返回true，否则返回false
      */
     public boolean isTokenLoggedOut(String token) {
-        if (tokenBlacklistService != null) {
-            return tokenBlacklistService.isTokenBlacklisted(token);
+        TokenBlacklistService blacklistService = getTokenBlacklistService();
+        if (blacklistService != null) {
+            return blacklistService.isTokenBlacklisted(token);
         }
         return false;
     }

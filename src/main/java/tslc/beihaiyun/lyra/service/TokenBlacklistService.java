@@ -4,13 +4,18 @@ import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import javax.crypto.SecretKey;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import tslc.beihaiyun.lyra.config.LyraProperties;
 
 /**
@@ -26,15 +31,13 @@ public class TokenBlacklistService {
 
     private static final Logger logger = LoggerFactory.getLogger(TokenBlacklistService.class);
 
-    private final JwtService jwtService;
     private final LyraProperties lyraProperties;
 
     // 使用线程安全的Map存储黑名单令牌及其过期时间
     private final ConcurrentMap<String, Date> blacklistedTokens = new ConcurrentHashMap<>();
 
     @Autowired
-    public TokenBlacklistService(@Lazy JwtService jwtService, LyraProperties lyraProperties) {
-        this.jwtService = jwtService;
+    public TokenBlacklistService(LyraProperties lyraProperties) {
         this.lyraProperties = lyraProperties;
     }
 
@@ -50,19 +53,16 @@ public class TokenBlacklistService {
         }
 
         try {
-            // 提取令牌的过期时间
-            Date expirationDate = jwtService.extractExpiration(token);
+            // 直接从令牌中提取过期时间，避免依赖JwtService
+            Date expirationDate = extractExpiration(token);
+            blacklistedTokens.put(token, expirationDate);
             
-            // 只有未过期的令牌才需要加入黑名单
-            if (expirationDate.after(new Date())) {
-                blacklistedTokens.put(token, expirationDate);
-                logger.debug("令牌已添加到黑名单，过期时间: {}", expirationDate);
-            } else {
-                logger.debug("令牌已过期，无需添加到黑名单");
-            }
+            logger.debug("令牌已添加到黑名单，数量: {}", blacklistedTokens.size());
         } catch (Exception e) {
-            logger.error("处理令牌黑名单时发生错误: {}", e.getMessage());
-            throw new IllegalArgumentException("无效的令牌", e);
+            logger.warn("无法解析令牌过期时间: {}", e.getMessage());
+            // 如果无法解析过期时间，使用最大刷新令牌过期时间作为默认值
+            Date defaultExpiration = new Date(System.currentTimeMillis() + lyraProperties.getJwt().getRefreshExpiration());
+            blacklistedTokens.put(token, defaultExpiration);
         }
     }
 
@@ -70,80 +70,115 @@ public class TokenBlacklistService {
      * 检查令牌是否在黑名单中
      * 
      * @param token JWT令牌
-     * @return 如果令牌在黑名单中返回true，否则返回false
+     * @return 如果令牌在黑名单中返回true
      */
     public boolean isTokenBlacklisted(String token) {
         if (token == null || token.trim().isEmpty()) {
             return false;
         }
-
-        boolean isBlacklisted = blacklistedTokens.containsKey(token);
-        if (isBlacklisted) {
-            logger.debug("令牌在黑名单中");
-        }
-        return isBlacklisted;
+        
+        return blacklistedTokens.containsKey(token);
     }
 
     /**
-     * 从黑名单中移除令牌（通常用于测试或特殊情况）
+     * 从黑名单中移除令牌
      * 
      * @param token JWT令牌
-     * @return 如果令牌被成功移除返回true，否则返回false
      */
-    public boolean removeTokenFromBlacklist(String token) {
-        if (token == null || token.trim().isEmpty()) {
-            return false;
-        }
-
-        Date removedExpiration = blacklistedTokens.remove(token);
-        if (removedExpiration != null) {
+    public void removeTokenFromBlacklist(String token) {
+        if (token != null && !token.trim().isEmpty()) {
+            blacklistedTokens.remove(token);
             logger.debug("令牌已从黑名单中移除");
-            return true;
         }
-        return false;
     }
 
     /**
-     * 获取黑名单中的令牌数量
-     * 
-     * @return 黑名单中的令牌数量
-     */
-    public int getBlacklistedTokenCount() {
-        return blacklistedTokens.size();
-    }
-
-    /**
-     * 清空所有黑名单令牌（主要用于测试）
-     */
-    public void clearBlacklist() {
-        blacklistedTokens.clear();
-        logger.debug("已清空所有黑名单令牌");
-    }
-
-    /**
-     * 定期清理过期的黑名单令牌
-     * 每小时执行一次清理任务
+     * 清理过期的黑名单令牌
+     * 每小时执行一次
      */
     @Scheduled(fixedRate = 3600000) // 1小时 = 3600000毫秒
     public void cleanupExpiredTokens() {
         Date now = new Date();
-        int initialSize = blacklistedTokens.size();
+        int removedCount = 0;
         
-        // 移除所有已过期的令牌
-        blacklistedTokens.entrySet().removeIf(entry -> 
-            entry.getValue().before(now));
+        // 使用迭代器安全地移除过期令牌
+        blacklistedTokens.entrySet().removeIf(entry -> {
+            Date expirationDate = entry.getValue();
+            return expirationDate.before(now);
+        });
         
-        int finalSize = blacklistedTokens.size();
-        if (initialSize > finalSize) {
-            logger.info("清理了 {} 个过期的黑名单令牌，当前黑名单大小: {}", 
-                       initialSize - finalSize, finalSize);
+        if (removedCount > 0) {
+            logger.info("清理了 {} 个过期的黑名单令牌，当前数量: {}", removedCount, blacklistedTokens.size());
         }
     }
 
     /**
-     * 强制清理过期令牌（用于测试或手动触发）
+     * 获取当前黑名单中的令牌数量
+     * 
+     * @return 黑名单令牌数量
      */
-    public void forceCleanupExpiredTokens() {
-        cleanupExpiredTokens();
+    public int getBlacklistSize() {
+        return blacklistedTokens.size();
+    }
+
+    /**
+     * 清空所有黑名单令牌
+     */
+    public void clearAllBlacklistedTokens() {
+        int size = blacklistedTokens.size();
+        blacklistedTokens.clear();
+        logger.info("已清空所有黑名单令牌，数量: {}", size);
+    }
+
+    /**
+     * 检查令牌是否即将过期（用于清理优化）
+     * 
+     * @param token JWT令牌
+     * @param thresholdMinutes 阈值分钟数
+     * @return 如果令牌将在阈值时间内过期返回true
+     */
+    public boolean isTokenExpiringSoon(String token, int thresholdMinutes) {
+        if (token == null || token.trim().isEmpty()) {
+            return false;
+        }
+        
+        try {
+            Date expirationDate = extractExpiration(token);
+            Date threshold = new Date(System.currentTimeMillis() + (thresholdMinutes * 60 * 1000L));
+            return expirationDate.before(threshold);
+        } catch (Exception e) {
+            logger.debug("无法检查令牌过期时间: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 直接从JWT令牌中提取过期时间
+     * 避免对JwtService的依赖
+     */
+    private Date extractExpiration(String token) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(getSignInKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            return claims.getExpiration();
+        } catch (Exception e) {
+            logger.debug("令牌解析失败: {}", e.getMessage());
+            throw new IllegalArgumentException("无法解析令牌", e);
+        }
+    }
+
+    /**
+     * 获取签名密钥（复制自JwtService以避免依赖）
+     */
+    private SecretKey getSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(
+            java.util.Base64.getEncoder().encodeToString(
+                lyraProperties.getJwt().getSecret().getBytes()
+            )
+        );
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 } 
