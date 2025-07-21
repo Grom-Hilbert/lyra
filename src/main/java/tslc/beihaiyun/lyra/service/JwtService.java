@@ -1,21 +1,26 @@
 package tslc.beihaiyun.lyra.service;
 
-import io.jsonwebtoken.*;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+
+import javax.crypto.SecretKey;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
 import tslc.beihaiyun.lyra.config.LyraProperties;
-
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.function.Function;
 
 /**
  * JWT服务
@@ -31,10 +36,19 @@ public class JwtService {
     private static final Logger logger = LoggerFactory.getLogger(JwtService.class);
 
     private final LyraProperties lyraProperties;
+    private TokenBlacklistService tokenBlacklistService;
 
     @Autowired
     public JwtService(LyraProperties lyraProperties) {
         this.lyraProperties = lyraProperties;
+    }
+
+    /**
+     * 设置令牌黑名单服务（用于解决循环依赖）
+     */
+    @Autowired(required = false)
+    public void setTokenBlacklistService(TokenBlacklistService tokenBlacklistService) {
+        this.tokenBlacklistService = tokenBlacklistService;
     }
 
     /**
@@ -105,6 +119,12 @@ public class JwtService {
      */
     public boolean isTokenValid(String token, UserDetails userDetails) {
         try {
+            // 首先检查令牌是否在黑名单中
+            if (tokenBlacklistService != null && tokenBlacklistService.isTokenBlacklisted(token)) {
+                logger.debug("令牌在黑名单中，验证失败");
+                return false;
+            }
+            
             final String username = extractUsername(token);
             return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
         } catch (Exception e) {
@@ -118,6 +138,12 @@ public class JwtService {
      */
     public boolean isTokenValid(String token) {
         try {
+            // 首先检查令牌是否在黑名单中
+            if (tokenBlacklistService != null && tokenBlacklistService.isTokenBlacklisted(token)) {
+                logger.debug("令牌在黑名单中，验证失败");
+                return false;
+            }
+            
             extractAllClaims(token);
             return !isTokenExpired(token);
         } catch (Exception e) {
@@ -210,5 +236,49 @@ public class JwtService {
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("userId", userId);
         return generateToken(extraClaims, userDetails);
+    }
+
+    /**
+     * 注销令牌（将令牌添加到黑名单）
+     * 
+     * @param token 要注销的JWT令牌
+     * @throws IllegalArgumentException 如果令牌无效
+     */
+    public void logoutToken(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            throw new IllegalArgumentException("令牌不能为空");
+        }
+        
+        if (tokenBlacklistService != null) {
+            tokenBlacklistService.blacklistToken(token);
+            logger.debug("令牌已成功注销");
+        } else {
+            logger.warn("令牌黑名单服务未初始化，无法注销令牌");
+            throw new IllegalStateException("令牌黑名单服务未可用");
+        }
+    }
+
+    /**
+     * 批量注销用户的所有令牌
+     * 注意：此方法需要扩展实现，当前只支持单个令牌注销
+     * 
+     * @param username 用户名
+     */
+    public void logoutAllUserTokens(String username) {
+        // TODO: 实现批量注销功能，需要记录用户的活跃令牌
+        logger.warn("批量注销功能尚未实现，用户: {}", username);
+    }
+
+    /**
+     * 检查令牌是否已被注销（在黑名单中）
+     * 
+     * @param token JWT令牌
+     * @return 如果令牌已被注销返回true，否则返回false
+     */
+    public boolean isTokenLoggedOut(String token) {
+        if (tokenBlacklistService != null) {
+            return tokenBlacklistService.isTokenBlacklisted(token);
+        }
+        return false;
     }
 } 

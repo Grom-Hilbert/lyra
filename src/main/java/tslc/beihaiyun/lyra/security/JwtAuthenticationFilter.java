@@ -1,9 +1,7 @@
 package tslc.beihaiyun.lyra.security;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +14,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import tslc.beihaiyun.lyra.service.JwtService;
-
-import java.io.IOException;
 
 /**
  * JWT认证过滤器
@@ -52,21 +52,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
             
-            if (StringUtils.hasText(jwt) && jwtService.isTokenValid(jwt)) {
-                String username = jwtService.extractUsername(jwt);
-                
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+            if (StringUtils.hasText(jwt)) {
+                // 先检查令牌基础有效性（包括黑名单检查）
+                if (jwtService.isTokenValid(jwt)) {
+                    String username = jwtService.extractUsername(jwt);
                     
-                    if (jwtService.isTokenValid(jwt, userDetails)) {
-                        UsernamePasswordAuthenticationToken authToken = 
-                            new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                        authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                         
-                        logger.debug("已设置用户认证信息：{}", username);
+                        // 再次验证令牌与用户信息的匹配性（包括黑名单检查）
+                        if (jwtService.isTokenValid(jwt, userDetails)) {
+                            UsernamePasswordAuthenticationToken authToken = 
+                                new UsernamePasswordAuthenticationToken(
+                                    userDetails, null, userDetails.getAuthorities());
+                            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                            SecurityContextHolder.getContext().setAuthentication(authToken);
+                            
+                            logger.debug("已设置用户认证信息：{}", username);
+                        } else {
+                            logger.debug("令牌验证失败，用户：{}", username);
+                        }
                     }
+                } else {
+                    logger.debug("令牌无效或已被注销");
                 }
             }
         } catch (Exception ex) {

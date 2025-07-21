@@ -1,18 +1,29 @@
 package tslc.beihaiyun.lyra.service;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import tslc.beihaiyun.lyra.config.LyraProperties;
-
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 
 /**
@@ -28,6 +39,8 @@ class JwtServiceTest {
     private JwtService jwtService;
     private UserDetails testUser;
 
+    private TokenBlacklistService tokenBlacklistService;
+
     @BeforeEach
     void setUp() {
         // 创建真实的配置对象而不是Mock
@@ -38,6 +51,13 @@ class JwtServiceTest {
         jwtConfig.setRefreshExpiration(86400000L); // 24小时
 
         jwtService = new JwtService(lyraProperties);
+        
+        // 创建Mock的TokenBlacklistService并注入到JwtService中
+        tokenBlacklistService = mock(TokenBlacklistService.class);
+        jwtService.setTokenBlacklistService(tokenBlacklistService);
+        
+        // 默认设置令牌不在黑名单中
+        when(tokenBlacklistService.isTokenBlacklisted(anyString())).thenReturn(false);
 
         // 创建测试用户
         testUser = User.builder()
@@ -219,5 +239,89 @@ class JwtServiceTest {
         
         assertFalse(jwtService.isTokenValid(token, anotherUser), 
             "其他用户的令牌应该验证失败");
+    }
+
+    @Test
+    @DisplayName("令牌注销功能测试")
+    void testLogoutToken() {
+        String token = jwtService.generateToken(testUser);
+        
+        // 验证令牌初始有效
+        assertTrue(jwtService.isTokenValid(token, testUser), "令牌初始应该有效");
+        assertFalse(jwtService.isTokenLoggedOut(token), "令牌初始不应该被注销");
+        
+        // 注销令牌
+        jwtService.logoutToken(token);
+        
+        // 设置Mock，模拟令牌已在黑名单中
+        when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(true);
+        
+        // 验证令牌已被注销
+        assertTrue(jwtService.isTokenLoggedOut(token), "令牌应该已被注销");
+        assertFalse(jwtService.isTokenValid(token, testUser), "已注销的令牌应该验证失败");
+        assertFalse(jwtService.isTokenValid(token), "已注销的令牌应该基础验证失败");
+    }
+
+    @Test
+    @DisplayName("注销空令牌应该抛出异常")
+    void testLogoutNullToken() {
+        assertThrows(IllegalArgumentException.class, 
+            () -> jwtService.logoutToken(null),
+            "注销null令牌应该抛出异常");
+        
+        assertThrows(IllegalArgumentException.class, 
+            () -> jwtService.logoutToken(""),
+            "注销空字符串令牌应该抛出异常");
+        
+        assertThrows(IllegalArgumentException.class, 
+            () -> jwtService.logoutToken("   "),
+            "注销空白令牌应该抛出异常");
+    }
+
+    @Test
+    @DisplayName("检查未注销令牌的状态")
+    void testCheckNonLoggedOutToken() {
+        String token = jwtService.generateToken(testUser);
+        
+        assertFalse(jwtService.isTokenLoggedOut(token), 
+            "未注销的令牌不应该显示为已注销");
+        assertFalse(jwtService.isTokenLoggedOut(null), 
+            "null令牌不应该显示为已注销");
+        assertFalse(jwtService.isTokenLoggedOut(""), 
+            "空字符串令牌不应该显示为已注销");
+    }
+
+    @Test
+    @DisplayName("批量注销功能提醒")
+    void testLogoutAllUserTokens() {
+        // 当前只是记录警告，验证方法可以调用而不报错
+        assertDoesNotThrow(() -> jwtService.logoutAllUserTokens("testuser"),
+            "批量注销方法应该可以调用而不报错");
+    }
+
+    @Test
+    @DisplayName("黑名单集成测试 - 令牌验证与黑名单交互")
+    void testTokenValidationWithBlacklist() {
+        String token = jwtService.generateToken(testUser);
+        
+        // 令牌初始有效
+        assertTrue(jwtService.isTokenValid(token, testUser), "令牌初始应该有效");
+        
+        // 注销令牌
+        jwtService.logoutToken(token);
+        
+        // 设置Mock，模拟令牌已在黑名单中
+        when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(true);
+        
+        // 验证令牌验证方法正确处理黑名单
+        assertFalse(jwtService.isTokenValid(token, testUser), 
+            "黑名单中的令牌应该验证失败（带用户验证）");
+        assertFalse(jwtService.isTokenValid(token), 
+            "黑名单中的令牌应该验证失败（基础验证）");
+        
+        // 验证刷新已注销的令牌应该失败
+        assertThrows(IllegalArgumentException.class, 
+            () -> jwtService.refreshToken(token, testUser),
+            "刷新已注销的令牌应该抛出异常");
     }
 } 

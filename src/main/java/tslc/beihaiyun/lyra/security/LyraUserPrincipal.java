@@ -1,10 +1,14 @@
 package tslc.beihaiyun.lyra.security;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Objects;
+
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.Objects;
+import tslc.beihaiyun.lyra.entity.User;
 
 /**
  * 用户主体类
@@ -36,6 +40,29 @@ public class LyraUserPrincipal implements UserDetails {
 
     public static Builder builder() {
         return new Builder();
+    }
+
+    /**
+     * 从User实体创建LyraUserPrincipal
+     * 
+     * @param user 用户实体
+     * @return LyraUserPrincipal实例
+     */
+    public static LyraUserPrincipal fromUser(User user) {
+        // 构建权限集合（暂时使用默认权限，后续可以从用户角色中获取）
+        Collection<GrantedAuthority> authorities = Collections.singletonList(
+            new SimpleGrantedAuthority("ROLE_USER")
+        );
+
+        return builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .password(user.getPassword())
+                .enabled(user.getEnabled())
+                .accountNonLocked(user.getAccountNonLocked())
+                .authorities(authorities)
+                .build();
     }
 
     // UserDetails接口实现
