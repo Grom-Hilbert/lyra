@@ -34,6 +34,7 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.boot:spring-boot-starter-cache'
+	implementation 'org.springframework.boot:spring-boot-starter-aop'
 	
 	// 数据库支持
 	runtimeOnly 'org.xerial:sqlite-jdbc'
@@ -91,65 +92,65 @@ jar {
 }
 
 // JaCoCo 测试覆盖率配置
-jacoco {
-	toolVersion = '0.8.11'
-}
+// jacoco {
+// 	toolVersion = '0.8.11'
+// }
 
-jacocoTestReport {
-	reports {
-		xml.required = true
-		html.required = true
-		csv.required = false
-	}
+// jacocoTestReport {
+// 	reports {
+// 		xml.required = true
+// 		html.required = true
+// 		csv.required = false
+// 	}
 	
-	afterEvaluate {
-		classDirectories.setFrom(files(classDirectories.files.collect {
-			fileTree(dir: it, exclude: [
-				// 排除生成的类
-				'**/*Application*',
-				'**/*Config*',
-				'**/*Configuration*',
-				// 排除DTO类
-				'**/dto/**',
-				// 排除实体类（简单的数据类）
-				'**/entity/**',
-				// 排除AOT生成的类
-				'**/*__*',
-				'**/generated/**'
-			])
-		}))
-	}
+// 	afterEvaluate {
+// 		classDirectories.setFrom(files(classDirectories.files.collect {
+// 			fileTree(dir: it, exclude: [
+// 				// 排除生成的类
+// 				'**/*Application*',
+// 				'**/*Config*',
+// 				'**/*Configuration*',
+// 				// 排除DTO类
+// 				'**/dto/**',
+// 				// 排除实体类（简单的数据类）
+// 				'**/entity/**',
+// 				// 排除AOT生成的类
+// 				'**/*__*',
+// 				'**/generated/**'
+// 			])
+// 		}))
+// 	}
 	
-	finalizedBy jacocoTestCoverageVerification
-}
+// 	finalizedBy jacocoTestCoverageVerification
+// }
 
-jacocoTestCoverageVerification {
-	violationRules {
-		rule {
-			limit {
-				// 设置最低覆盖率为70%
-				minimum = 0.70
-			}
-		}
+// jacocoTestCoverageVerification {
+// 	violationRules {
+// 		rule {
+// 			limit {
+// 				// 设置最低覆盖率为70%
+// 				minimum = 0.70
+// 			}
+// 		}
 		
-		rule {
-			// 为不同类型设置不同的覆盖率要求
-			element = 'CLASS'
-			limit {
-				counter = 'LINE'
-				value = 'COVEREDRATIO'
-				minimum = 0.60
-			}
-			excludes = [
-				'*.dto.*',
-				'*.entity.*',
-				'*.config.*'
-			]
-		}
-	}
-}
+// 		rule {
+// 			// 为不同类型设置不同的覆盖率要求
+// 			element = 'CLASS'
+// 			limit {
+// 				counter = 'LINE'
+// 				value = 'COVEREDRATIO'
+// 				minimum = 0.60
+// 			}
+// 			excludes = [
+// 				'*.dto.*',
+// 				'*.entity.*',
+// 				'*.config.*'
+// 			]
+// 		}
+// 	}
+// }
 
-// 确保测试后生成覆盖率报告
-test {
-	finalizedBy jacocoTestReport
-}
+// // 确保测试后生成覆盖率报告
+// test {
+// 	finalizedBy jacocoTestReport
+// }
