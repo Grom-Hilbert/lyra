@@ -19,12 +19,13 @@ import org.springframework.context.annotation.Configuration;
 public class CacheConfig {
 
     /**
-     * 权限缓存名称
+     * 缓存名称常量
      */
     public static final String USER_PERMISSIONS_CACHE = "userPermissions";
     public static final String USER_ROLES_CACHE = "userRoles";
     public static final String PERMISSION_CHECK_CACHE = "permissionCheck";
     public static final String INHERITED_PERMISSIONS_CACHE = "inheritedPermissions";
+    public static final String ROLE_CACHE = "roleCache";
 
     /**
      * 缓存管理器
@@ -38,7 +39,8 @@ public class CacheConfig {
             USER_PERMISSIONS_CACHE,
             USER_ROLES_CACHE,
             PERMISSION_CHECK_CACHE,
-            INHERITED_PERMISSIONS_CACHE
+            INHERITED_PERMISSIONS_CACHE,
+            ROLE_CACHE
         );
     }
 } 

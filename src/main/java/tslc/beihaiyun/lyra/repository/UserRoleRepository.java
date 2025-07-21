@@ -3,6 +3,7 @@ package tslc.beihaiyun.lyra.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -11,6 +12,7 @@ import tslc.beihaiyun.lyra.entity.UserRole;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * 用户角色关联Repository接口
@@ -272,6 +274,7 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
      * @param status 新状态
      * @return 更新行数
      */
+    @Modifying
     @Query("UPDATE UserRole ur SET ur.status = :status WHERE ur.id IN :ids")
     int updateStatusByIds(@Param("ids") List<Long> ids, @Param("status") UserRole.AssignmentStatus status);
 
@@ -279,21 +282,35 @@ public interface UserRoleRepository extends JpaRepository<UserRole, Long> {
      * 更新过期的用户角色关联状态
      * 
      * @param currentTime 当前时间
+     * @param activeStatus ACTIVE状态
+     * @param expiredStatus EXPIRED状态
      * @return 更新行数
      */
-    @Query("UPDATE UserRole ur SET ur.status = 'EXPIRED' WHERE ur.status = 'ACTIVE' " +
+    @Modifying
+    @Transactional
+    @Query("UPDATE UserRole ur SET ur.status = :expiredStatus " +
+           "WHERE ur.status = :activeStatus " +
            "AND ur.expiresAt IS NOT NULL AND ur.expiresAt <= :currentTime")
-    int updateExpiredUserRoles(@Param("currentTime") LocalDateTime currentTime);
+    int updateExpiredUserRoles(@Param("currentTime") LocalDateTime currentTime,
+                               @Param("activeStatus") UserRole.AssignmentStatus activeStatus,
+                               @Param("expiredStatus") UserRole.AssignmentStatus expiredStatus);
 
     /**
      * 激活到期生效的用户角色关联
      * 
      * @param currentTime 当前时间
+     * @param pendingStatus PENDING状态
+     * @param activeStatus ACTIVE状态
      * @return 更新行数
      */
-    @Query("UPDATE UserRole ur SET ur.status = 'ACTIVE' WHERE ur.status = 'PENDING' " +
+    @Modifying
+    @Transactional
+    @Query("UPDATE UserRole ur SET ur.status = :activeStatus " +
+           "WHERE ur.status = :pendingStatus " +
            "AND ur.effectiveAt IS NOT NULL AND ur.effectiveAt <= :currentTime")
-    int activatePendingUserRoles(@Param("currentTime") LocalDateTime currentTime);
+    int activatePendingUserRoles(@Param("currentTime") LocalDateTime currentTime,
+                                 @Param("pendingStatus") UserRole.AssignmentStatus pendingStatus,
+                                 @Param("activeStatus") UserRole.AssignmentStatus activeStatus);
 
     /**
      * 查找在指定时间段内创建的用户角色关联
