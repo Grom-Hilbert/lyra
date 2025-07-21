@@ -1,5 +1,10 @@
 package tslc.beihaiyun.lyra.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -7,12 +12,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import tslc.beihaiyun.lyra.entity.SpacePermission;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import tslc.beihaiyun.lyra.entity.SpacePermission;
 
 /**
  * 空间权限数据访问接口
@@ -329,10 +330,10 @@ public interface SpacePermissionRepository extends JpaRepository<SpacePermission
      * @return 删除的记录数
      */
     @Modifying
-    @Query("UPDATE SpacePermission sp SET sp.isDeleted = true " +
+    @Query("UPDATE SpacePermission sp SET sp.deleted = true " +
            "WHERE sp.expiresAt IS NOT NULL " +
            "AND sp.expiresAt < :currentTime " +
-           "AND sp.isDeleted = false")
+           "AND sp.deleted = false")
     int markExpiredPermissionsAsDeleted(@Param("currentTime") LocalDateTime currentTime);
 
     /**
@@ -362,10 +363,10 @@ public interface SpacePermissionRepository extends JpaRepository<SpacePermission
      * @return 删除的记录数
      */
     @Modifying
-    @Query("UPDATE SpacePermission sp SET sp.isDeleted = true " +
+    @Query("UPDATE SpacePermission sp SET sp.deleted = true " +
            "WHERE sp.resourceType = :resourceType " +
            "AND sp.resourceId = :resourceId " +
-           "AND sp.isDeleted = false")
+           "AND sp.deleted = false")
     int markResourcePermissionsAsDeleted(@Param("resourceType") String resourceType,
                                         @Param("resourceId") Long resourceId);
 

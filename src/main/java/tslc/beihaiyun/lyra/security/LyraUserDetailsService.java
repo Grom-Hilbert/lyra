@@ -1,5 +1,9 @@
 package tslc.beihaiyun.lyra.security;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,10 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 import tslc.beihaiyun.lyra.entity.User;
 import tslc.beihaiyun.lyra.entity.UserRole;
 import tslc.beihaiyun.lyra.repository.UserRepository;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 
 /**
  * 自定义用户详情服务
@@ -44,7 +44,7 @@ public class LyraUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         logger.debug("正在加载用户信息：{}", username);
         
-        User user = userRepository.findByUsernameAndDeletedFalse(username)
+        User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new UsernameNotFoundException("用户不存在：" + username));
 
         if (!user.getEnabled()) {

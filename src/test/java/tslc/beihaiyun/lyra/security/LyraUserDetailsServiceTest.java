@@ -1,13 +1,25 @@
 package tslc.beihaiyun.lyra.security;
 
+import java.time.LocalDateTime;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
@@ -16,12 +28,6 @@ import tslc.beihaiyun.lyra.entity.Role;
 import tslc.beihaiyun.lyra.entity.User;
 import tslc.beihaiyun.lyra.entity.UserRole;
 import tslc.beihaiyun.lyra.repository.UserRepository;
-
-import java.time.LocalDateTime;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
 /**
  * LyraUserDetailsService 单元测试
@@ -51,7 +57,7 @@ class LyraUserDetailsServiceTest {
          String username = "testuser";
          User user = createTestUser(username);
          
-         when(userRepository.findByUsernameAndDeletedFalse(username))
+         when(userRepository.findByUsername(username))
              .thenReturn(Optional.of(user));
          
          // 执行测试
@@ -71,7 +77,7 @@ class LyraUserDetailsServiceTest {
          assertNotNull(authorities, "权限不应该为空");
          
          // 验证调用
-         verify(userRepository, times(1)).findByUsernameAndDeletedFalse(username);
+         verify(userRepository, times(1)).findByUsername(username);
      }
 
     @Test
@@ -79,7 +85,7 @@ class LyraUserDetailsServiceTest {
     void testLoadUserByUsernameNotFound() {
         String username = "nonexistent";
         
-        when(userRepository.findByUsernameAndDeletedFalse(username))
+        when(userRepository.findByUsername(username))
             .thenReturn(Optional.empty());
         
         // 验证抛出异常
@@ -92,7 +98,7 @@ class LyraUserDetailsServiceTest {
         assertTrue(exception.getMessage().contains(username), 
             "异常消息应该包含用户名");
         
-        verify(userRepository, times(1)).findByUsernameAndDeletedFalse(username);
+        verify(userRepository, times(1)).findByUsername(username);
     }
 
     @Test
@@ -102,7 +108,7 @@ class LyraUserDetailsServiceTest {
         User user = createTestUser(username);
         user.setEnabled(false);
         
-        when(userRepository.findByUsernameAndDeletedFalse(username))
+        when(userRepository.findByUsername(username))
             .thenReturn(Optional.of(user));
         
         // 验证抛出异常
@@ -123,7 +129,7 @@ class LyraUserDetailsServiceTest {
         User user = createTestUser(username);
         user.setLockedAt(LocalDateTime.now());
         
-        when(userRepository.findByUsernameAndDeletedFalse(username))
+        when(userRepository.findByUsername(username))
             .thenReturn(Optional.of(user));
         
         // 验证抛出异常
@@ -143,7 +149,7 @@ class LyraUserDetailsServiceTest {
         String username = "adminuser";
         User user = createTestUserWithRole(username, "ADMIN", "USER_CREATE", "USER_DELETE");
         
-        when(userRepository.findByUsernameAndDeletedFalse(username))
+        when(userRepository.findByUsername(username))
             .thenReturn(Optional.of(user));
         
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
@@ -166,7 +172,7 @@ class LyraUserDetailsServiceTest {
         String username = "testuser";
         User user = createTestUser(username);
         
-        when(userRepository.findByUsernameAndDeletedFalse(username))
+        when(userRepository.findByUsername(username))
             .thenReturn(Optional.of(user));
         
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
