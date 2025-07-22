@@ -74,6 +74,12 @@ public class LyraResource {
     
     // 内容提供者
     private final InputStream contentStream;
+    
+    // 版本控制属性
+    private final Integer currentVersionNumber;
+    private final Long totalVersionCount;
+    private final String latestVersionComment;
+    private final Date latestVersionDate;
 
     /**
      * 私有构造器，使用Builder模式创建
@@ -94,6 +100,10 @@ public class LyraResource {
         this.space = builder.space;
         this.children = new ArrayList<>(builder.children);
         this.contentStream = builder.contentStream;
+        this.currentVersionNumber = builder.currentVersionNumber;
+        this.totalVersionCount = builder.totalVersionCount;
+        this.latestVersionComment = builder.latestVersionComment;
+        this.latestVersionDate = builder.latestVersionDate;
     }
 
     // Getter 方法
@@ -112,6 +122,12 @@ public class LyraResource {
     public Space getSpace() { return space; }
     public List<LyraResource> getChildren() { return new ArrayList<>(children); }
     public InputStream getContentStream() { return contentStream; }
+    
+    // 版本控制属性的getter方法
+    public Integer getCurrentVersionNumber() { return currentVersionNumber; }
+    public Long getTotalVersionCount() { return totalVersionCount; }
+    public String getLatestVersionComment() { return latestVersionComment; }
+    public Date getLatestVersionDate() { return latestVersionDate; }
 
     /**
      * 判断是否为集合（文件夹）
@@ -328,7 +344,11 @@ public class LyraResource {
                 .folder(this.folder)
                 .space(this.space)
                 .children(this.children)
-                .contentStream(this.contentStream);
+                .contentStream(this.contentStream)
+                .currentVersionNumber(this.currentVersionNumber)
+                .totalVersionCount(this.totalVersionCount)
+                .latestVersionComment(this.latestVersionComment)
+                .latestVersionDate(this.latestVersionDate);
     }
 
     /**
@@ -350,6 +370,10 @@ public class LyraResource {
         private Space space;
         private List<LyraResource> children = new ArrayList<>();
         private InputStream contentStream;
+        private Integer currentVersionNumber;
+        private Long totalVersionCount;
+        private String latestVersionComment;
+        private Date latestVersionDate;
 
         public Builder name(String name) {
             this.name = name;
@@ -428,6 +452,26 @@ public class LyraResource {
 
         public Builder contentStream(InputStream contentStream) {
             this.contentStream = contentStream;
+            return this;
+        }
+
+        public Builder currentVersionNumber(Integer currentVersionNumber) {
+            this.currentVersionNumber = currentVersionNumber;
+            return this;
+        }
+
+        public Builder totalVersionCount(Long totalVersionCount) {
+            this.totalVersionCount = totalVersionCount;
+            return this;
+        }
+
+        public Builder latestVersionComment(String latestVersionComment) {
+            this.latestVersionComment = latestVersionComment;
+            return this;
+        }
+
+        public Builder latestVersionDate(Date latestVersionDate) {
+            this.latestVersionDate = latestVersionDate;
             return this;
         }
 

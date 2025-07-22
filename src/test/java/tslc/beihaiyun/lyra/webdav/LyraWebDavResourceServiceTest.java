@@ -30,6 +30,7 @@ import tslc.beihaiyun.lyra.service.FileService;
 import tslc.beihaiyun.lyra.service.FolderService;
 import tslc.beihaiyun.lyra.service.StorageService;
 import tslc.beihaiyun.lyra.service.UserService;
+import tslc.beihaiyun.lyra.service.VersionService;
 
 /**
  * LyraWebDavResourceService 单元测试
@@ -58,6 +59,9 @@ class LyraWebDavResourceServiceTest {
     private SpaceRepository spaceRepository;
 
     @Mock
+    private VersionService versionService;
+
+    @Mock
     private SecurityContext securityContext;
 
     private LyraWebDavResourceService resourceService;
@@ -68,7 +72,7 @@ class LyraWebDavResourceServiceTest {
     @BeforeEach
     void setUp() {
         resourceService = new LyraWebDavResourceService(
-                userService, fileService, folderService, storageService, spaceRepository);
+                userService, fileService, folderService, storageService, spaceRepository, versionService);
 
         // 准备测试用户
         testUser = new User();

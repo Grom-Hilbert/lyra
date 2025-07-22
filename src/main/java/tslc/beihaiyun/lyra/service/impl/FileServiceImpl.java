@@ -823,7 +823,8 @@ public class FileServiceImpl implements FileService {
      */
     private String generateFilePath(Folder folder, String filename) {
         if (folder == null) {
-            return "/" + filename;
+            // 根目录文件直接返回文件名，不加前导斜杠
+            return filename;
         }
         
         String folderPath = folder.getPath();

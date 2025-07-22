@@ -104,6 +104,7 @@ public class WebDavConfig {
         private tslc.beihaiyun.lyra.webdav.LyraWebDavResourceService resourceService;
         private tslc.beihaiyun.lyra.webdav.WebDavPermissionService permissionService;
         private tslc.beihaiyun.lyra.webdav.WebDavLockService lockService;
+        private tslc.beihaiyun.lyra.webdav.WebDavVersionControlService versionControlService;
 
         @Override
         public void init() throws ServletException {
@@ -118,6 +119,7 @@ public class WebDavConfig {
                 resourceService = context.getBean(tslc.beihaiyun.lyra.webdav.LyraWebDavResourceService.class);
                 permissionService = context.getBean(tslc.beihaiyun.lyra.webdav.WebDavPermissionService.class);
                 lockService = context.getBean(tslc.beihaiyun.lyra.webdav.WebDavLockService.class);
+                versionControlService = context.getBean(tslc.beihaiyun.lyra.webdav.WebDavVersionControlService.class);
             }
             
             logger.info("Lyra WebDAV Servlet 初始化完成");
@@ -128,6 +130,12 @@ public class WebDavConfig {
                 throws ServletException, IOException {
             
             logger.debug("WebDAV GET 请求: {}", req.getRequestURI());
+            
+            // 检查是否为版本控制路径
+            if (versionControlService != null && versionControlService.isVersionControlPath(req.getRequestURI())) {
+                handleVersionControlGet(req, resp);
+                return;
+            }
             
             if (resourceService != null && resourceService.resourceExists(req.getRequestURI())) {
                 if (resourceService.isDirectory(req.getRequestURI())) {
@@ -319,6 +327,15 @@ public class WebDavConfig {
                     }
                     
                     xmlResponse.append("<D:getlastmodified>").append(new java.util.Date()).append("</D:getlastmodified>\n");
+                    
+                    // 添加版本控制自定义属性（仅针对文件）
+                    if (!isDirectory && resourceService != null) {
+                        tslc.beihaiyun.lyra.webdav.LyraResource resource = resourceService.getResource(requestURI);
+                        if (resource != null && resource.isResource()) {
+                            addVersionControlProperties(xmlResponse, resource);
+                        }
+                    }
+                    
                     xmlResponse.append("</D:prop>\n");
                     xmlResponse.append("<D:status>HTTP/1.1 200 OK</D:status>\n");
                     xmlResponse.append("</D:propstat>\n");
@@ -547,6 +564,135 @@ public class WebDavConfig {
                 
             } catch (Exception e) {
                 logger.error("UNLOCK 处理错误: {}", e.getMessage(), e);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
+        }
+        
+        /**
+         * 添加版本控制属性到PROPFIND响应
+         */
+        private void addVersionControlProperties(StringBuilder xmlResponse, tslc.beihaiyun.lyra.webdav.LyraResource resource) {
+            // 添加自定义命名空间的版本控制属性
+            if (resource.getCurrentVersionNumber() != null) {
+                xmlResponse.append("<lyra:version-number xmlns:lyra=\"http://lyra.beihaiyun.tslc/webdav\">")
+                           .append(resource.getCurrentVersionNumber())
+                           .append("</lyra:version-number>\n");
+            }
+            
+            if (resource.getTotalVersionCount() != null) {
+                xmlResponse.append("<lyra:total-versions xmlns:lyra=\"http://lyra.beihaiyun.tslc/webdav\">")
+                           .append(resource.getTotalVersionCount())
+                           .append("</lyra:total-versions>\n");
+            }
+            
+            if (resource.getLatestVersionComment() != null && !resource.getLatestVersionComment().isEmpty()) {
+                xmlResponse.append("<lyra:version-comment xmlns:lyra=\"http://lyra.beihaiyun.tslc/webdav\">")
+                           .append(escapeXml(resource.getLatestVersionComment()))
+                           .append("</lyra:version-comment>\n");
+            }
+            
+            if (resource.getLatestVersionDate() != null) {
+                xmlResponse.append("<lyra:version-date xmlns:lyra=\"http://lyra.beihaiyun.tslc/webdav\">")
+                           .append(resource.getLatestVersionDate())
+                           .append("</lyra:version-date>\n");
+            }
+            
+            // 添加版本控制标志
+            xmlResponse.append("<lyra:version-controlled xmlns:lyra=\"http://lyra.beihaiyun.tslc/webdav\">true</lyra:version-controlled>\n");
+        }
+        
+        /**
+         * XML转义
+         */
+        private String escapeXml(String text) {
+            if (text == null) return "";
+            return text.replace("&", "&amp;")
+                      .replace("<", "&lt;")
+                      .replace(">", "&gt;")
+                      .replace("\"", "&quot;")
+                      .replace("'", "&#x27;");
+        }
+        
+        /**
+         * 处理版本控制GET请求
+         */
+        private void handleVersionControlGet(HttpServletRequest req, HttpServletResponse resp) 
+                throws ServletException, IOException {
+            
+            logger.debug("WebDAV 版本控制 GET 请求: {}", req.getRequestURI());
+            
+            try {
+                // 获取当前用户
+                tslc.beihaiyun.lyra.entity.User currentUser = permissionService != null ? 
+                    permissionService.getCurrentUser() : null;
+                
+                if (currentUser == null) {
+                    resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
+                }
+                
+                // 解析版本路径
+                tslc.beihaiyun.lyra.webdav.WebDavVersionControlService.VersionPathInfo pathInfo = 
+                    versionControlService.parseVersionPath(req.getRequestURI());
+                
+                if (pathInfo == null) {
+                    resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
+                
+                if (pathInfo.hasVersionNumber()) {
+                    // 访问特定版本的文件内容
+                    java.util.Optional<java.io.InputStream> contentOpt = versionControlService.getVersionContent(
+                        pathInfo.getOriginalPath(), pathInfo.getVersionNumber(), currentUser);
+                    
+                    if (contentOpt.isPresent()) {
+                        resp.setContentType("application/octet-stream");
+                        resp.setStatus(HttpServletResponse.SC_OK);
+                        
+                        try (java.io.InputStream content = contentOpt.get()) {
+                            byte[] buffer = new byte[8192];
+                            int bytesRead;
+                            while ((bytesRead = content.read(buffer)) != -1) {
+                                resp.getOutputStream().write(buffer, 0, bytesRead);
+                            }
+                        }
+                    } else {
+                        resp.setStatus(HttpServletResponse.SC_NOT_FOUND);
+                    }
+                } else {
+                    // 显示版本历史列表
+                    java.util.List<tslc.beihaiyun.lyra.webdav.LyraResource> versions = 
+                        versionControlService.getVersionHistoryList(pathInfo.getOriginalPath(), currentUser);
+                    
+                    resp.setContentType("text/html; charset=UTF-8");
+                    resp.setStatus(HttpServletResponse.SC_OK);
+                    
+                    StringBuilder html = new StringBuilder();
+                    html.append("<!DOCTYPE html>\n<html>\n<head><title>版本历史 - ").append(pathInfo.getOriginalPath()).append("</title></head>\n<body>\n");
+                    html.append("<h1>Lyra 文件版本历史</h1>\n");
+                    html.append("<h2>文件: ").append(pathInfo.getOriginalPath()).append("</h2>\n");
+                    html.append("<table border='1'>\n");
+                    html.append("<tr><th>版本号</th><th>大小</th><th>修改时间</th><th>注释</th><th>操作</th></tr>\n");
+                    
+                    for (tslc.beihaiyun.lyra.webdav.LyraResource version : versions) {
+                        html.append("<tr>");
+                        html.append("<td>").append(version.getCurrentVersionNumber()).append("</td>");
+                        html.append("<td>").append(version.getSize()).append(" 字节</td>");
+                        html.append("<td>").append(version.getLatestVersionDate()).append("</td>");
+                        html.append("<td>").append(version.getLatestVersionComment() != null ? version.getLatestVersionComment() : "").append("</td>");
+                        html.append("<td><a href=\"").append(version.getPath()).append("\">下载</a></td>");
+                        html.append("</tr>\n");
+                    }
+                    
+                    html.append("</table>\n");
+                    html.append("<hr><p><em>Lyra WebDAV 版本控制</em></p>\n");
+                    html.append("</body>\n</html>");
+                    
+                    resp.getWriter().write(html.toString());
+                }
+                
+            } catch (Exception e) {
+                logger.error("版本控制GET请求处理失败: {}", e.getMessage(), e);
                 resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             }
         }

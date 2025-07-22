@@ -2,6 +2,7 @@ package tslc.beihaiyun.lyra.webdav;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import tslc.beihaiyun.lyra.entity.FileEntity;
+import tslc.beihaiyun.lyra.entity.FileVersion;
 import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
 import tslc.beihaiyun.lyra.entity.User;
@@ -23,6 +25,7 @@ import tslc.beihaiyun.lyra.service.FileService;
 import tslc.beihaiyun.lyra.service.FolderService;
 import tslc.beihaiyun.lyra.service.StorageService;
 import tslc.beihaiyun.lyra.service.UserService;
+import tslc.beihaiyun.lyra.service.VersionService;
 
 /**
  * Lyra WebDAV 资源服务
@@ -44,18 +47,21 @@ public class LyraWebDavResourceService {
     private final FolderService folderService;
     private final StorageService storageService;
     private final SpaceRepository spaceRepository;
+    private final VersionService versionService;
 
     public LyraWebDavResourceService(
             UserService userService,
             FileService fileService,
             FolderService folderService,
             StorageService storageService,
-            SpaceRepository spaceRepository) {
+            SpaceRepository spaceRepository,
+            VersionService versionService) {
         this.userService = userService;
         this.fileService = fileService;
         this.folderService = folderService;
         this.storageService = storageService;
         this.spaceRepository = spaceRepository;
+        this.versionService = versionService;
     }
 
     /**
@@ -95,16 +101,16 @@ public class LyraWebDavResourceService {
             return new WebDavPathInfo(WebDavPathType.ROOT, null, null, path);
         }
         
-        String spaceTypeStr = parts[1];
+        String spaceTypeStr = parts[0];  // 修复：应该是parts[0]而不是parts[1]
         String spacePath = "";
         String filePath = "";
         
-        if (parts.length > 2) {
-            // /personal/space1/folder/file.txt -> spacePath=space1, filePath=folder/file.txt
-            spacePath = parts[2];
-            if (parts.length > 3) {
+        if (parts.length > 1) {
+            // personal/space1/file.txt -> spacePath=space1, filePath=file.txt
+            spacePath = parts[1];  // 修复：应该是parts[1]而不是parts[2]
+            if (parts.length > 2) {
                 StringBuilder sb = new StringBuilder();
-                for (int i = 3; i < parts.length; i++) {
+                for (int i = 2; i < parts.length; i++) {  // 修复：应该从i=2开始而不是i=3
                     if (sb.length() > 0) sb.append("/");
                     sb.append(parts[i]);
                 }
@@ -113,13 +119,13 @@ public class LyraWebDavResourceService {
         }
         
         WebDavPathType pathType;
-        if ("personal".equals(spaceTypeStr)) {
-            pathType = WebDavPathType.PERSONAL;
-        } else if ("enterprise".equals(spaceTypeStr)) {
-            pathType = WebDavPathType.ENTERPRISE;
-        } else {
+        if (null == spaceTypeStr) {
             pathType = WebDavPathType.UNKNOWN;
-        }
+        } else pathType = switch (spaceTypeStr) {
+            case "personal" -> WebDavPathType.PERSONAL;
+            case "enterprise" -> WebDavPathType.ENTERPRISE;
+            default -> WebDavPathType.UNKNOWN;
+        };
         
         return new WebDavPathInfo(pathType, spacePath, filePath, path);
     }
@@ -137,17 +143,11 @@ public class LyraWebDavResourceService {
         logger.debug("获取WebDAV资源: {} -> {}", path, pathInfo);
         
         try {
-            switch (pathInfo.getType()) {
-                case ROOT:
-                    return createSystemRootResource();
-                    
-                case PERSONAL:
-                case ENTERPRISE:
-                    return getSpaceResource(pathInfo, currentUser);
-                    
-                default:
-                    return null;
-            }
+            return switch (pathInfo.getType()) {
+                case ROOT -> createSystemRootResource();
+                case PERSONAL, ENTERPRISE -> getSpaceResource(pathInfo, currentUser);
+                default -> null;
+            };
         } catch (Exception e) {
             logger.error("获取WebDAV资源失败: {}", e.getMessage(), e);
             return null;
@@ -341,13 +341,66 @@ public class LyraWebDavResourceService {
                 }
             }
             
-            // 创建临时MultipartFile包装器进行上传
-            WebDavMultipartFile multipartFile = new WebDavMultipartFile(fileName, content, contentLength);
+            // 检查文件是否已存在
+            Optional<FileEntity> existingFileOpt = fileService.getFileByPath(space, pathInfo.getFilePath());
             
-            FileService.FileOperationResult result = fileService.uploadFile(
-                multipartFile, space, parentFolder, currentUser.getId());
-            
-            return result.isSuccess();
+            if (existingFileOpt.isPresent()) {
+                // 文件已存在，创建新版本并更新文件
+                FileEntity existingFile = existingFileOpt.get();
+                
+                logger.info("文件已存在，通过WebDAV创建新版本: 文件ID={}, 路径={}", 
+                           existingFile.getId(), path);
+                
+                // 为现有文件创建新版本
+                VersionService.VersionOperationResult versionResult = versionService.createVersion(
+                    existingFile, content, "WebDAV文件更新", currentUser.getId());
+                
+                if (versionResult.isSuccess()) {
+                                         // 更新文件实体信息
+                     FileVersion latestVersion = versionResult.getVersion();
+                    existingFile.setSizeBytes(latestVersion.getSizeBytes());
+                    existingFile.setFileHash(latestVersion.getFileHash());
+                    existingFile.setStoragePath(latestVersion.getStoragePath());
+                    existingFile.setLastModifiedAt(LocalDateTime.now());
+                    existingFile.setUpdatedBy(currentUser.getId().toString());
+                    
+                    logger.info("WebDAV文件版本创建成功: 文件ID={}, 版本号={}", 
+                               existingFile.getId(), latestVersion.getVersionNumber());
+                    
+                    return true;
+                } else {
+                    logger.error("WebDAV文件版本创建失败: {}", versionResult.getMessage());
+                    return false;
+                }
+            } else {
+                // 文件不存在，创建新文件并初始化版本
+                WebDavMultipartFile multipartFile = new WebDavMultipartFile(fileName, content, contentLength);
+                
+                FileService.FileOperationResult result = fileService.uploadFile(
+                    multipartFile, space, parentFolder, currentUser.getId());
+                
+                if (result.isSuccess() && result.getFileEntity() != null) {
+                     // 为新文件创建初始版本
+                     FileEntity newFile = result.getFileEntity();
+                    
+                    // 从存储路径创建初始版本
+                    VersionService.VersionOperationResult versionResult = versionService.createVersion(
+                        newFile, newFile.getStoragePath(), newFile.getSizeBytes(), 
+                        newFile.getFileHash(), "初始版本 (WebDAV创建)", currentUser.getId());
+                    
+                    if (versionResult.isSuccess()) {
+                        logger.info("WebDAV新文件创建并初始化版本成功: 文件ID={}, 版本号={}", 
+                                   newFile.getId(), versionResult.getVersion().getVersionNumber());
+                    } else {
+                        logger.warn("WebDAV新文件版本初始化失败: {}", versionResult.getMessage());
+                        // 文件创建成功但版本初始化失败，仍然返回成功
+                    }
+                    
+                    return true;
+                }
+                
+                return result.isSuccess();
+            }
             
         } catch (Exception e) {
             logger.error("上传文件时出错: {}", e.getMessage(), e);
@@ -526,7 +579,7 @@ public class LyraWebDavResourceService {
         if (fileOpt.isPresent()) {
             String fullPath = "/webdav/" + pathInfo.getType().name().toLowerCase() + 
                             "/" + pathInfo.getSpacePath() + "/" + filePath;
-            return LyraResource.fromFileEntity(fileOpt.get(), fullPath);
+            return createFileResourceWithVersionInfo(fileOpt.get(), fullPath);
         }
         
         // 然后尝试查找文件夹
@@ -580,6 +633,7 @@ public class LyraWebDavResourceService {
         
         // 查找用户的对应类型的空间，然后按名称过滤
         List<Space> spaces = spaceRepository.findByOwnerAndType(currentUser, spaceType);
+        
         return spaces.stream()
                 .filter(space -> pathInfo.getSpacePath().equals(space.getName()))
                 .findFirst()
@@ -608,6 +662,75 @@ public class LyraWebDavResourceService {
         
         int lastSlash = path.lastIndexOf('/');
         return lastSlash > 0 ? path.substring(0, lastSlash) : "";
+    }
+
+    /**
+     * 创建带有版本信息的文件资源
+     */
+    private LyraResource createFileResourceWithVersionInfo(FileEntity fileEntity, String webdavPath) {
+        try {
+            // 获取版本统计信息
+            VersionService.VersionStatistics versionStats = versionService.getVersionStatistics(fileEntity);
+            
+            // 获取最新版本
+            Optional<FileVersion> latestVersionOpt = versionService.getLatestVersion(fileEntity);
+            
+            // 构建带版本信息的资源
+            LyraResource.Builder builder = LyraResource.file()
+                    .name(fileEntity.getName())
+                    .path(webdavPath)
+                    .href(webdavPath)
+                    .spaceType(LyraResource.SpaceType.PERSONAL) // 根据文件所属空间类型确定
+                    .size(fileEntity.getSizeBytes())
+                    .contentType(fileEntity.getMimeType())
+                    .lastModified(toDate(fileEntity.getUpdatedAt()))
+                    .creationDate(toDate(fileEntity.getCreatedAt()))
+                    .etag(generateEtag(fileEntity))
+                    .fileEntity(fileEntity);
+            
+            // 添加版本信息
+            if (versionStats != null) {
+                builder.totalVersionCount(versionStats.getTotalVersions())
+                       .currentVersionNumber(versionStats.getMaxVersionNumber());
+            }
+            
+            if (latestVersionOpt.isPresent()) {
+                FileVersion latestVersion = latestVersionOpt.get();
+                builder.latestVersionComment(latestVersion.getChangeComment())
+                       .latestVersionDate(toDate(latestVersion.getCreatedAt()));
+            }
+            
+            return builder.build();
+            
+        } catch (Exception e) {
+            logger.warn("获取文件版本信息失败: 文件ID={}, 错误={}", fileEntity.getId(), e.getMessage());
+            // 降级到基础实现
+            return LyraResource.fromFileEntity(fileEntity, webdavPath);
+        }
+    }
+
+    /**
+     * 转换LocalDateTime到Date
+     */
+    private static Date toDate(LocalDateTime localDateTime) {
+        if (localDateTime == null) {
+            return new Date();
+        }
+        return Date.from(localDateTime.atZone(java.time.ZoneId.systemDefault()).toInstant());
+    }
+
+    /**
+     * 生成ETag
+     */
+    private static String generateEtag(FileEntity fileEntity) {
+        return "\"" + Math.abs(java.util.Objects.hash(fileEntity.getId(), fileEntity.getUpdatedAt())) + "\"";
+    }
+
+    /**
+     * 生成ETag
+     */
+    private static String generateEtag(Folder folder) {
+        return "\"" + Math.abs(java.util.Objects.hash(folder.getId(), folder.getUpdatedAt())) + "\"";
     }
 
     /**
