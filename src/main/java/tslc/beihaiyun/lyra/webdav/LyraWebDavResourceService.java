@@ -96,21 +96,26 @@ public class LyraWebDavResourceService {
             return new WebDavPathInfo(WebDavPathType.ROOT, null, null, "/");
         }
         
+        // 移除开头的 / 以避免分割后第一个元素为空
+        if (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        
         String[] parts = path.split("/");
-        if (parts.length < 2) {
+        if (parts.length < 1) {
             return new WebDavPathInfo(WebDavPathType.ROOT, null, null, path);
         }
         
-        String spaceTypeStr = parts[0];  // 修复：应该是parts[0]而不是parts[1]
+        String spaceTypeStr = parts[0];  // 第一部分是空间类型：personal/enterprise
         String spacePath = "";
         String filePath = "";
         
         if (parts.length > 1) {
             // personal/space1/file.txt -> spacePath=space1, filePath=file.txt
-            spacePath = parts[1];  // 修复：应该是parts[1]而不是parts[2]
+            spacePath = parts[1];
             if (parts.length > 2) {
                 StringBuilder sb = new StringBuilder();
-                for (int i = 2; i < parts.length; i++) {  // 修复：应该从i=2开始而不是i=3
+                for (int i = 2; i < parts.length; i++) {
                     if (sb.length() > 0) sb.append("/");
                     sb.append(parts[i]);
                 }
@@ -119,7 +124,7 @@ public class LyraWebDavResourceService {
         }
         
         WebDavPathType pathType;
-        if (null == spaceTypeStr) {
+        if (null == spaceTypeStr || spaceTypeStr.isEmpty()) {
             pathType = WebDavPathType.UNKNOWN;
         } else pathType = switch (spaceTypeStr) {
             case "personal" -> WebDavPathType.PERSONAL;
@@ -127,7 +132,10 @@ public class LyraWebDavResourceService {
             default -> WebDavPathType.UNKNOWN;
         };
         
-        return new WebDavPathInfo(pathType, spacePath, filePath, path);
+        // 构建fullPath，确保以"/"开头
+        String fullPath = "/" + path;
+        
+        return new WebDavPathInfo(pathType, spacePath, filePath, fullPath);
     }
 
     /**
