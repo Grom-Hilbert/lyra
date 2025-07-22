@@ -235,8 +235,8 @@ public class JwtService {
     public Long extractUserId(String token) {
         Claims claims = extractAllClaims(token);
         Object userIdClaim = claims.get("userId");
-        if (userIdClaim instanceof Number) {
-            return ((Number) userIdClaim).longValue();
+        if (userIdClaim instanceof Number number) {
+            return number.longValue();
         }
         return null;
     }
