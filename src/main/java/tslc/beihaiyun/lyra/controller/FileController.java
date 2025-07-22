@@ -1,5 +1,18 @@
 package tslc.beihaiyun.lyra.controller;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,7 +24,16 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
@@ -22,21 +44,10 @@ import tslc.beihaiyun.lyra.dto.FileResponse;
 import tslc.beihaiyun.lyra.entity.FileEntity;
 import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
+import tslc.beihaiyun.lyra.repository.SpaceRepository;
 import tslc.beihaiyun.lyra.security.LyraUserPrincipal;
 import tslc.beihaiyun.lyra.service.FileService;
 import tslc.beihaiyun.lyra.service.FolderService;
-import tslc.beihaiyun.lyra.repository.SpaceRepository;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * 文件操作控制器
@@ -344,7 +355,7 @@ public class FileController {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.parseMediaType(file.getMimeType() != null ? file.getMimeType() : "application/octet-stream"));
             headers.setContentLength(file.getSizeBytes());
-            headers.setContentDispositionFormData("attachment", encodedFilename);
+            headers.set("Content-Disposition", "attachment; filename=\"" + encodedFilename + "\"");
             
             log.info("用户 {} 下载文件: {}", principal.getUsername(), file.getName());
             
@@ -415,20 +426,25 @@ public class FileController {
      * @return 文件信息
      */
     @GetMapping("/{fileId}")
-    public ResponseEntity<FileResponse.FileInfoResponse> getFileInfo(
+    public ResponseEntity<Map<String, Object>> getFileInfo(
             @PathVariable Long fileId,
             @AuthenticationPrincipal LyraUserPrincipal principal) {
         
         Optional<FileEntity> fileOpt = fileService.getFileById(fileId);
         if (fileOpt.isEmpty()) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("success", false, "message", "文件不存在"));
         }
         
         FileEntity file = fileOpt.get();
         // TODO: 检查查看权限
         
-        FileResponse.FileInfoResponse response = new FileResponse.FileInfoResponse(file);
-        return ResponseEntity.ok(response);
+        FileResponse.FileInfoResponse fileInfo = new FileResponse.FileInfoResponse(file);
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "获取文件信息成功",
+            "data", fileInfo
+        ));
     }
 
     /**
@@ -440,7 +456,7 @@ public class FileController {
      * @return 更新结果
      */
     @PutMapping("/{fileId}")
-    public ResponseEntity<FileResponse.OperationResponse> updateFileInfo(
+    public ResponseEntity<Map<String, Object>> updateFileInfo(
             @PathVariable Long fileId,
             @Valid @RequestBody FileRequest.FileUpdateRequest request,
             @AuthenticationPrincipal LyraUserPrincipal principal) {
@@ -450,16 +466,20 @@ public class FileController {
                     fileId, request.getFilename(), request.getDescription(), principal.getId());
             
             if (result.isSuccess()) {
-                return ResponseEntity.ok(new FileResponse.OperationResponse(true, result.getMessage()));
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", result.getMessage(),
+                    "data", new FileResponse.FileInfoResponse(result.getFileEntity())
+                ));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, result.getMessage()));
+                        .body(Map.of("success", false, "message", result.getMessage()));
             }
             
         } catch (Exception e) {
             log.error("更新文件信息异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new FileResponse.OperationResponse(false, "更新失败: " + e.getMessage()));
+                    .body(Map.of("success", false, "message", "更新失败: " + e.getMessage()));
         }
     }
 
@@ -471,7 +491,7 @@ public class FileController {
      * @return 删除结果
      */
     @DeleteMapping("/{fileId}")
-    public ResponseEntity<FileResponse.OperationResponse> deleteFile(
+    public ResponseEntity<Map<String, Object>> deleteFile(
             @PathVariable Long fileId,
             @AuthenticationPrincipal LyraUserPrincipal principal) {
         
@@ -479,16 +499,19 @@ public class FileController {
             boolean success = fileService.deleteFile(fileId, principal.getId());
             
             if (success) {
-                return ResponseEntity.ok(new FileResponse.OperationResponse(true, "文件删除成功"));
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", "文件删除成功"
+                ));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, "文件删除失败"));
+                        .body(Map.of("success", false, "message", "文件删除失败"));
             }
             
         } catch (Exception e) {
             log.error("删除文件异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new FileResponse.OperationResponse(false, "删除失败: " + e.getMessage()));
+                    .body(Map.of("success", false, "message", "删除失败: " + e.getMessage()));
         }
     }
 
@@ -503,7 +526,7 @@ public class FileController {
      * @return 移动结果
      */
     @PostMapping("/{fileId}/move")
-    public ResponseEntity<FileResponse.OperationResponse> moveFile(
+    public ResponseEntity<Map<String, Object>> moveFile(
             @PathVariable Long fileId,
             @Valid @RequestBody FileRequest.FileMoveRequest request,
             @AuthenticationPrincipal LyraUserPrincipal principal) {
@@ -513,7 +536,7 @@ public class FileController {
             Optional<Space> targetSpaceOpt = spaceRepository.findById(request.getTargetSpaceId());
             if (targetSpaceOpt.isEmpty()) {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, "目标空间不存在"));
+                        .body(Map.of("success", false, "message", "目标空间不存在"));
             }
             
             Folder targetFolder = null;
@@ -521,7 +544,7 @@ public class FileController {
                 Optional<Folder> folderOpt = folderService.getFolderById(request.getTargetFolderId());
                 if (folderOpt.isEmpty()) {
                     return ResponseEntity.badRequest()
-                            .body(new FileResponse.OperationResponse(false, "目标文件夹不存在"));
+                            .body(Map.of("success", false, "message", "目标文件夹不存在"));
                 }
                 targetFolder = folderOpt.get();
             }
@@ -536,16 +559,20 @@ public class FileController {
             }
             
             if (result.isSuccess()) {
-                return ResponseEntity.ok(new FileResponse.OperationResponse(true, result.getMessage()));
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", result.getMessage(),
+                    "data", new FileResponse.FileInfoResponse(result.getFileEntity())
+                ));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, result.getMessage()));
+                        .body(Map.of("success", false, "message", result.getMessage()));
             }
             
         } catch (Exception e) {
             log.error("移动文件异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new FileResponse.OperationResponse(false, "操作失败: " + e.getMessage()));
+                    .body(Map.of("success", false, "message", "操作失败: " + e.getMessage()));
         }
     }
 
@@ -558,7 +585,7 @@ public class FileController {
      * @return 复制结果
      */
     @PostMapping("/{fileId}/copy")
-    public ResponseEntity<FileResponse.OperationResponse> copyFile(
+    public ResponseEntity<Map<String, Object>> copyFile(
             @PathVariable Long fileId,
             @Valid @RequestBody FileRequest.FileCopyRequest request,
             @AuthenticationPrincipal LyraUserPrincipal principal) {
@@ -568,7 +595,7 @@ public class FileController {
             Optional<Space> targetSpaceOpt = spaceRepository.findById(request.getTargetSpaceId());
             if (targetSpaceOpt.isEmpty()) {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, "目标空间不存在"));
+                        .body(Map.of("success", false, "message", "目标空间不存在"));
             }
             
             Folder targetFolder = null;
@@ -576,7 +603,7 @@ public class FileController {
                 Optional<Folder> folderOpt = folderService.getFolderById(request.getTargetFolderId());
                 if (folderOpt.isEmpty()) {
                     return ResponseEntity.badRequest()
-                            .body(new FileResponse.OperationResponse(false, "目标文件夹不存在"));
+                            .body(Map.of("success", false, "message", "目标文件夹不存在"));
                 }
                 targetFolder = folderOpt.get();
             }
@@ -584,21 +611,25 @@ public class FileController {
             FileService.FileOperationResult result = fileService.copyFile(fileId, targetSpaceOpt.get(), targetFolder, principal.getId());
             
             if (result.isSuccess()) {
-                return ResponseEntity.ok(new FileResponse.OperationResponse(true, result.getMessage()));
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", result.getMessage(),
+                    "data", new FileResponse.FileInfoResponse(result.getFileEntity())
+                ));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, result.getMessage()));
+                        .body(Map.of("success", false, "message", result.getMessage()));
             }
             
         } catch (Exception e) {
             log.error("复制文件异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new FileResponse.OperationResponse(false, "操作失败: " + e.getMessage()));
+                    .body(Map.of("success", false, "message", "操作失败: " + e.getMessage()));
         }
     }
 
     /**
-     * 重命名文件
+     * 重命名文件 (POST方式)
      * 
      * @param fileId 文件ID
      * @param request 重命名请求
@@ -606,7 +637,7 @@ public class FileController {
      * @return 重命名结果
      */
     @PostMapping("/{fileId}/rename")
-    public ResponseEntity<FileResponse.OperationResponse> renameFile(
+    public ResponseEntity<Map<String, Object>> renameFile(
             @PathVariable Long fileId,
             @Valid @RequestBody FileRequest.FileRenameRequest request,
             @AuthenticationPrincipal LyraUserPrincipal principal) {
@@ -615,16 +646,55 @@ public class FileController {
             FileService.FileOperationResult result = fileService.renameFile(fileId, request.getNewFilename(), principal.getId());
             
             if (result.isSuccess()) {
-                return ResponseEntity.ok(new FileResponse.OperationResponse(true, result.getMessage()));
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", result.getMessage(),
+                    "data", new FileResponse.FileInfoResponse(result.getFileEntity())
+                ));
             } else {
                 return ResponseEntity.badRequest()
-                        .body(new FileResponse.OperationResponse(false, result.getMessage()));
+                        .body(Map.of("success", false, "message", result.getMessage()));
             }
             
         } catch (Exception e) {
             log.error("重命名文件异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new FileResponse.OperationResponse(false, "操作失败: " + e.getMessage()));
+                    .body(Map.of("success", false, "message", "操作失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 重命名文件 (PUT方式) - 为兼容测试
+     * 
+     * @param fileId 文件ID
+     * @param request 重命名请求
+     * @param principal 认证用户信息
+     * @return 重命名结果
+     */
+    @PutMapping("/{fileId}/name")
+    public ResponseEntity<Map<String, Object>> renameFileByPut(
+            @PathVariable Long fileId,
+            @Valid @RequestBody FileRequest.FileRenameRequest request,
+            @AuthenticationPrincipal LyraUserPrincipal principal) {
+        
+        try {
+            FileService.FileOperationResult result = fileService.renameFile(fileId, request.getNewFilename(), principal.getId());
+            
+            if (result.isSuccess()) {
+                return ResponseEntity.ok(Map.of(
+                    "success", true,
+                    "message", result.getMessage(),
+                    "data", new FileResponse.FileInfoResponse(result.getFileEntity())
+                ));
+            } else {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", result.getMessage()));
+            }
+            
+        } catch (Exception e) {
+            log.error("重命名文件异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("success", false, "message", "操作失败: " + e.getMessage()));
         }
     }
 
@@ -801,7 +871,73 @@ public class FileController {
     }
 
     /**
-     * 搜索文件
+     * 搜索文件 (GET方式)
+     * 
+     * @param spaceId 空间ID
+     * @param query 搜索关键词
+     * @param mimeType MIME类型过滤
+     * @param includeDeleted 是否包含已删除文件
+     * @param page 页码
+     * @param size 每页大小
+     * @param principal 认证用户信息
+     * @return 搜索结果
+     */
+    @GetMapping("/search")
+    public ResponseEntity<Map<String, Object>> searchFilesGet(
+            @RequestParam Long spaceId,
+            @RequestParam(required = false, defaultValue = "") String query,
+            @RequestParam(required = false) String mimeType,
+            @RequestParam(defaultValue = "false") boolean includeDeleted,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal LyraUserPrincipal principal) {
+        
+        try {
+            // 验证空间访问权限
+            Optional<Space> spaceOpt = spaceRepository.findById(spaceId);
+            if (spaceOpt.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "指定的空间不存在"));
+            }
+            
+            List<FileEntity> files = fileService.searchFiles(
+                    spaceOpt.get(), query, mimeType, includeDeleted);
+            
+            // 手动分页
+            int totalElements = files.size();
+            int fromIndex = page * size;
+            int toIndex = Math.min(fromIndex + size, totalElements);
+            
+            List<FileEntity> pagedFiles = files.subList(fromIndex, toIndex);
+            List<FileResponse.FileInfoResponse> fileInfos = pagedFiles.stream()
+                    .map(FileResponse.FileInfoResponse::new)
+                    .collect(Collectors.toList());
+            
+            Map<String, Object> content = Map.of(
+                "content", fileInfos,
+                "totalElements", totalElements,
+                "totalPages", (int) Math.ceil((double) totalElements / size),
+                "currentPage", page,
+                "pageSize", size,
+                "hasNext", toIndex < totalElements,
+                "hasPrevious", page > 0
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "搜索完成",
+                "data", content
+            ));
+            
+        } catch (Exception e) {
+            log.error("搜索文件异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("success", false, "message", "搜索失败: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * 搜索文件 (POST方式)
      * 
      * @param request 搜索请求
      * @param principal 认证用户信息
@@ -846,6 +982,97 @@ public class FileController {
         } catch (Exception e) {
             log.error("搜索文件异常", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 批量文件上传
+     * 
+     * @param files 上传的文件列表
+     * @param spaceId 空间ID
+     * @param folderId 文件夹ID（可选）
+     * @param principal 认证用户信息
+     * @return 批量上传结果
+     */
+    @PostMapping("/batch-upload")
+    public ResponseEntity<Map<String, Object>> batchUpload(
+            @RequestParam("files") MultipartFile[] files,
+            @RequestParam Long spaceId,
+            @RequestParam(required = false) Long folderId,
+            @AuthenticationPrincipal LyraUserPrincipal principal) {
+        
+        try {
+            // 验证空间访问权限
+            Optional<Space> spaceOpt = spaceRepository.findById(spaceId);
+            if (spaceOpt.isEmpty()) {
+                return ResponseEntity.badRequest()
+                    .body(Map.of("success", false, "message", "指定的空间不存在"));
+            }
+            
+            Space space = spaceOpt.get();
+            Folder folder = null;
+            
+            // 验证文件夹权限
+            if (folderId != null) {
+                Optional<Folder> folderOpt = folderService.getFolderById(folderId);
+                if (folderOpt.isEmpty()) {
+                    return ResponseEntity.badRequest()
+                        .body(Map.of("success", false, "message", "指定的文件夹不存在"));
+                }
+                folder = folderOpt.get();
+            }
+            
+            List<Map<String, Object>> uploadResults = new ArrayList<>();
+            int successCount = 0;
+            int failedCount = 0;
+            
+            for (MultipartFile file : files) {
+                try {
+                    FileService.FileOperationResult result = fileService.uploadFile(file, space, folder, principal.getId());
+                    
+                    Map<String, Object> fileResult = new HashMap<>();
+                    fileResult.put("filename", file.getOriginalFilename());
+                    fileResult.put("success", result.isSuccess());
+                    fileResult.put("message", result.getMessage());
+                    
+                    if (result.isSuccess()) {
+                        fileResult.put("fileInfo", new FileResponse.FileInfoResponse(result.getFileEntity()));
+                        successCount++;
+                    } else {
+                        failedCount++;
+                    }
+                    
+                    uploadResults.add(fileResult);
+                    
+                } catch (Exception e) {
+                    Map<String, Object> fileResult = new HashMap<>();
+                    fileResult.put("filename", file.getOriginalFilename());
+                    fileResult.put("success", false);
+                    fileResult.put("message", "上传失败: " + e.getMessage());
+                    uploadResults.add(fileResult);
+                    failedCount++;
+                }
+            }
+            
+            Map<String, Object> data = Map.of(
+                "uploadResults", uploadResults,
+                "totalFiles", files.length,
+                "successCount", successCount,
+                "failedCount", failedCount
+            );
+            
+            String message = String.format("批量上传完成：成功 %d 个，失败 %d 个", successCount, failedCount);
+            
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", message,
+                "data", data
+            ));
+            
+        } catch (Exception e) {
+            log.error("批量上传文件异常", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("success", false, "message", "批量上传失败: " + e.getMessage()));
         }
     }
 

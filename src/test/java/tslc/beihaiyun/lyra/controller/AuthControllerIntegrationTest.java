@@ -8,10 +8,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.annotation.Transactional;
 import tslc.beihaiyun.lyra.dto.AuthRequest;
+import tslc.beihaiyun.lyra.entity.User;
+import tslc.beihaiyun.lyra.repository.UserRepository;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -27,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@Transactional
 class AuthControllerIntegrationTest {
 
     @Autowired
@@ -35,15 +40,58 @@ class AuthControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     private static final String TEST_USERNAME = "testuser";
     private static final String TEST_PASSWORD = "password";
     private static final String ADMIN_USERNAME = "admin";
-    private static final String ADMIN_PASSWORD = "admin";
+    private static final String ADMIN_PASSWORD = "adminpass";
+
+    private User testUser;
+    private User adminUser;
 
     @BeforeEach
     void setUp() {
-        // 测试环境使用TestSecurityConfig中定义的内存用户
-        // 不需要额外的设置
+        // 清理现有数据
+        userRepository.deleteAll();
+
+        // 创建测试用户
+        testUser = new User();
+        testUser.setUsername(TEST_USERNAME);
+        testUser.setEmail("test@example.com");
+        testUser.setPassword(passwordEncoder.encode(TEST_PASSWORD));
+        testUser.setDisplayName("Test User");
+        testUser.setEnabled(true);
+        testUser.setAccountNonLocked(true);
+        testUser.setAccountNonExpired(true);
+        testUser.setCredentialsNonExpired(true);
+        testUser.setEmailVerified(true);
+        testUser.setStatus(User.UserStatus.ACTIVE);
+        testUser.setStorageQuota(1073741824L); // 1GB
+        testUser.setStorageUsed(0L);
+        testUser.setFailedLoginAttempts(0);
+        testUser = userRepository.save(testUser);
+
+        // 创建管理员用户
+        adminUser = new User();
+        adminUser.setUsername(ADMIN_USERNAME);
+        adminUser.setEmail("admin@example.com");
+        adminUser.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
+        adminUser.setDisplayName("Admin User");
+        adminUser.setEnabled(true);
+        adminUser.setAccountNonLocked(true);
+        adminUser.setAccountNonExpired(true);
+        adminUser.setCredentialsNonExpired(true);
+        adminUser.setEmailVerified(true);
+        adminUser.setStatus(User.UserStatus.ACTIVE);
+        adminUser.setStorageQuota(10737418240L); // 10GB
+        adminUser.setStorageUsed(0L);
+        adminUser.setFailedLoginAttempts(0);
+        adminUser = userRepository.save(adminUser);
     }
 
     @Test
@@ -206,8 +254,8 @@ class AuthControllerIntegrationTest {
     void testPasswordResetConfirm_InvalidToken() throws Exception {
         AuthRequest.PasswordResetConfirmRequest confirmRequest = new AuthRequest.PasswordResetConfirmRequest();
         confirmRequest.setResetToken("invalid.token");
-        confirmRequest.setNewPassword("newpassword");
-        confirmRequest.setConfirmPassword("newpassword");
+        confirmRequest.setNewPassword("NewPassword123");
+        confirmRequest.setConfirmPassword("NewPassword123");
 
         mockMvc.perform(post("/api/auth/password/reset-confirm")
                 .contentType(MediaType.APPLICATION_JSON)

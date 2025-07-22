@@ -459,7 +459,7 @@ public class AuthController {
      * @return 验证响应
      */
     @GetMapping("/verify-email")
-    public ResponseEntity<AuthResponse.ApiResponse<Void>> verifyEmailByGet(@RequestParam String token) {
+    public ResponseEntity<AuthResponse.ApiResponse<Void>> verifyEmailByGet(@RequestParam(required = false) String token) {
         log.info("通过GET方式进行邮箱验证");
 
         if (token == null || token.trim().isEmpty()) {

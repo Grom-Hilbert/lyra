@@ -1,7 +1,9 @@
 package tslc.beihaiyun.lyra.controller;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -11,19 +13,27 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import tslc.beihaiyun.lyra.dto.FolderRequest;
 import tslc.beihaiyun.lyra.dto.FolderResponse;
 import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
+import tslc.beihaiyun.lyra.repository.FolderRepository;
 import tslc.beihaiyun.lyra.repository.SpaceRepository;
 import tslc.beihaiyun.lyra.security.LyraUserPrincipal;
 import tslc.beihaiyun.lyra.service.FolderService;
-
-import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * 文件夹操作控制器
@@ -41,6 +51,7 @@ public class FolderController {
 
     private final FolderService folderService;
     private final SpaceRepository spaceRepository;
+    private final FolderRepository folderRepository;
 
     /**
      * 创建文件夹
@@ -49,18 +60,8 @@ public class FolderController {
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> createFolder(
             @Valid @RequestBody FolderRequest.CreateFolderRequest request,
-            @AuthenticationPrincipal LyraUserPrincipal user,
-            BindingResult bindingResult) {
+            @AuthenticationPrincipal LyraUserPrincipal user) {
         
-        if (bindingResult.hasErrors()) {
-            String errorMessage = bindingResult.getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-            return ResponseEntity.badRequest().body(
-                FolderResponse.ApiResponse.error("参数验证失败: " + errorMessage)
-            );
-        }
-
         try {
             log.info("用户 {} 尝试创建文件夹: {}", user.getId(), request.getName());
 
@@ -148,19 +149,11 @@ public class FolderController {
     public ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> updateFolder(
             @PathVariable Long folderId,
             @Valid @RequestBody FolderRequest.UpdateFolderRequest request,
-            @AuthenticationPrincipal LyraUserPrincipal user,
-            BindingResult bindingResult) {
-
-        if (bindingResult.hasErrors()) {
-            String errorMessage = bindingResult.getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-            return ResponseEntity.badRequest().body(
-                FolderResponse.ApiResponse.error("参数验证失败: " + errorMessage)
-            );
-        }
+            @AuthenticationPrincipal LyraUserPrincipal user) {
 
         try {
+            log.info("用户 {} 尝试更新文件夹: {}", user.getId(), folderId);
+
             Optional<Folder> folderOpt = folderService.getFolderById(folderId);
             if (folderOpt.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
@@ -449,24 +442,15 @@ public class FolderController {
     /**
      * 搜索文件夹
      */
-    @PostMapping("/search")
+    @GetMapping("/search")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<FolderResponse.ApiResponse<List<FolderResponse.FolderSummaryResponse>>> searchFolders(
-            @Valid @RequestBody FolderRequest.SearchFolderRequest request,
-            @AuthenticationPrincipal LyraUserPrincipal user,
-            BindingResult bindingResult) {
-
-        if (bindingResult.hasErrors()) {
-            String errorMessage = bindingResult.getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                .collect(Collectors.joining(", "));
-            return ResponseEntity.badRequest().body(
-                FolderResponse.ApiResponse.error("参数验证失败: " + errorMessage)
-            );
-        }
+            @RequestParam String keyword,
+            @RequestParam Long spaceId,
+            @AuthenticationPrincipal LyraUserPrincipal user) {
 
         try {
-            Optional<Space> spaceOpt = spaceRepository.findById(request.getSpaceId());
+            Optional<Space> spaceOpt = spaceRepository.findById(spaceId);
             if (spaceOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body(
                     FolderResponse.ApiResponse.error("指定的空间不存在")
@@ -474,7 +458,7 @@ public class FolderController {
             }
 
             Space space = spaceOpt.get();
-            List<Folder> folders = folderService.searchFolders(space, request.getKeyword());
+            List<Folder> folders = folderService.searchFolders(space, keyword);
             
             List<FolderResponse.FolderSummaryResponse> response = folders.stream()
                 .map(FolderResponse.FolderSummaryResponse::fromEntity)
@@ -495,21 +479,20 @@ public class FolderController {
     /**
      * 获取文件夹统计信息
      */
-    @GetMapping("/statistics")
+    @GetMapping("/{id}/statistics")
     @PreAuthorize("hasRole('USER')")
     public ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderStatisticsResponse>> getFolderStatistics(
-            @RequestParam Long spaceId,
+            @PathVariable Long id,
             @AuthenticationPrincipal LyraUserPrincipal user) {
 
         try {
-            Optional<Space> spaceOpt = spaceRepository.findById(spaceId);
-            if (spaceOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body(
-                    FolderResponse.ApiResponse.error("指定的空间不存在")
-                );
+            Optional<Folder> folderOpt = folderRepository.findById(id);
+            if (folderOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
             }
 
-            Space space = spaceOpt.get();
+            Folder folder = folderOpt.get();
+            Space space = folder.getSpace();
             FolderService.FolderStatistics statistics = folderService.getFolderStatistics(space);
             
             FolderResponse.FolderStatisticsResponse response = 

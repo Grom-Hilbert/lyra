@@ -1,11 +1,20 @@
 package tslc.beihaiyun.lyra.controller;
 
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
@@ -13,6 +22,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
+
 import tslc.beihaiyun.lyra.dto.FolderRequest;
 import tslc.beihaiyun.lyra.dto.FolderResponse;
 import tslc.beihaiyun.lyra.entity.Folder;
@@ -20,13 +30,6 @@ import tslc.beihaiyun.lyra.entity.Space;
 import tslc.beihaiyun.lyra.repository.SpaceRepository;
 import tslc.beihaiyun.lyra.security.LyraUserPrincipal;
 import tslc.beihaiyun.lyra.service.FolderService;
-
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
 
 /**
  * FolderController单元测试
@@ -90,8 +93,8 @@ class FolderControllerUnitTest {
         
         Folder createdFolder = new Folder();
         createdFolder.setId(2L);
-        createdFolder.setName("新文件夹");
-        createdFolder.setPath("/新文件夹");
+        createdFolder.setName("测试文件夹");  // 修改为与请求和断言一致的名称
+        createdFolder.setPath("/测试文件夹");
         
         FolderService.FolderOperationResult result = 
             new FolderService.FolderOperationResult(true, "创建成功", createdFolder);
@@ -99,14 +102,15 @@ class FolderControllerUnitTest {
 
         // 执行测试
         ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> response = 
-            folderController.createFolder(request, userPrincipal, bindingResult);
+                folderController.createFolder(request, userPrincipal);
 
         // 验证结果
-        assertNotNull(response);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(201, response.getStatusCode().value());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().getSuccess());
-        assertEquals("文件夹创建成功", response.getBody().getMessage());
+        assertEquals("文件夹创建成功", response.getBody().getMessage()); // 修改为与控制器实际消息一致
+        assertNotNull(response.getBody().getData());
+        assertEquals("测试文件夹", response.getBody().getData().getFolder().getName());
     }
 
     @Test
@@ -122,7 +126,7 @@ class FolderControllerUnitTest {
 
         // 执行测试
         ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> response = 
-            folderController.createFolder(request, userPrincipal, bindingResult);
+            folderController.createFolder(request, userPrincipal);
 
         // 验证结果
         assertNotNull(response);
@@ -191,7 +195,7 @@ class FolderControllerUnitTest {
 
         // 执行测试
         ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> response = 
-            folderController.updateFolder(1L, request, userPrincipal, bindingResult);
+            folderController.updateFolder(1L, request, userPrincipal);
 
         // 验证结果
         assertNotNull(response);
@@ -252,7 +256,7 @@ class FolderControllerUnitTest {
 
         // 执行测试
         ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> response = 
-            folderController.createFolder(request, userPrincipal, bindingResult);
+            folderController.createFolder(request, userPrincipal);
 
         // 验证结果
         assertNotNull(response);
@@ -279,7 +283,7 @@ class FolderControllerUnitTest {
 
         // 执行测试
         ResponseEntity<FolderResponse.ApiResponse<FolderResponse.FolderOperationResponse>> response = 
-            folderController.createFolder(request, userPrincipal, bindingResult);
+            folderController.createFolder(request, userPrincipal);
 
         // 验证结果
         assertNotNull(response);

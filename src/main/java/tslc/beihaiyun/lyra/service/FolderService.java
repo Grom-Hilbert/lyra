@@ -101,13 +101,15 @@ public interface FolderService {
         private final long totalSize;
         private final int maxDepth;
         private final long emptyFolders;
+        private final long fileCount;
         private final Folder largestFolder;
 
-        public FolderStatistics(long totalFolders, long totalSize, int maxDepth, long emptyFolders, Folder largestFolder) {
+        public FolderStatistics(long totalFolders, long totalSize, int maxDepth, long emptyFolders, long fileCount, Folder largestFolder) {
             this.totalFolders = totalFolders;
             this.totalSize = totalSize;
             this.maxDepth = maxDepth;
             this.emptyFolders = emptyFolders;
+            this.fileCount = fileCount;
             this.largestFolder = largestFolder;
         }
 
@@ -115,6 +117,7 @@ public interface FolderService {
         public long getTotalSize() { return totalSize; }
         public int getMaxDepth() { return maxDepth; }
         public long getEmptyFolders() { return emptyFolders; }
+        public long getFileCount() { return fileCount; }
         public Folder getLargestFolder() { return largestFolder; }
     }
 

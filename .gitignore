@@ -206,3 +206,6 @@ helm-local/
 # 性能测试
 jmeter.log
 perftest-results/
+
+# 其它
+成果推荐书.md

@@ -1,32 +1,40 @@
 package tslc.beihaiyun.lyra.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.validation.BindingResult;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import tslc.beihaiyun.lyra.dto.FileRequest;
 import tslc.beihaiyun.lyra.dto.FileResponse;
 import tslc.beihaiyun.lyra.entity.FileEntity;
+import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
 import tslc.beihaiyun.lyra.repository.SpaceRepository;
 import tslc.beihaiyun.lyra.security.LyraUserPrincipal;
 import tslc.beihaiyun.lyra.service.FileService;
 import tslc.beihaiyun.lyra.service.FolderService;
-
-import org.springframework.http.ResponseEntity;
-import org.springframework.mock.web.MockMultipartFile;
-
-import java.time.LocalDateTime;
-import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
 
 /**
  * FileController基础测试类
@@ -149,43 +157,47 @@ class FileControllerBasicTest {
     void should_getFileInfo_successfully() throws Exception {
         when(fileService.getFileById(1L)).thenReturn(Optional.of(testFile));
 
-        // 执行测试
-        ResponseEntity<FileResponse.FileInfoResponse> response = 
-                fileController.getFileInfo(1L, mockPrincipal);
-
-        // 验证结果
-        assertEquals(200, response.getStatusCode().value());
-        assertNotNull(response.getBody());
-        assertEquals(1L, response.getBody().getId());
-        assertEquals("test.txt", response.getBody().getFilename());
-        assertEquals("text/plain", response.getBody().getMimeType());
-        assertEquals(1024L, response.getBody().getSizeBytes());
+        // 测试获取文件信息
+        ResponseEntity<Map<String, Object>> response = fileController.getFileInfo(1L, mockPrincipal);
+        
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(true);
+        
+        // 修复类型转换问题 - data字段是FileInfoResponse对象
+        FileResponse.FileInfoResponse data = (FileResponse.FileInfoResponse) response.getBody().get("data");
+        assertThat(data.getId()).isEqualTo(1L);
+        assertThat(data.getFilename()).isEqualTo("test.txt");
     }
 
     @Test
-    void should_return_notFound_when_fileNotExists() throws Exception {
+    @DisplayName("获取不存在的文件应该返回404")
+    void should_returnNotFound_when_fileNotExists() {
+        // 准备测试数据
         when(fileService.getFileById(999L)).thenReturn(Optional.empty());
 
         // 执行测试
-        ResponseEntity<FileResponse.FileInfoResponse> response = 
-                fileController.getFileInfo(999L, mockPrincipal);
-
+        ResponseEntity<Map<String, Object>> response = fileController.getFileInfo(999L, mockPrincipal);
+        
         // 验证结果
-        assertEquals(404, response.getStatusCode().value());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(false);
     }
 
     @Test
-    void should_deleteFile_successfully() throws Exception {
+    @DisplayName("删除文件应该成功")
+    void should_deleteFile_successfully() {
+        // 准备测试数据
         when(fileService.deleteFile(1L, 1L)).thenReturn(true);
 
         // 执行测试
-        ResponseEntity<FileResponse.OperationResponse> response = 
-                fileController.deleteFile(1L, mockPrincipal);
-
+        ResponseEntity<Map<String, Object>> response = fileController.deleteFile(1L, mockPrincipal);
+        
         // 验证结果
-        assertEquals(200, response.getStatusCode().value());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("文件删除成功", response.getBody().getMessage());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(true);
     }
 
     @Test
@@ -214,64 +226,95 @@ class FileControllerBasicTest {
     }
 
     @Test
-    void should_renameFile_successfully() throws Exception {
+    @DisplayName("重命名文件应该成功")
+    void should_renameFile_successfully() {
         // 准备测试数据
-        FileRequest.FileRenameRequest request = new FileRequest.FileRenameRequest();
-        request.setNewFilename("renamed_test.txt");
+        FileEntity resultFile = createTestFile();
+        resultFile.setName("new-name.txt");
+        
+        FileService.FileOperationResult operationResult = 
+            new FileService.FileOperationResult(true, "重命名成功", resultFile);
+        
+        when(fileService.renameFile(eq(1L), eq("new-name.txt"), eq(1L))).thenReturn(operationResult);
 
-        when(fileService.renameFile(eq(1L), eq("renamed_test.txt"), eq(1L)))
-                .thenReturn(new FileService.FileOperationResult(true, "重命名成功", testFile));
+        // 准备请求
+        FileRequest.FileRenameRequest request = new FileRequest.FileRenameRequest();
+        request.setNewFilename("new-name.txt");
 
         // 执行测试
-        ResponseEntity<FileResponse.OperationResponse> response = 
-                fileController.renameFile(1L, request, mockPrincipal);
-
+        ResponseEntity<Map<String, Object>> response = fileController.renameFile(1L, request, mockPrincipal);
+        
         // 验证结果
-        assertEquals(200, response.getStatusCode().value());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("重命名成功", response.getBody().getMessage());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(true);
     }
 
     @Test
-    void should_moveFile_successfully() throws Exception {
+    @DisplayName("移动文件应该成功")
+    void should_moveFile_successfully() {
         // 准备测试数据
+        FileEntity resultFile = createTestFile();
+        
+        // 创建目标文件夹
+        Folder targetFolder = new Folder();
+        targetFolder.setId(1L);
+        targetFolder.setName("目标文件夹");
+        
+        FileService.FileOperationResult operationResult = 
+            new FileService.FileOperationResult(true, "移动成功", resultFile);
+        
+        // Mock必要的依赖项
+        when(spaceRepository.findById(1L)).thenReturn(Optional.of(testSpace));
+        when(folderService.getFolderById(1L)).thenReturn(Optional.of(targetFolder));
+        when(fileService.moveFile(eq(1L), any(Space.class), any(Folder.class), eq(1L))).thenReturn(operationResult);
+
+        // 准备请求
         FileRequest.FileMoveRequest request = new FileRequest.FileMoveRequest();
         request.setTargetSpaceId(1L);
+        request.setTargetFolderId(1L);
         request.setKeepOriginal(false);
 
-        when(spaceRepository.findById(1L)).thenReturn(Optional.of(testSpace));
-        when(fileService.moveFile(eq(1L), any(), any(), eq(1L)))
-                .thenReturn(new FileService.FileOperationResult(true, "移动成功", testFile));
-
         // 执行测试
-        ResponseEntity<FileResponse.OperationResponse> response = 
-                fileController.moveFile(1L, request, mockPrincipal);
-
+        ResponseEntity<Map<String, Object>> response = fileController.moveFile(1L, request, mockPrincipal);
+        
         // 验证结果
-        assertEquals(200, response.getStatusCode().value());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("移动成功", response.getBody().getMessage());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(true);
     }
 
     @Test
-    void should_copyFile_successfully() throws Exception {
+    @DisplayName("复制文件应该成功")
+    void should_copyFile_successfully() {
         // 准备测试数据
+        FileEntity resultFile = createTestFile();
+        
+        // 创建目标文件夹
+        Folder targetFolder = new Folder();
+        targetFolder.setId(1L);
+        targetFolder.setName("目标文件夹");
+        
+        FileService.FileOperationResult operationResult = 
+            new FileService.FileOperationResult(true, "复制成功", resultFile);
+        
+        // Mock必要的依赖项
+        when(spaceRepository.findById(1L)).thenReturn(Optional.of(testSpace));
+        when(folderService.getFolderById(1L)).thenReturn(Optional.of(targetFolder));
+        when(fileService.copyFile(eq(1L), any(Space.class), any(Folder.class), eq(1L))).thenReturn(operationResult);
+
+        // 准备请求
         FileRequest.FileCopyRequest request = new FileRequest.FileCopyRequest();
         request.setTargetSpaceId(1L);
-        request.setNewFilename("copied_test.txt");
-
-        when(spaceRepository.findById(1L)).thenReturn(Optional.of(testSpace));
-        when(fileService.copyFile(eq(1L), any(), any(), eq(1L)))
-                .thenReturn(new FileService.FileOperationResult(true, "复制成功", testFile));
+        request.setTargetFolderId(1L);
 
         // 执行测试
-        ResponseEntity<FileResponse.OperationResponse> response = 
-                fileController.copyFile(1L, request, mockPrincipal);
-
+        ResponseEntity<Map<String, Object>> response = fileController.copyFile(1L, request, mockPrincipal);
+        
         // 验证结果
-        assertEquals(200, response.getStatusCode().value());
-        assertTrue(response.getBody().isSuccess());
-        assertEquals("复制成功", response.getBody().getMessage());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().get("success")).isEqualTo(true);
     }
 
     @Test
@@ -295,5 +338,24 @@ class FileControllerBasicTest {
         assertEquals(8, response.getBody().getActiveFiles());
         assertEquals(1, response.getBody().getDeletedFiles());
         assertNotNull(response.getBody().getFormattedSize());
+    }
+
+    private FileEntity createTestFile() {
+        FileEntity file = new FileEntity();
+        file.setId(1L);
+        file.setName("test.txt");
+        file.setOriginalName("test.txt");
+        file.setPath("/test.txt");
+        file.setSpace(testSpace);
+        file.setSizeBytes(1024L);
+        file.setMimeType("text/plain");
+        file.setFileHash("abc123");
+        file.setStoragePath("/storage/abc123.txt");
+        file.setVersion(1);
+        file.setStatus(FileEntity.FileStatus.ACTIVE);
+        file.setIsPublic(false);
+        file.setDownloadCount(0);
+        file.setLastModifiedAt(LocalDateTime.now());
+        return file;
     }
 } 

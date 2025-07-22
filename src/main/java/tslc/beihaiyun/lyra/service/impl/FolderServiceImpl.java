@@ -405,7 +405,7 @@ public class FolderServiceImpl implements FolderService {
     @Transactional(readOnly = true)
     public FolderStatistics getFolderStatistics(Space space) {
         if (space == null) {
-            return new FolderStatistics(0, 0, 0, 0, null);
+            return new FolderStatistics(0, 0, 0, 0, 0, null);
         }
 
         long totalFolders = folderRepository.countBySpace(space);
@@ -415,8 +415,13 @@ public class FolderServiceImpl implements FolderService {
         long emptyFolders = folderRepository.findEmptyFolders(space).size();
         List<Folder> largeFolders = folderRepository.findLargeFolders(space, 0L);
         Folder largestFolder = largeFolders.isEmpty() ? null : largeFolders.get(0);
+        
+        // 计算总文件数
+        long fileCount = folderRepository.findBySpace(space).stream()
+                .mapToInt(Folder::getFileCount)
+                .sum();
 
-        return new FolderStatistics(totalFolders, totalSize != null ? totalSize : 0, maxDepth, emptyFolders, largestFolder);
+        return new FolderStatistics(totalFolders, totalSize != null ? totalSize : 0, maxDepth, emptyFolders, fileCount, largestFolder);
     }
 
     @Override

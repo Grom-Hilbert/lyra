@@ -35,41 +35,42 @@ public class TestSecurityConfig {
     }
 
     /**
-     * 测试环境的UserDetailsService
-     * 提供简单的内存用户，避免循环依赖
-     */
-    @Bean
-    @Primary
-    public UserDetailsService testUserDetailsService(PasswordEncoder passwordEncoder) {
-        return username -> {
-            switch (username) {
-                case "admin":
-                    return User.builder()
-                            .username("admin")
-                            .password(passwordEncoder.encode("admin"))
-                            .authorities(List.of(
-                                    new SimpleGrantedAuthority("ROLE_ADMIN"),
-                                    new SimpleGrantedAuthority("ROLE_USER")
-                            ))
-                            .build();
-                            
-                case "testuser":
-                    return User.builder()
-                            .username("testuser")
-                            .password(passwordEncoder.encode("password"))
-                            .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
-                            .build();
-                            
-                case "user":
-                    return User.builder()
-                            .username("user")
-                            .password(passwordEncoder.encode("password"))
-                            .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
-                            .build();
-                            
-                default:
-                    throw new UsernameNotFoundException("User not found: " + username);
-            }
-        };
-    }
+ * 测试环境的UserDetailsService
+ * 注释掉避免与LyraUserDetailsService冲突
+ * 让集成测试使用真实的数据库用户和LyraUserDetailsService
+ */
+// @Bean
+// @Primary
+// public UserDetailsService testUserDetailsService(PasswordEncoder passwordEncoder) {
+//     return username -> {
+//         switch (username) {
+//             case "admin":
+//                 return User.builder()
+//                         .username("admin")
+//                         .password(passwordEncoder.encode("admin"))
+//                         .authorities(List.of(
+//                                 new SimpleGrantedAuthority("ROLE_ADMIN"),
+//                                 new SimpleGrantedAuthority("ROLE_USER")
+//                         ))
+//                         .build();
+//                         
+//             case "testuser":
+//                 return User.builder()
+//                         .username("testuser")
+//                         .password(passwordEncoder.encode("password"))
+//                         .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
+//                         .build();
+//                         
+//             case "user":
+//                 return User.builder()
+//                         .username("user")
+//                         .password(passwordEncoder.encode("password"))
+//                         .authorities(List.of(new SimpleGrantedAuthority("ROLE_USER")))
+//                         .build();
+//                         
+//             default:
+//                 throw new UsernameNotFoundException("User not found: " + username);
+//         }
+//     };
+// }
 } 

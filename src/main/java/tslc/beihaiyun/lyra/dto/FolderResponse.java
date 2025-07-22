@@ -205,6 +205,7 @@ public class FolderResponse {
         private Long totalSize;
         private Integer maxDepth;
         private Long emptyFolders;
+        private Long fileCount;
         private FolderSummaryResponse largestFolder;
 
         /**
@@ -219,6 +220,7 @@ public class FolderResponse {
                 statistics.getTotalSize(),
                 statistics.getMaxDepth(),
                 statistics.getEmptyFolders(),
+                statistics.getFileCount(),
                 FolderSummaryResponse.fromEntity(statistics.getLargestFolder())
             );
         }

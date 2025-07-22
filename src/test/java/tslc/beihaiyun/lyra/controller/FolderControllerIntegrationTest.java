@@ -85,18 +85,18 @@ class FolderControllerIntegrationTest {
         testSpace.setQuotaLimit(1000000L);
         testSpace.setQuotaUsed(0L);
         testSpace = spaceRepository.save(testSpace);
+
+        // 设置SecurityContext for all tests
+        LyraUserPrincipal principal = LyraUserPrincipal.fromUser(testUser);
+        UsernamePasswordAuthenticationToken authentication = 
+            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @Test
     @DisplayName("应该成功创建文件夹")
     void should_createFolder_when_validRequest() throws Exception {
         // Arrange
-        // 手动设置SecurityContext
-        LyraUserPrincipal principal = LyraUserPrincipal.fromUser(testUser);
-        UsernamePasswordAuthenticationToken authentication = 
-            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        
         FolderRequest.CreateFolderRequest request = new FolderRequest.CreateFolderRequest();
         request.setName("新建文件夹");
         request.setSpaceId(testSpace.getId());
@@ -173,7 +173,7 @@ class FolderControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
-                .andExpect(jsonPath("$.data.name").value("更新后的文件夹"));
+                .andExpect(jsonPath("$.data.folder.name").value("更新后的文件夹"));
     }
 
     @Test
