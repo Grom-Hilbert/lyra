@@ -18,7 +18,7 @@ Lyra 是一个企业级云原生文档管理系统，旨在为中小型团队提
 
 ### 技术架构
 
-- **后端**: Spring Boot 3.5.x + Spring Security + JPA + Milton WebDAV
+- **后端**: Spring Boot 3.5.x + Spring Security + JPA + WebDAV Servlet
 - **前端**: Vue 3.5+ + TypeScript + Vite + Element Plus
 - **数据库**: SQLite（默认）/ MySQL / PostgreSQL + Redis（可选）
 - **构建工具**: Gradle 8.x+

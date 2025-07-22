@@ -498,18 +498,13 @@ public class AuthController {
         if (!user.getAccountNonLocked()) {
             return "账户已被锁定";
         }
-        switch (user.getStatus()) {
-            case PENDING:
-                return "账户等待审核中";
-            case DISABLED:
-                return "账户已被禁用";
-            case LOCKED:
-                return "账户已被锁定";
-            case DEACTIVATED:
-                return "账户已注销";
-            default:
-                return "账户状态异常";
-        }
+        return switch (user.getStatus()) {
+            case PENDING -> "账户等待审核中";
+            case DISABLED -> "账户已被禁用";
+            case LOCKED -> "账户已被锁定";
+            case DEACTIVATED -> "账户已注销";
+            default -> "账户状态异常";
+        };
     }
 
     /**
