@@ -301,9 +301,9 @@ public class DiffServiceImpl implements DiffService {
 
         summary.append("，相似度 ").append(String.format("%.1f%%", similarity * 100));
 
-        if (similarity > 0.8) {
+        if (similarity >= 0.8) {
             summary.append("（小幅修改）");
-        } else if (similarity > 0.5) {
+        } else if (similarity >= 0.5) {
             summary.append("（中等修改）");
         } else {
             summary.append("（重大修改）");

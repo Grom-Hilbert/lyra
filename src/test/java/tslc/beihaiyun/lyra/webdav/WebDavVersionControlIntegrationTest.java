@@ -124,13 +124,14 @@ public class WebDavVersionControlIntegrationTest {
     void testWebDavFileUploadCreatesVersion() throws Exception {
         String fileName = "test-document.txt";
         String initialContent = "初始文档内容";
+        byte[] contentBytes = initialContent.getBytes(StandardCharsets.UTF_8);
         String testFilePath = "/webdav/personal/" + testSpace.getName() + "/" + fileName;
         
         // 使用 WebDAV 资源服务上传文件 (模拟 WebDAV PUT 请求)
         boolean uploadResult = webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName, 
-            new ByteArrayInputStream(initialContent.getBytes(StandardCharsets.UTF_8)), 
-            initialContent.length()
+            new ByteArrayInputStream(contentBytes), 
+            contentBytes.length
         );
         
         assertTrue(uploadResult, "首次文件上传应该成功");
@@ -145,7 +146,7 @@ public class WebDavVersionControlIntegrationTest {
         assertFalse(versions.isEmpty(), "文件应该有版本历史");
         assertEquals(1, versions.size(), "初次上传应该创建一个版本");
         assertEquals(1, versions.get(0).getVersionNumber(), "初始版本号应该是1");
-        assertEquals((long)initialContent.length(), (long)versions.get(0).getSizeBytes(), "版本大小应该匹配");
+        assertEquals((long)contentBytes.length, (long)versions.get(0).getSizeBytes(), "版本大小应该匹配");
     }
 
     @Test
@@ -153,13 +154,15 @@ public class WebDavVersionControlIntegrationTest {
         String fileName = "test-document.txt";
         String initialContent = "初始文档内容";
         String updatedContent = "更新后的文档内容，包含更多信息";
+        byte[] initialBytes = initialContent.getBytes(StandardCharsets.UTF_8);
+        byte[] updatedBytes = updatedContent.getBytes(StandardCharsets.UTF_8);
         String testFilePath = "/webdav/personal/" + testSpace.getName() + "/" + fileName;
         
         // 首次上传
         webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName,
-            new ByteArrayInputStream(initialContent.getBytes(StandardCharsets.UTF_8)), 
-            initialContent.length()
+            new ByteArrayInputStream(initialBytes), 
+            initialBytes.length
         );
         
         // 获取资源
@@ -169,8 +172,8 @@ public class WebDavVersionControlIntegrationTest {
         // 二次上传（更新文件）
         boolean updateResult = webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName,
-            new ByteArrayInputStream(updatedContent.getBytes(StandardCharsets.UTF_8)),
-            updatedContent.length()
+            new ByteArrayInputStream(updatedBytes),
+            updatedBytes.length
         );
         
         assertTrue(updateResult, "文件更新应该成功");
@@ -185,8 +188,8 @@ public class WebDavVersionControlIntegrationTest {
         assertEquals(2, versions.get(1).getVersionNumber(), "第二个版本号应该是2");
         
         // 验证内容大小变化
-        assertEquals((long)initialContent.length(), (long)versions.get(0).getSizeBytes(), "第一版本大小应该匹配初始内容");
-        assertEquals((long)updatedContent.length(), (long)versions.get(1).getSizeBytes(), "第二版本大小应该匹配更新内容");
+        assertEquals((long)initialBytes.length, (long)versions.get(0).getSizeBytes(), "第一版本大小应该匹配初始内容");
+        assertEquals((long)updatedBytes.length, (long)versions.get(1).getSizeBytes(), "第二版本大小应该匹配更新内容");
     }
     
     @Test
@@ -206,7 +209,7 @@ public class WebDavVersionControlIntegrationTest {
         MvcResult result = mockMvc.perform(request(HttpMethod.valueOf("PROPFIND"), testFilePath)
                 .header("Depth", "0")
                 .contentType(MediaType.APPLICATION_XML))
-                .andExpect(status().isOk())
+                .andExpect(status().is(207)) // WebDAV PROPFIND 返回 207 Multi-Status
                 .andReturn();
         
         // 验证响应包含版本信息
@@ -254,12 +257,14 @@ public class WebDavVersionControlIntegrationTest {
         String fileName = "version-test.txt";
         String content1 = "原始内容";
         String content2 = "修改后内容";
+        byte[] content1Bytes = content1.getBytes(StandardCharsets.UTF_8);
+        byte[] content2Bytes = content2.getBytes(StandardCharsets.UTF_8);
         
         // 创建文件
         webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName,
-            new ByteArrayInputStream(content1.getBytes(StandardCharsets.UTF_8)), 
-            content1.length()
+            new ByteArrayInputStream(content1Bytes), 
+            content1Bytes.length
         );
         
         LyraResource resource = webDavResourceService.getResource("personal/" + testSpace.getName() + "/" + fileName);
@@ -269,8 +274,8 @@ public class WebDavVersionControlIntegrationTest {
         // 更新文件
         webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName,
-            new ByteArrayInputStream(content2.getBytes(StandardCharsets.UTF_8)),
-            content2.length()
+            new ByteArrayInputStream(content2Bytes),
+            content2Bytes.length
         );
         
         // 验证可以访问第一个版本的内容
@@ -288,12 +293,13 @@ public class WebDavVersionControlIntegrationTest {
     void testVersionControlResourceWithVersionInfo() {
         String fileName = "resource-test.txt";
         String content = "资源测试内容";
+        byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         
         // 创建文件
         webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName,
-            new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), 
-            content.length()
+            new ByteArrayInputStream(contentBytes), 
+            contentBytes.length
         );
         
         // 获取资源
