@@ -3,11 +3,14 @@ package tslc.beihaiyun.lyra.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import tslc.beihaiyun.lyra.config.CacheConfig;
 import tslc.beihaiyun.lyra.entity.FileEntity;
 import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
@@ -163,6 +166,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.FILE_METADATA_CACHE, key = "'file:' + #fileId", unless = "#result.isEmpty()")
     public Optional<FileEntity> getFileById(Long fileId) {
         if (fileId == null) {
             return Optional.empty();
@@ -172,6 +176,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.FILE_METADATA_CACHE, key = "'path:' + #space.id + ':' + #path", unless = "#result.isEmpty()")
     public Optional<FileEntity> getFileByPath(Space space, String path) {
         if (space == null || path == null || path.trim().isEmpty()) {
             return Optional.empty();
@@ -291,6 +296,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    @CacheEvict(value = CacheConfig.FILE_METADATA_CACHE, allEntries = true)
     public boolean deleteFile(Long fileId, Long deleterId) {
         try {
             Optional<FileEntity> fileOptional = getFileById(fileId);

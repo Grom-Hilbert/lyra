@@ -32,6 +32,10 @@ public class LyraProperties {
     @Valid
     @NestedConfigurationProperty
     private SystemConfig system = new SystemConfig();
+
+    @Valid
+    @NestedConfigurationProperty
+    private CacheConfig cache = new CacheConfig();
     
     // Getters and Setters
     public JwtConfig getJwt() {
@@ -56,6 +60,14 @@ public class LyraProperties {
 
     public void setSystem(SystemConfig system) {
         this.system = system;
+    }
+
+    public CacheConfig getCache() {
+        return cache;
+    }
+
+    public void setCache(CacheConfig cache) {
+        this.cache = cache;
     }
 
     /**
@@ -393,4 +405,300 @@ public class LyraProperties {
             }
         }
     }
-} 
+
+    /**
+     * 缓存配置
+     */
+    public static class CacheConfig {
+        /**
+         * 缓存类型：memory(内存缓存) 或 redis(Redis缓存)
+         */
+        @NotBlank(message = "缓存类型不能为空")
+        @Pattern(regexp = "^(memory|redis)$", message = "缓存类型必须是 memory 或 redis")
+        private String type = "memory";
+
+        /**
+         * 缓存TTL（生存时间），单位：秒
+         */
+        @Min(value = 60, message = "缓存TTL不能小于60秒")
+        @Max(value = 86400, message = "缓存TTL不能大于86400秒(24小时)")
+        private Integer ttl = 3600; // 默认1小时
+
+        /**
+         * 最大缓存条目数
+         */
+        @Min(value = 100, message = "最大缓存条目数不能小于100")
+        @Max(value = 100000, message = "最大缓存条目数不能大于100000")
+        private Integer maxSize = 10000;
+
+        /**
+         * 是否启用缓存预热
+         */
+        private Boolean enableWarmup = true;
+
+        /**
+         * 缓存统计信息收集
+         */
+        private Boolean enableStats = true;
+
+        @Valid
+        @NestedConfigurationProperty
+        private RedisConfig redis = new RedisConfig();
+
+        @Valid
+        @NestedConfigurationProperty
+        private MemoryConfig memory = new MemoryConfig();
+
+        // Getters and Setters
+        public String getType() {
+            return type;
+        }
+
+        public void setType(String type) {
+            this.type = type;
+        }
+
+        public Integer getTtl() {
+            return ttl;
+        }
+
+        public void setTtl(Integer ttl) {
+            this.ttl = ttl;
+        }
+
+        public Integer getMaxSize() {
+            return maxSize;
+        }
+
+        public void setMaxSize(Integer maxSize) {
+            this.maxSize = maxSize;
+        }
+
+        public Boolean getEnableWarmup() {
+            return enableWarmup;
+        }
+
+        public void setEnableWarmup(Boolean enableWarmup) {
+            this.enableWarmup = enableWarmup;
+        }
+
+        public Boolean getEnableStats() {
+            return enableStats;
+        }
+
+        public void setEnableStats(Boolean enableStats) {
+            this.enableStats = enableStats;
+        }
+
+        public RedisConfig getRedis() {
+            return redis;
+        }
+
+        public void setRedis(RedisConfig redis) {
+            this.redis = redis;
+        }
+
+        public MemoryConfig getMemory() {
+            return memory;
+        }
+
+        public void setMemory(MemoryConfig memory) {
+            this.memory = memory;
+        }
+    }
+
+    /**
+     * Redis缓存配置
+     */
+    public static class RedisConfig {
+        /**
+         * Redis主机地址
+         */
+        @NotBlank(message = "Redis主机地址不能为空")
+        private String host = "localhost";
+
+        /**
+         * Redis端口
+         */
+        @Min(value = 1, message = "Redis端口必须大于0")
+        @Max(value = 65535, message = "Redis端口不能大于65535")
+        private Integer port = 6379;
+
+        /**
+         * Redis密码
+         */
+        private String password;
+
+        /**
+         * Redis数据库索引
+         */
+        @Min(value = 0, message = "Redis数据库索引不能小于0")
+        @Max(value = 15, message = "Redis数据库索引不能大于15")
+        private Integer database = 0;
+
+        /**
+         * 连接超时时间（毫秒）
+         */
+        @Min(value = 1000, message = "连接超时时间不能小于1000毫秒")
+        private Integer timeout = 5000;
+
+        /**
+         * 连接池最大连接数
+         */
+        @Min(value = 1, message = "连接池最大连接数不能小于1")
+        private Integer maxActive = 20;
+
+        /**
+         * 连接池最大空闲连接数
+         */
+        @Min(value = 1, message = "连接池最大空闲连接数不能小于1")
+        private Integer maxIdle = 10;
+
+        /**
+         * 连接池最小空闲连接数
+         */
+        @Min(value = 0, message = "连接池最小空闲连接数不能小于0")
+        private Integer minIdle = 2;
+
+        // Getters and Setters
+        public String getHost() {
+            return host;
+        }
+
+        public void setHost(String host) {
+            this.host = host;
+        }
+
+        public Integer getPort() {
+            return port;
+        }
+
+        public void setPort(Integer port) {
+            this.port = port;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
+
+        public Integer getDatabase() {
+            return database;
+        }
+
+        public void setDatabase(Integer database) {
+            this.database = database;
+        }
+
+        public Integer getTimeout() {
+            return timeout;
+        }
+
+        public void setTimeout(Integer timeout) {
+            this.timeout = timeout;
+        }
+
+        public Integer getMaxActive() {
+            return maxActive;
+        }
+
+        public void setMaxActive(Integer maxActive) {
+            this.maxActive = maxActive;
+        }
+
+        public Integer getMaxIdle() {
+            return maxIdle;
+        }
+
+        public void setMaxIdle(Integer maxIdle) {
+            this.maxIdle = maxIdle;
+        }
+
+        public Integer getMinIdle() {
+            return minIdle;
+        }
+
+        public void setMinIdle(Integer minIdle) {
+            this.minIdle = minIdle;
+        }
+    }
+
+    /**
+     * 内存缓存配置
+     */
+    public static class MemoryConfig {
+        /**
+         * 初始容量
+         */
+        @Min(value = 16, message = "初始容量不能小于16")
+        private Integer initialCapacity = 100;
+
+        /**
+         * 最大权重
+         */
+        @Min(value = 1000, message = "最大权重不能小于1000")
+        private Long maximumWeight = 100000L;
+
+        /**
+         * 写入后过期时间（秒）
+         */
+        @Min(value = 60, message = "写入后过期时间不能小于60秒")
+        private Integer expireAfterWrite = 3600;
+
+        /**
+         * 访问后过期时间（秒）
+         */
+        @Min(value = 60, message = "访问后过期时间不能小于60秒")
+        private Integer expireAfterAccess = 1800;
+
+        /**
+         * 刷新后写入时间（秒）
+         */
+        @Min(value = 30, message = "刷新后写入时间不能小于30秒")
+        private Integer refreshAfterWrite = 300;
+
+        // Getters and Setters
+        public Integer getInitialCapacity() {
+            return initialCapacity;
+        }
+
+        public void setInitialCapacity(Integer initialCapacity) {
+            this.initialCapacity = initialCapacity;
+        }
+
+        public Long getMaximumWeight() {
+            return maximumWeight;
+        }
+
+        public void setMaximumWeight(Long maximumWeight) {
+            this.maximumWeight = maximumWeight;
+        }
+
+        public Integer getExpireAfterWrite() {
+            return expireAfterWrite;
+        }
+
+        public void setExpireAfterWrite(Integer expireAfterWrite) {
+            this.expireAfterWrite = expireAfterWrite;
+        }
+
+        public Integer getExpireAfterAccess() {
+            return expireAfterAccess;
+        }
+
+        public void setExpireAfterAccess(Integer expireAfterAccess) {
+            this.expireAfterAccess = expireAfterAccess;
+        }
+
+        public Integer getRefreshAfterWrite() {
+            return refreshAfterWrite;
+        }
+
+        public void setRefreshAfterWrite(Integer refreshAfterWrite) {
+            this.refreshAfterWrite = refreshAfterWrite;
+        }
+    }
+}

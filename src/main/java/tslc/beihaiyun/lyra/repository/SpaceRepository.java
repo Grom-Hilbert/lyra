@@ -249,10 +249,17 @@ public interface SpaceRepository extends JpaRepository<Space, Long> {
 
     /**
      * 根据用户ID查找空间列表（用于级联查询）
-     * 
+     *
      * @param userId 用户ID
      * @return 空间列表
      */
     @Query("SELECT s FROM Space s WHERE s.owner.id = :userId")
     List<Space> findByOwnerId(@Param("userId") Long userId);
+
+    /**
+     * 查找最近更新的前100个空间（用于缓存预热）
+     *
+     * @return 空间列表
+     */
+    List<Space> findTop100ByOrderByUpdatedAtDesc();
 } 

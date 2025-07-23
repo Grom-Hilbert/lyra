@@ -329,11 +329,31 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     /**
      * 批量更新用户状态
-     * 
+     *
      * @param userIds 用户ID列表
      * @param status 新状态
      * @return 更新行数
      */
     @Query("UPDATE User u SET u.status = :status WHERE u.id IN :userIds")
     int updateStatusByIds(@Param("userIds") List<Long> userIds, @Param("status") User.UserStatus status);
+
+    /**
+     * 查找活跃用户（指定天数内有登录记录的用户）
+     *
+     * @param days 天数
+     * @return 活跃用户列表
+     */
+    @Query("SELECT u FROM User u WHERE u.lastLoginAt >= :since AND u.enabled = true ORDER BY u.lastLoginAt DESC")
+    List<User> findActiveUsers(@Param("since") LocalDateTime since);
+
+    /**
+     * 查找活跃用户（指定天数内有登录记录的用户）
+     *
+     * @param days 天数
+     * @return 活跃用户列表
+     */
+    default List<User> findActiveUsers(int days) {
+        LocalDateTime since = LocalDateTime.now().minusDays(days);
+        return findActiveUsers(since);
+    }
 } 

@@ -3,10 +3,13 @@ package tslc.beihaiyun.lyra.service.impl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tslc.beihaiyun.lyra.config.CacheConfig;
 import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
 import tslc.beihaiyun.lyra.repository.FolderRepository;
@@ -223,6 +226,7 @@ public class FolderServiceImpl implements FolderService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheConfig.FOLDER_TREE_CACHE, key = "'tree:' + #space.id + ':' + #maxDepth")
     public List<FolderTreeNode> buildFolderTree(Space space, int maxDepth) {
         if (space == null) {
             return Collections.emptyList();
@@ -230,7 +234,7 @@ public class FolderServiceImpl implements FolderService {
 
         // 获取根文件夹
         List<Folder> rootFolders = getRootFolders(space);
-        
+
         return rootFolders.stream()
                 .map(folder -> buildTreeNode(folder, maxDepth, 0))
                 .collect(Collectors.toList());

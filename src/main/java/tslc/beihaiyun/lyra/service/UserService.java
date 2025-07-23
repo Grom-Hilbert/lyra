@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.List;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import tslc.beihaiyun.lyra.config.CacheConfig;
 import tslc.beihaiyun.lyra.dto.AuthRequest;
 import tslc.beihaiyun.lyra.entity.User;
 import tslc.beihaiyun.lyra.repository.UserRepository;
@@ -80,11 +83,12 @@ public class UserService {
 
     /**
      * 根据用户ID获取用户
-     * 
+     *
      * @param userId 用户ID
      * @return 用户实体
      * @throws IllegalArgumentException 如果用户不存在
      */
+    @Cacheable(value = CacheConfig.USER_SESSION_CACHE, key = "'user:' + #userId")
     public User getUserById(Long userId) {
         return findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));
