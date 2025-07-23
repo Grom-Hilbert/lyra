@@ -15,6 +15,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 import tslc.beihaiyun.lyra.security.JwtAuthenticationEntryPoint;
@@ -68,6 +70,23 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    /**
+     * HTTP防火墙配置
+     * 允许WebDAV方法（PROPFIND, PROPPATCH, MKCOL, COPY, MOVE, LOCK, UNLOCK）
+     */
+    @Bean
+    public HttpFirewall httpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+
+        // 允许WebDAV方法
+        firewall.setAllowedHttpMethods(java.util.Arrays.asList(
+            "GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH",
+            "PROPFIND", "PROPPATCH", "MKCOL", "COPY", "MOVE", "LOCK", "UNLOCK"
+        ));
+
+        return firewall;
     }
 
     /**

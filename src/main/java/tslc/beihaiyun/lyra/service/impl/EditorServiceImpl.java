@@ -313,7 +313,6 @@ public class EditorServiceImpl implements EditorService {
     }
 
     @Override
-    @Scheduled(fixedRate = 60000) // 每分钟执行一次
     public int cleanupExpiredSessions(int timeoutMinutes) {
         LocalDateTime expireTime = LocalDateTime.now().minusMinutes(timeoutMinutes);
         int cleanedCount = 0;
@@ -322,19 +321,19 @@ public class EditorServiceImpl implements EditorService {
         while (iterator.hasNext()) {
             Map.Entry<String, EditSession> entry = iterator.next();
             EditSession session = entry.getValue();
-            
+
             if (session.getLastActivityTime().isBefore(expireTime)) {
                 // 解锁文件
                 unlockFile(session.getFileId(), session.getUserId(), session.getSessionId());
-                
+
                 // 标记为过期
                 session.setStatus(SessionStatus.EXPIRED);
-                
+
                 // 移除会话
                 iterator.remove();
                 cleanedCount++;
-                
-                logger.info("清理过期编辑会话: sessionId={}, fileId={}", 
+
+                logger.info("清理过期编辑会话: sessionId={}, fileId={}",
                            session.getSessionId(), session.getFileId());
             }
         }
@@ -344,6 +343,14 @@ public class EditorServiceImpl implements EditorService {
         }
 
         return cleanedCount;
+    }
+
+    /**
+     * 定时清理过期会话（无参数方法，供Spring调度使用）
+     */
+    @Scheduled(fixedRate = 60000) // 每分钟执行一次
+    public void scheduledCleanupExpiredSessions() {
+        cleanupExpiredSessions(DEFAULT_SESSION_TIMEOUT_MINUTES);
     }
 
     // ==================== 编辑历史管理 ====================

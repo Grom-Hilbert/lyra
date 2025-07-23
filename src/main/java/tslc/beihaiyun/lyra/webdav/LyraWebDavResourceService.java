@@ -583,11 +583,15 @@ public class LyraWebDavResourceService {
         String filePath = pathInfo.getFilePath();
         
         // 首先尝试查找文件
+        logger.debug("查找文件: space={}, filePath={}", space.getName(), filePath);
         Optional<FileEntity> fileOpt = fileService.getFileByPath(space, filePath);
         if (fileOpt.isPresent()) {
-            String fullPath = "/webdav/" + pathInfo.getType().name().toLowerCase() + 
+            logger.debug("找到文件: {}", fileOpt.get().getName());
+            String fullPath = "/webdav/" + pathInfo.getType().name().toLowerCase() +
                             "/" + pathInfo.getSpacePath() + "/" + filePath;
             return createFileResourceWithVersionInfo(fileOpt.get(), fullPath);
+        } else {
+            logger.debug("未找到文件: space={}, filePath={}", space.getName(), filePath);
         }
         
         // 然后尝试查找文件夹
@@ -633,19 +637,26 @@ public class LyraWebDavResourceService {
      */
     private Space findSpace(WebDavPathInfo pathInfo, User currentUser) {
         if (currentUser == null || pathInfo.getSpacePath() == null) {
+            logger.debug("findSpace失败: currentUser={}, spacePath={}", currentUser, pathInfo.getSpacePath());
             return null;
         }
-        
-        Space.SpaceType spaceType = pathInfo.getType() == WebDavPathType.PERSONAL ? 
+
+        Space.SpaceType spaceType = pathInfo.getType() == WebDavPathType.PERSONAL ?
                                   Space.SpaceType.PERSONAL : Space.SpaceType.ENTERPRISE;
-        
+
+        logger.debug("查找空间: user={}, spaceType={}, spacePath={}", currentUser.getUsername(), spaceType, pathInfo.getSpacePath());
+
         // 查找用户的对应类型的空间，然后按名称过滤
         List<Space> spaces = spaceRepository.findByOwnerAndType(currentUser, spaceType);
-        
-        return spaces.stream()
+        logger.debug("找到用户空间数量: {}", spaces.size());
+
+        Space foundSpace = spaces.stream()
                 .filter(space -> pathInfo.getSpacePath().equals(space.getName()))
                 .findFirst()
                 .orElse(null);
+
+        logger.debug("匹配的空间: {}", foundSpace != null ? foundSpace.getName() : "null");
+        return foundSpace;
     }
 
     /**

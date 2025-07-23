@@ -57,11 +57,15 @@ public class WebDavController {
             @RequestHeader(value = "Depth", defaultValue = "0") String depth) {
         
         String method = request.getMethod();
-        
+
         if ("PROPFIND".equals(method)) {
             return handlePropfind(request, response, depth);
         } else if ("OPTIONS".equals(method)) {
             return handleOptions(response);
+        } else if ("PUT".equals(method)) {
+            return handlePut(request, response);
+        } else if ("GET".equals(method)) {
+            return handleGet(request, response);
         } else {
             return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).build();
         }
@@ -199,4 +203,73 @@ public class WebDavController {
         return new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
                 .format(date);
     }
-} 
+
+    /**
+     * 处理PUT请求 - 上传文件
+     */
+    private ResponseEntity<String> handlePut(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String requestURI = request.getRequestURI();
+            logger.debug("WebDAV PUT 请求: {}", requestURI);
+
+            // 提取WebDAV路径（移除/webdav前缀）
+            String webdavPath = requestURI.substring("/webdav/".length());
+
+            // 获取请求体内容
+            byte[] contentBytes = request.getInputStream().readAllBytes();
+            java.io.ByteArrayInputStream contentStream = new java.io.ByteArrayInputStream(contentBytes);
+
+            // 通过WebDAV服务上传文件
+            boolean success = resourceService.uploadFile(webdavPath, contentStream, contentBytes.length);
+
+            if (success) {
+                logger.info("WebDAV文件上传成功: {}", webdavPath);
+                return ResponseEntity.ok().build();
+            } else {
+                logger.warn("WebDAV文件上传失败: {}", webdavPath);
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+            }
+
+        } catch (Exception e) {
+            logger.error("WebDAV PUT请求处理失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * 处理GET请求 - 下载文件
+     */
+    private ResponseEntity<String> handleGet(HttpServletRequest request, HttpServletResponse response) {
+        try {
+            String requestURI = request.getRequestURI();
+            logger.debug("WebDAV GET 请求: {}", requestURI);
+
+            // 提取WebDAV路径（移除/webdav前缀）
+            String webdavPath = requestURI.substring("/webdav/".length());
+
+            // 获取资源
+            LyraResource resource = resourceService.getResource(webdavPath);
+
+            if (resource != null && resource.getFileEntity() != null) {
+                // 设置响应头
+                response.setContentType("application/octet-stream");
+                response.setHeader("Content-Disposition",
+                    "attachment; filename=\"" + resource.getFileEntity().getName() + "\"");
+
+                // 获取文件内容并写入响应
+                try (var contentStream = resource.getContentStream()) {
+                    if (contentStream != null) {
+                        contentStream.transferTo(response.getOutputStream());
+                        return ResponseEntity.ok().build();
+                    }
+                }
+            }
+
+            return ResponseEntity.notFound().build();
+
+        } catch (Exception e) {
+            logger.error("WebDAV GET请求处理失败", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+}

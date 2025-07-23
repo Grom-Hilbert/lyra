@@ -27,6 +27,7 @@ target/
 .vscode/
 .cursor/
 .cursorignore
+.augment/
 .vibedev/
 *.iws
 *.iml

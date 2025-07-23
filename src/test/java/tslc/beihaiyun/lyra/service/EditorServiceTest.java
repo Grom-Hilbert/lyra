@@ -158,7 +158,13 @@ class EditorServiceTest {
         when(fileService.getFileById(testFile.getId())).thenReturn(Optional.of(testFile));
         when(permissionService.hasPermission(testUserId, "file.write")).thenReturn(true);
         when(fileService.getFileContent(testFile.getId())).thenReturn(Optional.of(new ByteArrayInputStream(testContent.getBytes())));
-        
+
+        // Mock updateFileContent for auto-save
+        FileService.FileOperationResult mockResult = mock(FileService.FileOperationResult.class);
+        when(mockResult.isSuccess()).thenReturn(true);
+        when(mockResult.getFileEntity()).thenReturn(testFile);
+        when(fileService.updateFileContent(eq(testFile.getId()), any(), eq(testUserId))).thenReturn(mockResult);
+
         EditorService.EditResult startResult = editorService.startEditSession(testFile.getId(), testUserId);
         @SuppressWarnings("unchecked")
         Map<String, Object> startData = (Map<String, Object>) startResult.getData();

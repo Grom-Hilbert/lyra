@@ -29,6 +29,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 
 import tslc.beihaiyun.lyra.entity.FileVersion;
 import tslc.beihaiyun.lyra.entity.Space;
@@ -94,8 +96,10 @@ public class WebDavVersionControlIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // 初始化MockMvc
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
+        // 初始化MockMvc，包含Spring Security配置
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(springSecurity())
+                .build();
         
         // 创建测试用户
         testUser = new User();
@@ -198,17 +202,23 @@ public class WebDavVersionControlIntegrationTest {
         String content = "测试文档内容";
         String testFilePath = "/webdav/personal/" + testSpace.getName() + "/" + fileName;
         
-        // 创建测试文件
+        // 准备认证信息
+        LyraUserPrincipal principal = LyraUserPrincipal.fromUser(testUser);
+        UsernamePasswordAuthenticationToken auth =
+            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+
+        // 设置认证上下文并创建测试文件
+        SecurityContextHolder.getContext().setAuthentication(auth);
         webDavResourceService.uploadFile(
             "personal/" + testSpace.getName() + "/" + fileName,
-            new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), 
+            new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)),
             content.length()
         );
-        
-        // 发送PROPFIND请求
+
         MvcResult result = mockMvc.perform(request(HttpMethod.valueOf("PROPFIND"), testFilePath)
                 .header("Depth", "0")
-                .contentType(MediaType.APPLICATION_XML))
+                .contentType(MediaType.APPLICATION_XML)
+                .with(authentication(auth)))
                 .andExpect(status().is(207)) // WebDAV PROPFIND 返回 207 Multi-Status
                 .andReturn();
         
@@ -285,7 +295,9 @@ public class WebDavVersionControlIntegrationTest {
         assertEquals(content1, actualContent1, "第一版本内容应该保持不变");
         
         // 验证当前文件内容是最新的
-        String currentContent = new String(resource.getContentStream().readAllBytes(), StandardCharsets.UTF_8);
+        Optional<InputStream> currentContentStream = fileService.getFileContent(resource.getFileEntity().getId());
+        assertTrue(currentContentStream.isPresent(), "当前文件内容应该可以访问");
+        String currentContent = new String(currentContentStream.get().readAllBytes(), StandardCharsets.UTF_8);
         assertEquals(content2, currentContent, "当前文件内容应该是最新版本");
     }
 
@@ -320,15 +332,23 @@ public class WebDavVersionControlIntegrationTest {
     void testVersionControlIntegrationEnd2End() throws Exception {
         String fileName = "integration-test.txt";
         String testFilePath = "/webdav/personal/" + testSpace.getName() + "/" + fileName;
-        
+
+        // 准备认证信息
+        LyraUserPrincipal principal = LyraUserPrincipal.fromUser(testUser);
+        UsernamePasswordAuthenticationToken auth =
+            new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities());
+
         // 1. 通过WebDAV上传文件
         String content1 = "集成测试第一版";
         mockMvc.perform(put(testFilePath)
                 .content(content1)
-                .contentType(MediaType.TEXT_PLAIN))
+                .contentType(MediaType.TEXT_PLAIN)
+                .with(authentication(auth)))
                 .andExpect(status().isOk());
         
         // 2. 验证文件创建和版本记录
+        // 设置认证上下文
+        SecurityContextHolder.getContext().setAuthentication(auth);
         LyraResource resource = webDavResourceService.getResource("personal/" + testSpace.getName() + "/" + fileName);
         assertNotNull(resource, "文件应该创建成功");
         assertEquals((Integer)1, resource.getCurrentVersionNumber(), "初始版本号应该是1");
@@ -337,18 +357,22 @@ public class WebDavVersionControlIntegrationTest {
         String content2 = "集成测试第二版，内容更丰富";
         mockMvc.perform(put(testFilePath)
                 .content(content2)
-                .contentType(MediaType.TEXT_PLAIN))
+                .contentType(MediaType.TEXT_PLAIN)
+                .with(authentication(auth)))
                 .andExpect(status().isOk());
         
         // 4. 验证版本递增
+        // 设置认证上下文
+        SecurityContextHolder.getContext().setAuthentication(auth);
         resource = webDavResourceService.getResource("personal/" + testSpace.getName() + "/" + fileName);
         assertEquals((Integer)2, resource.getCurrentVersionNumber(), "更新后版本号应该是2");
         assertEquals((Long)2L, resource.getTotalVersionCount(), "应该有2个版本");
         
         // 5. 通过PROPFIND获取版本信息
         mockMvc.perform(request(HttpMethod.valueOf("PROPFIND"), testFilePath)
-                .header("Depth", "0"))
-                .andExpect(status().isOk())
+                .header("Depth", "0")
+                .with(authentication(auth)))
+                .andExpect(status().is(207)) // WebDAV PROPFIND 返回 207 Multi-Status
                 .andExpect(content().string(containsString("version-number")))
                 .andExpect(content().string(containsString("version-count")));
     }
