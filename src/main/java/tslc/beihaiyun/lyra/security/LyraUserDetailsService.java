@@ -80,13 +80,13 @@ public class LyraUserDetailsService implements UserDetailsService {
         
         // 添加角色权限
         for (UserRole userRole : user.getUserRoles()) {
-            if (userRole.getRole() != null) {
-                String roleName = userRole.getRole().getName();
-                if (!roleName.startsWith("ROLE_")) {
-                    roleName = "ROLE_" + roleName;
+            if (userRole.getRole() != null && userRole.isValid()) {
+                String roleCode = userRole.getRole().getCode();
+                if (!roleCode.startsWith("ROLE_")) {
+                    roleCode = "ROLE_" + roleCode;
                 }
-                authorities.add(new SimpleGrantedAuthority(roleName));
-                
+                authorities.add(new SimpleGrantedAuthority(roleCode));
+
                 // 添加角色相关的权限
                 userRole.getRole().getPermissions().forEach(permission -> {
                     authorities.add(new SimpleGrantedAuthority(permission.getCode()));

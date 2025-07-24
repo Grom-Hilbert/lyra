@@ -14,6 +14,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -129,8 +130,25 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 处理资源未找到异常
+     *
+     * @param ex 资源未找到异常
+     * @return 错误响应
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleNoResourceFound(NoResourceFoundException ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", false);
+        response.put("message", "请求的资源不存在");
+        response.put("timestamp", System.currentTimeMillis());
+
+        log.warn("资源未找到: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+    }
+
+    /**
      * 处理运行时异常
-     * 
+     *
      * @param ex 运行时异常
      * @return 错误响应
      */
@@ -140,7 +158,7 @@ public class GlobalExceptionHandler {
         response.put("success", false);
         response.put("message", "操作失败: " + ex.getMessage());
         response.put("timestamp", System.currentTimeMillis());
-        
+
         log.error("运行时异常", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }

@@ -208,6 +208,7 @@ class LyraUserDetailsServiceTest {
         Role role = new Role();
         role.setId(1L);
         role.setName(roleName);
+        role.setCode(roleName);  // 设置角色代码
         role.setPermissions(new HashSet<>());
         
         // 添加权限

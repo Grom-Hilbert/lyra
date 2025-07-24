@@ -399,4 +399,51 @@ public interface FileEntityRepository extends JpaRepository<FileEntity, Long> {
      */
     @Query("SELECT COALESCE(SUM(f.sizeBytes), 0) FROM FileEntity f")
     long getTotalFileSize();
+
+    /**
+     * 按文件类型统计文件数量
+     * 
+     * @return 文件类型统计结果 [文件类型, 数量]
+     */
+    @Query("SELECT COALESCE(f.mimeType, 'unknown'), COUNT(f) FROM FileEntity f GROUP BY f.mimeType ORDER BY COUNT(f) DESC")
+    List<Object[]> countByFileType();
+
+    /**
+     * 按文件大小范围统计文件数量
+     * 
+     * @return 文件大小范围统计结果 [大小范围, 数量]
+     */
+    @Query("SELECT " +
+           "CASE " +
+           "  WHEN f.sizeBytes <= 1048576 THEN 'small(<=1MB)' " +
+           "  WHEN f.sizeBytes <= 10485760 THEN 'medium(1-10MB)' " +
+           "  WHEN f.sizeBytes <= 104857600 THEN 'large(10-100MB)' " +
+           "  ELSE 'huge(>100MB)' " +
+           "END as sizeRange, " +
+           "COUNT(f) " +
+           "FROM FileEntity f " +
+           "GROUP BY " +
+           "CASE " +
+           "  WHEN f.sizeBytes <= 1048576 THEN 'small(<=1MB)' " +
+           "  WHEN f.sizeBytes <= 10485760 THEN 'medium(1-10MB)' " +
+           "  WHEN f.sizeBytes <= 104857600 THEN 'large(10-100MB)' " +
+           "  ELSE 'huge(>100MB)' " +
+           "END " +
+           "ORDER BY COUNT(f) DESC")
+    List<Object[]> countByFileSizeRange();
+
+    /**
+     * 按用户统计文件数量和总大小
+     * 
+     * @return 用户文件统计结果 [用户ID, 用户名, 文件数量, 总大小]
+     */
+    @Query("SELECT f.space.owner.id, " +
+           "f.space.owner.username, " +
+           "COUNT(f), " +
+           "COALESCE(SUM(f.sizeBytes), 0) " +
+           "FROM FileEntity f " +
+           "WHERE f.space.owner IS NOT NULL " +
+           "GROUP BY f.space.owner.id, f.space.owner.username " +
+           "ORDER BY COUNT(f) DESC")
+    List<Object[]> countFilesByUser();
 } 

@@ -59,15 +59,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     
                     if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                        
+
                         // 再次验证令牌与用户信息的匹配性（包括黑名单检查）
                         if (jwtService.isTokenValid(jwt, userDetails)) {
-                            UsernamePasswordAuthenticationToken authToken = 
+                            UsernamePasswordAuthenticationToken authToken =
                                 new UsernamePasswordAuthenticationToken(
                                     userDetails, null, userDetails.getAuthorities());
                             authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                             SecurityContextHolder.getContext().setAuthentication(authToken);
-                            
+
                             logger.debug("已设置用户认证信息：{}", username);
                         } else {
                             logger.debug("令牌验证失败，用户：{}", username);

@@ -262,4 +262,17 @@ public interface SpaceRepository extends JpaRepository<Space, Long> {
      * @return 空间列表
      */
     List<Space> findTop100ByOrderByUpdatedAtDesc();
+
+    /**
+     * 获取空间统计信息
+     * 
+     * @return 空间统计结果 [空间ID, 空间名称, 空间类型, 文件数量, 总大小]
+     */
+    @Query("SELECT s.id, s.name, s.type, " +
+           "(SELECT COUNT(f) FROM FileEntity f WHERE f.space = s), " +
+           "(SELECT COALESCE(SUM(f.sizeBytes), 0) FROM FileEntity f WHERE f.space = s) " +
+           "FROM Space s " +
+           "WHERE s.status = 'ACTIVE' " +
+           "ORDER BY s.name")
+    List<Object[]> getSpaceStatistics();
 } 

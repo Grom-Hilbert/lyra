@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -336,6 +337,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param status 新状态
      * @return 更新行数
      */
+    @Modifying
     @Query("UPDATE User u SET u.status = :status WHERE u.id IN :userIds")
     int updateStatusByIds(@Param("userIds") List<Long> userIds, @Param("status") User.UserStatus status);
 
@@ -376,4 +378,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
     default long countAdminUsers() {
         return countUsersByRoleAndStatus("ADMIN", UserRole.AssignmentStatus.ACTIVE);
     }
+
+    /**
+     * 获取所有用户的总存储配额
+     * 
+     * @return 总存储配额（字节）
+     */
+    @Query("SELECT COALESCE(SUM(u.storageQuota), 0) FROM User u WHERE u.deleted = false")
+    Long getTotalStorageQuota();
+
+    /**
+     * 获取所有用户的总存储使用量
+     * 
+     * @return 总存储使用量（字节）
+     */
+    @Query("SELECT COALESCE(SUM(u.storageUsed), 0) FROM User u WHERE u.deleted = false")
+    Long getTotalStorageUsed();
 } 

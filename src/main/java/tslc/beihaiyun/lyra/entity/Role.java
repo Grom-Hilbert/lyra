@@ -3,6 +3,7 @@ package tslc.beihaiyun.lyra.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import org.hibernate.annotations.SQLRestriction;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -92,6 +93,7 @@ public class Role extends BaseEntity {
      * 用户角色关联
      */
     @OneToMany(mappedBy = "role", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JsonIgnore
     private Set<UserRole> userRoles = new HashSet<>();
 
     /**

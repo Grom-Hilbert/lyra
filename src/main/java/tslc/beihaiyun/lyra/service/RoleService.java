@@ -892,4 +892,22 @@ public class RoleService {
 
         return info;
     }
+
+    /**
+     * 获取用户的角色列表（简化版）
+     * 
+     * @param userId 用户ID
+     * @return 用户角色列表
+     */
+    @Cacheable(value = CacheConfig.USER_ROLES_CACHE, key = "'roles:' + #userId")
+    public List<Role> getUserRoles(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        List<UserRole> validUserRoles = userRoleRepository.findValidUserRoles(userId, now);
+        
+        return validUserRoles.stream()
+                .map(UserRole::getRoleId)
+                .map(this::getRoleById)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+    }
 } 
