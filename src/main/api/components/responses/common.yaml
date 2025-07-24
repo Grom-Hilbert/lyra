@@ -1,0 +1,363 @@
+# 通用响应定义
+
+# 成功响应
+Success:
+  description: 操作成功
+  content:
+    application/json:
+      schema:
+        allOf:
+          - $ref: '../schemas/common.yaml#/ApiResponse'
+          - type: object
+            properties:
+              success:
+                type: boolean
+                enum: [true]
+      example:
+        success: true
+        message: "操作成功"
+        timestamp: 1642780800000
+
+# 创建成功响应
+Created:
+  description: 资源创建成功
+  content:
+    application/json:
+      schema:
+        allOf:
+          - $ref: '../schemas/common.yaml#/ApiResponse'
+          - type: object
+            properties:
+              success:
+                type: boolean
+                enum: [true]
+              data:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                    description: 新创建资源的ID
+      example:
+        success: true
+        message: "资源创建成功"
+        data:
+          id: 123
+        timestamp: 1642780800000
+
+# 请求参数错误
+BadRequest:
+  description: 请求参数错误
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        validation_error:
+          summary: 参数验证失败
+          value:
+            success: false
+            message: "请求参数验证失败"
+            errors: ["用户名不能为空", "邮箱格式不正确"]
+            timestamp: 1642780800000
+        invalid_format:
+          summary: 格式错误
+          value:
+            success: false
+            message: "请求格式错误"
+            errors: ["JSON格式不正确"]
+            timestamp: 1642780800000
+        missing_parameter:
+          summary: 缺少必需参数
+          value:
+            success: false
+            message: "缺少必需参数"
+            errors: ["缺少必需参数: spaceId"]
+            timestamp: 1642780800000
+
+# 未授权访问
+Unauthorized:
+  description: 未授权访问
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        invalid_token:
+          summary: 令牌无效
+          value:
+            success: false
+            message: "访问令牌无效或已过期"
+            timestamp: 1642780800000
+        missing_token:
+          summary: 缺少令牌
+          value:
+            success: false
+            message: "缺少访问令牌"
+            timestamp: 1642780800000
+        expired_token:
+          summary: 令牌过期
+          value:
+            success: false
+            message: "访问令牌已过期，请重新登录"
+            timestamp: 1642780800000
+
+# 权限不足
+Forbidden:
+  description: 权限不足
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        insufficient_permissions:
+          summary: 权限不足
+          value:
+            success: false
+            message: "权限不足，无法访问此资源"
+            timestamp: 1642780800000
+        admin_required:
+          summary: 需要管理员权限
+          value:
+            success: false
+            message: "此操作需要管理员权限"
+            timestamp: 1642780800000
+        resource_access_denied:
+          summary: 资源访问被拒绝
+          value:
+            success: false
+            message: "您没有访问此资源的权限"
+            timestamp: 1642780800000
+
+# 资源不存在
+NotFound:
+  description: 资源不存在
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        resource_not_found:
+          summary: 资源不存在
+          value:
+            success: false
+            message: "请求的资源不存在"
+            timestamp: 1642780800000
+        file_not_found:
+          summary: 文件不存在
+          value:
+            success: false
+            message: "文件不存在或已被删除"
+            timestamp: 1642780800000
+        user_not_found:
+          summary: 用户不存在
+          value:
+            success: false
+            message: "用户不存在"
+            timestamp: 1642780800000
+        endpoint_not_found:
+          summary: 端点不存在
+          value:
+            success: false
+            message: "请求的API端点不存在"
+            timestamp: 1642780800000
+
+# 方法不允许
+MethodNotAllowed:
+  description: HTTP方法不允许
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      example:
+        success: false
+        message: "HTTP方法不允许"
+        errors: ["此端点不支持POST方法"]
+        timestamp: 1642780800000
+
+# 不支持的媒体类型
+UnsupportedMediaType:
+  description: 不支持的媒体类型
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      example:
+        success: false
+        message: "不支持的媒体类型"
+        errors: ["Content-Type必须为application/json"]
+        timestamp: 1642780800000
+
+# 资源冲突
+Conflict:
+  description: 资源冲突
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        duplicate_resource:
+          summary: 资源重复
+          value:
+            success: false
+            message: "资源已存在"
+            errors: ["用户名已被使用"]
+            timestamp: 1642780800000
+        file_exists:
+          summary: 文件已存在
+          value:
+            success: false
+            message: "文件已存在"
+            errors: ["同名文件已存在，请选择覆盖或重命名"]
+            timestamp: 1642780800000
+        concurrent_modification:
+          summary: 并发修改冲突
+          value:
+            success: false
+            message: "资源已被其他用户修改"
+            errors: ["请刷新后重试"]
+            timestamp: 1642780800000
+
+# 请求实体过大
+PayloadTooLarge:
+  description: 请求实体过大
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        file_too_large:
+          summary: 文件过大
+          value:
+            success: false
+            message: "文件大小超出限制"
+            errors: ["文件大小不能超过100MB"]
+            timestamp: 1642780800000
+        request_too_large:
+          summary: 请求过大
+          value:
+            success: false
+            message: "请求数据过大"
+            errors: ["请求体大小不能超过10MB"]
+            timestamp: 1642780800000
+
+# 不支持的文件类型
+UnsupportedFileType:
+  description: 不支持的文件类型
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      example:
+        success: false
+        message: "不支持的文件类型"
+        errors: ["不支持.exe文件类型"]
+        timestamp: 1642780800000
+
+# 请求频率过高
+TooManyRequests:
+  description: 请求频率过高
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        rate_limit_exceeded:
+          summary: 超出频率限制
+          value:
+            success: false
+            message: "请求频率过高，请稍后再试"
+            errors: ["每小时最多允许1000次请求"]
+            timestamp: 1642780800000
+        upload_limit_exceeded:
+          summary: 上传频率限制
+          value:
+            success: false
+            message: "上传频率过高"
+            errors: ["每分钟最多允许上传10个文件"]
+            timestamp: 1642780800000
+
+# 服务器内部错误
+InternalServerError:
+  description: 服务器内部错误
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        general_error:
+          summary: 一般服务器错误
+          value:
+            success: false
+            message: "服务器内部错误，请稍后重试"
+            timestamp: 1642780800000
+        database_error:
+          summary: 数据库错误
+          value:
+            success: false
+            message: "数据库连接失败"
+            errors: ["无法连接到数据库服务器"]
+            timestamp: 1642780800000
+        storage_error:
+          summary: 存储错误
+          value:
+            success: false
+            message: "文件存储失败"
+            errors: ["存储服务不可用"]
+            timestamp: 1642780800000
+
+# 服务不可用
+ServiceUnavailable:
+  description: 服务不可用
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        maintenance:
+          summary: 系统维护
+          value:
+            success: false
+            message: "系统正在维护中，请稍后再试"
+            timestamp: 1642780800000
+        overloaded:
+          summary: 服务器过载
+          value:
+            success: false
+            message: "服务器负载过高，请稍后再试"
+            timestamp: 1642780800000
+
+# 网关超时
+GatewayTimeout:
+  description: 网关超时
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      example:
+        success: false
+        message: "请求超时，请稍后重试"
+        timestamp: 1642780800000
+
+# 存储空间不足
+InsufficientStorage:
+  description: 存储空间不足
+  content:
+    application/json:
+      schema:
+        $ref: '../schemas/common.yaml#/ErrorResponse'
+      examples:
+        quota_exceeded:
+          summary: 配额超出
+          value:
+            success: false
+            message: "存储配额已满"
+            errors: ["您的存储空间已用完，请删除一些文件或联系管理员"]
+            timestamp: 1642780800000
+        disk_full:
+          summary: 磁盘空间不足
+          value:
+            success: false
+            message: "服务器存储空间不足"
+            errors: ["系统存储空间不足，请联系管理员"]
+            timestamp: 1642780800000

@@ -1,0 +1,325 @@
+# 通用数据模型定义
+
+# 通用API响应模型
+ApiResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: 操作是否成功
+      example: true
+    message:
+      type: string
+      description: 响应消息
+      example: "操作成功"
+    timestamp:
+      type: integer
+      format: int64
+      description: 响应时间戳
+      example: 1642780800000
+
+# 错误响应模型
+ErrorResponse:
+  allOf:
+    - $ref: '#/ApiResponse'
+    - type: object
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        errors:
+          type: array
+          items:
+            type: string
+          description: 详细错误信息列表
+
+# 分页信息模型
+PaginationInfo:
+  type: object
+  properties:
+    page:
+      type: integer
+      description: 当前页码
+      minimum: 0
+      example: 0
+    size:
+      type: integer
+      description: 每页大小
+      default: 20
+      example: 20
+    totalElements:
+      type: integer
+      description: 总元素数
+      example: 150
+    totalPages:
+      type: integer
+      description: 总页数
+      example: 8
+
+# 分页响应模型
+PagedResponse:
+  allOf:
+    - $ref: '#/ApiResponse'
+    - type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+        pagination:
+          $ref: '#/PaginationInfo'
+
+# 排序信息模型
+SortInfo:
+  type: object
+  properties:
+    field:
+      type: string
+      description: 排序字段
+      example: "createdAt"
+    direction:
+      type: string
+      enum: [asc, desc]
+      description: 排序方向
+      example: "desc"
+
+# 日期范围模型
+DateRange:
+  type: object
+  properties:
+    start:
+      type: string
+      format: date
+      description: 开始日期
+      example: "2024-01-01"
+    end:
+      type: string
+      format: date
+      description: 结束日期
+      example: "2024-12-31"
+
+# 文件大小信息
+FileSizeInfo:
+  type: object
+  properties:
+    bytes:
+      type: integer
+      format: int64
+      description: 文件大小（字节）
+      example: 1048576
+    readable:
+      type: string
+      description: 可读的文件大小
+      example: "1.0 MB"
+
+# 时间戳信息
+TimestampInfo:
+  type: object
+  properties:
+    createdAt:
+      type: string
+      format: date-time
+      description: 创建时间
+      example: "2024-01-01T12:00:00Z"
+    updatedAt:
+      type: string
+      format: date-time
+      description: 更新时间
+      example: "2024-01-01T12:00:00Z"
+
+# 状态枚举
+Status:
+  type: string
+  enum: [ACTIVE, INACTIVE, PENDING, LOCKED, DELETED]
+  description: 通用状态枚举
+
+# 操作结果模型
+OperationResult:
+  allOf:
+    - $ref: '#/ApiResponse'
+    - type: object
+      properties:
+        data:
+          type: object
+          properties:
+            affected:
+              type: integer
+              description: 受影响的记录数
+              example: 1
+            id:
+              type: integer
+              format: int64
+              description: 操作对象的ID
+              example: 123
+
+# 批量操作结果模型
+BatchOperationResult:
+  allOf:
+    - $ref: '#/ApiResponse'
+    - type: object
+      properties:
+        data:
+          type: object
+          properties:
+            total:
+              type: integer
+              description: 总操作数
+              example: 10
+            successful:
+              type: integer
+              description: 成功操作数
+              example: 8
+            failed:
+              type: integer
+              description: 失败操作数
+              example: 2
+            failures:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  reason:
+                    type: string
+              description: 失败项目详情
+
+# 搜索过滤器模型
+SearchFilter:
+  type: object
+  properties:
+    field:
+      type: string
+      description: 过滤字段
+    operator:
+      type: string
+      enum: [eq, ne, gt, gte, lt, lte, like, in, between]
+      description: 过滤操作符
+    value:
+      oneOf:
+        - type: string
+        - type: number
+        - type: boolean
+        - type: array
+          items:
+            type: string
+      description: 过滤值
+
+# 统计信息基础模型
+StatisticsBase:
+  type: object
+  properties:
+    total:
+      type: integer
+      description: 总数
+      example: 1000
+    period:
+      type: string
+      enum: [day, week, month, quarter, year]
+      description: 统计周期
+      example: "month"
+    timestamp:
+      type: string
+      format: date-time
+      description: 统计时间
+      example: "2024-01-01T12:00:00Z"
+
+# 趋势数据模型
+TrendData:
+  type: object
+  properties:
+    date:
+      type: string
+      format: date
+      description: 日期
+      example: "2024-01-01"
+    value:
+      type: number
+      description: 数值
+      example: 100
+    change:
+      type: number
+      description: 变化量
+      example: 5.2
+    changePercent:
+      type: number
+      description: 变化百分比
+      example: 5.5
+
+# 配置项模型
+ConfigItem:
+  type: object
+  properties:
+    key:
+      type: string
+      description: 配置键
+      example: "storage.maxFileSize"
+    value:
+      type: string
+      description: 配置值
+      example: "100MB"
+    type:
+      type: string
+      enum: [string, number, boolean, array, object]
+      description: 配置类型
+      example: "string"
+    description:
+      type: string
+      description: 配置描述
+      example: "最大文件上传大小"
+    required:
+      type: boolean
+      description: 是否必需
+      example: true
+    defaultValue:
+      type: string
+      description: 默认值
+      example: "50MB"
+
+# 健康检查状态
+HealthStatus:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [UP, DOWN, OUT_OF_SERVICE, UNKNOWN]
+      description: 健康状态
+      example: "UP"
+    details:
+      type: object
+      additionalProperties: true
+      description: 详细信息
+
+# 缓存统计信息
+CacheStats:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 缓存名称
+      example: "userCache"
+    size:
+      type: integer
+      description: 缓存大小
+      example: 1000
+    hitCount:
+      type: integer
+      format: int64
+      description: 命中次数
+      example: 8500
+    missCount:
+      type: integer
+      format: int64
+      description: 未命中次数
+      example: 1500
+    hitRate:
+      type: number
+      format: double
+      description: 命中率
+      example: 0.85
+    evictionCount:
+      type: integer
+      format: int64
+      description: 驱逐次数
+      example: 100

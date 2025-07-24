@@ -1,0 +1,474 @@
+# 用户管理相关数据模型定义
+
+# 用户详细信息
+UserDetail:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 用户ID
+      example: 1
+    username:
+      type: string
+      description: 用户名
+      example: "admin"
+    email:
+      type: string
+      format: email
+      description: 邮箱
+      example: "admin@lyra.com"
+    displayName:
+      type: string
+      description: 显示名称
+      example: "系统管理员"
+    avatar:
+      type: string
+      format: uri
+      description: 头像URL
+      nullable: true
+      example: "https://example.com/avatar.jpg"
+    bio:
+      type: string
+      description: 个人简介
+      nullable: true
+      example: "系统管理员账户"
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, LOCKED, PENDING]
+      description: 账户状态
+      example: "ACTIVE"
+    emailVerified:
+      type: boolean
+      description: 邮箱是否已验证
+      example: true
+    roles:
+      type: array
+      description: 用户角色
+      items:
+        $ref: '#/RoleInfo'
+    permissions:
+      type: array
+      description: 用户权限
+      items:
+        type: string
+      example: ["system.admin", "file.read", "file.write"]
+    storageQuota:
+      type: integer
+      format: int64
+      description: 存储配额（字节）
+      example: 10737418240
+    storageUsed:
+      type: integer
+      format: int64
+      description: 已使用存储（字节）
+      example: 1073741824
+    lastLoginAt:
+      type: string
+      format: date-time
+      description: 最后登录时间
+      nullable: true
+      example: "2024-01-01T12:00:00Z"
+    lastLoginIp:
+      type: string
+      description: 最后登录IP
+      nullable: true
+      example: "192.168.1.100"
+    loginCount:
+      type: integer
+      description: 登录次数
+      example: 150
+    createdAt:
+      type: string
+      format: date-time
+      description: 创建时间
+      example: "2024-01-01T12:00:00Z"
+    updatedAt:
+      type: string
+      format: date-time
+      description: 更新时间
+      example: "2024-01-01T12:00:00Z"
+    createdBy:
+      type: string
+      description: 创建者
+      nullable: true
+      example: "system"
+
+# 角色信息
+RoleInfo:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 角色ID
+      example: 1
+    name:
+      type: string
+      description: 角色名称
+      example: "管理员"
+    code:
+      type: string
+      description: 角色代码
+      example: "ADMIN"
+    description:
+      type: string
+      description: 角色描述
+      nullable: true
+      example: "系统管理员角色"
+    isSystem:
+      type: boolean
+      description: 是否为系统角色
+      example: true
+    permissions:
+      type: array
+      description: 角色权限
+      items:
+        type: string
+      example: ["system.admin", "user.manage"]
+    userCount:
+      type: integer
+      description: 拥有此角色的用户数
+      example: 5
+    createdAt:
+      type: string
+      format: date-time
+      description: 创建时间
+      example: "2024-01-01T12:00:00Z"
+
+# 创建用户请求
+CreateUserRequest:
+  type: object
+  required:
+    - username
+    - email
+    - password
+  properties:
+    username:
+      type: string
+      description: 用户名
+      pattern: '^[a-zA-Z0-9_]{3,20}$'
+      example: "newuser"
+    email:
+      type: string
+      format: email
+      description: 邮箱
+      example: "newuser@example.com"
+    password:
+      type: string
+      description: 密码
+      format: password
+      minLength: 8
+      example: "password123"
+    displayName:
+      type: string
+      description: 显示名称
+      example: "新用户"
+    roles:
+      type: array
+      description: 用户角色代码
+      items:
+        type: string
+      example: ["USER"]
+    storageQuota:
+      type: integer
+      format: int64
+      description: 存储配额（字节）
+      example: 10737418240
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, PENDING]
+      description: 初始状态
+      default: ACTIVE
+      example: "ACTIVE"
+    sendWelcomeEmail:
+      type: boolean
+      description: 是否发送欢迎邮件
+      default: true
+      example: true
+
+# 更新用户请求
+UpdateUserRequest:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: 邮箱
+      example: "updated@example.com"
+    displayName:
+      type: string
+      description: 显示名称
+      example: "更新的显示名称"
+    bio:
+      type: string
+      description: 个人简介
+      maxLength: 500
+      example: "更新的个人简介"
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, LOCKED]
+      description: 账户状态
+      example: "ACTIVE"
+    roles:
+      type: array
+      description: 用户角色代码
+      items:
+        type: string
+      example: ["USER", "EDITOR"]
+    storageQuota:
+      type: integer
+      format: int64
+      description: 存储配额（字节）
+      example: 21474836480
+
+# 批量用户操作请求
+BatchUserOperationRequest:
+  type: object
+  required:
+    - userIds
+    - operation
+  properties:
+    userIds:
+      type: array
+      items:
+        type: integer
+        format: int64
+      description: 用户ID列表
+      example: [1, 2, 3]
+    operation:
+      type: string
+      enum: [ACTIVATE, DEACTIVATE, LOCK, UNLOCK, DELETE]
+      description: 批量操作类型
+      example: "ACTIVATE"
+    reason:
+      type: string
+      description: 操作原因
+      example: "批量激活用户"
+
+# 用户搜索请求
+UserSearchRequest:
+  type: object
+  properties:
+    keyword:
+      type: string
+      description: 搜索关键词（用户名、邮箱、显示名称）
+      example: "admin"
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, LOCKED, PENDING]
+      description: 状态筛选
+      example: "ACTIVE"
+    role:
+      type: string
+      description: 角色筛选
+      example: "ADMIN"
+    emailVerified:
+      type: boolean
+      description: 邮箱验证状态筛选
+      example: true
+    createdDateRange:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date
+        end:
+          type: string
+          format: date
+      description: 创建日期范围
+    lastLoginDateRange:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date
+        end:
+          type: string
+          format: date
+      description: 最后登录日期范围
+
+# 用户列表响应
+UserListResponse:
+  type: object
+  properties:
+    users:
+      type: array
+      items:
+        $ref: '#/UserDetail'
+    pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 0
+        size:
+          type: integer
+          example: 20
+        totalElements:
+          type: integer
+          example: 150
+        totalPages:
+          type: integer
+          example: 8
+    filters:
+      $ref: '#/UserSearchRequest'
+
+# 用户统计信息
+UserStatistics:
+  type: object
+  properties:
+    totalUsers:
+      type: integer
+      description: 用户总数
+      example: 1250
+    activeUsers:
+      type: integer
+      description: 活跃用户数
+      example: 890
+    inactiveUsers:
+      type: integer
+      description: 非活跃用户数
+      example: 200
+    lockedUsers:
+      type: integer
+      description: 锁定用户数
+      example: 160
+    pendingUsers:
+      type: integer
+      description: 待审核用户数
+      example: 0
+    verifiedUsers:
+      type: integer
+      description: 已验证邮箱用户数
+      example: 1100
+    newUsersThisMonth:
+      type: integer
+      description: 本月新增用户数
+      example: 45
+    newUsersLastMonth:
+      type: integer
+      description: 上月新增用户数
+      example: 38
+    userGrowthRate:
+      type: number
+      format: double
+      description: 用户增长率(%)
+      example: 18.4
+    averageLoginFrequency:
+      type: number
+      format: double
+      description: 平均登录频率（次/月）
+      example: 12.5
+    topActiveUsers:
+      type: array
+      items:
+        type: object
+        properties:
+          user:
+            $ref: '#/UserDetail'
+          loginCount:
+            type: integer
+          lastLoginAt:
+            type: string
+            format: date-time
+      description: 最活跃用户列表
+
+# 用户活动记录
+UserActivity:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 活动ID
+      example: 1
+    userId:
+      type: integer
+      format: int64
+      description: 用户ID
+      example: 1
+    type:
+      type: string
+      enum: [LOGIN, LOGOUT, FILE_UPLOAD, FILE_DOWNLOAD, FILE_DELETE, PROFILE_UPDATE, PASSWORD_CHANGE]
+      description: 活动类型
+      example: "LOGIN"
+    description:
+      type: string
+      description: 活动描述
+      example: "用户登录系统"
+    ipAddress:
+      type: string
+      description: IP地址
+      example: "192.168.1.100"
+    userAgent:
+      type: string
+      description: 用户代理
+      example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    metadata:
+      type: object
+      additionalProperties: true
+      description: 额外元数据
+      example:
+        fileId: 123
+        fileName: "document.pdf"
+    createdAt:
+      type: string
+      format: date-time
+      description: 活动时间
+      example: "2024-01-01T12:00:00Z"
+
+# 用户偏好设置
+UserPreferences:
+  type: object
+  properties:
+    theme:
+      type: string
+      enum: [light, dark, auto]
+      description: 主题设置
+      default: auto
+      example: "dark"
+    language:
+      type: string
+      description: 语言设置
+      default: "zh-CN"
+      example: "zh-CN"
+    timezone:
+      type: string
+      description: 时区设置
+      default: "Asia/Shanghai"
+      example: "Asia/Shanghai"
+    dateFormat:
+      type: string
+      description: 日期格式
+      default: "YYYY-MM-DD"
+      example: "YYYY-MM-DD"
+    timeFormat:
+      type: string
+      enum: [12, 24]
+      description: 时间格式
+      default: 24
+      example: 24
+    pageSize:
+      type: integer
+      description: 默认分页大小
+      minimum: 10
+      maximum: 100
+      default: 20
+      example: 20
+    notifications:
+      type: object
+      properties:
+        email:
+          type: boolean
+          default: true
+        browser:
+          type: boolean
+          default: true
+        fileShared:
+          type: boolean
+          default: true
+        systemMaintenance:
+          type: boolean
+          default: true
+      description: 通知设置

@@ -1,0 +1,529 @@
+# 认证相关API路径定义
+
+# 用户登录
+/api/auth/login:
+  post:
+    tags:
+      - 认证管理
+    summary: 用户登录
+    description: |
+      用户通过用户名/邮箱和密码进行登录认证。
+      
+      **功能特性**:
+      - 支持用户名或邮箱登录
+      - 返回JWT访问令牌和刷新令牌
+      - 记录登录历史和IP地址
+      - 支持记住我功能
+      
+      **安全特性**:
+      - 登录频率限制
+      - 异常登录检测
+      - 密码错误次数限制
+      - 自动锁定机制
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/LoginRequest'
+          examples:
+            username_login:
+              summary: 用户名登录
+              value:
+                usernameOrEmail: "admin"
+                password: "admin123"
+                rememberMe: false
+            email_login:
+              summary: 邮箱登录
+              value:
+                usernameOrEmail: "admin@lyra.com"
+                password: "admin123"
+                rememberMe: true
+    responses:
+      '200':
+        description: 登录成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas/auth.yaml#/LoginResponse'
+            example:
+              success: true
+              message: "登录成功"
+              data:
+                accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+                tokenType: "Bearer"
+                expiresIn: 86400
+                user:
+                  id: 1
+                  username: "admin"
+                  email: "admin@lyra.com"
+                  displayName: "系统管理员"
+                  roles: ["ADMIN"]
+              timestamp: 1642780800000
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '401':
+        description: 登录失败
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              invalid_credentials:
+                summary: 用户名或密码错误
+                value:
+                  success: false
+                  message: "用户名或密码错误"
+                  timestamp: 1642780800000
+              account_locked:
+                summary: 账户被锁定
+                value:
+                  success: false
+                  message: "账户已被锁定，请联系管理员"
+                  timestamp: 1642780800000
+      '429':
+        $ref: '../components/responses/common.yaml#/TooManyRequests'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 用户注册
+/api/auth/register:
+  post:
+    tags:
+      - 认证管理
+    summary: 用户注册
+    description: |
+      新用户注册账户。
+      
+      **注册流程**:
+      1. 提交注册信息
+      2. 验证用户名和邮箱唯一性
+      3. 创建用户账户
+      4. 发送邮箱验证邮件
+      5. 返回注册结果
+      
+      **验证规则**:
+      - 用户名：3-20位字母数字下划线
+      - 邮箱：有效邮箱格式
+      - 密码：至少8位，包含字母和数字
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/RegisterRequest'
+          example:
+            username: "newuser"
+            email: "newuser@example.com"
+            password: "password123"
+            confirmPassword: "password123"
+            displayName: "新用户"
+            inviteCode: "INVITE123"
+    responses:
+      '201':
+        description: 注册成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas/auth.yaml#/RegisterResponse'
+            example:
+              success: true
+              message: "注册成功，请检查邮箱进行验证"
+              data:
+                user:
+                  id: 2
+                  username: "newuser"
+                  email: "newuser@example.com"
+                  displayName: "新用户"
+                  status: "PENDING"
+                requiresEmailVerification: true
+                message: "注册成功，请检查邮箱进行验证"
+              timestamp: 1642780800000
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '409':
+        description: 用户名或邮箱已存在
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              username_exists:
+                summary: 用户名已存在
+                value:
+                  success: false
+                  message: "用户名已被使用"
+                  errors: ["用户名 'newuser' 已存在"]
+                  timestamp: 1642780800000
+              email_exists:
+                summary: 邮箱已存在
+                value:
+                  success: false
+                  message: "邮箱已被使用"
+                  errors: ["邮箱 'newuser@example.com' 已被注册"]
+                  timestamp: 1642780800000
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 用户登出
+/api/auth/logout:
+  post:
+    tags:
+      - 认证管理
+    summary: 用户登出
+    description: |
+      用户登出系统，使当前令牌失效。
+      
+      **登出操作**:
+      - 将当前令牌加入黑名单
+      - 清除服务器端会话
+      - 记录登出日志
+      - 可选择登出所有设备
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: false
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              logoutAllDevices:
+                type: boolean
+                description: 是否登出所有设备
+                default: false
+                example: false
+    responses:
+      '200':
+        description: 登出成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ApiResponse'
+            example:
+              success: true
+              message: "登出成功"
+              timestamp: 1642780800000
+      '401':
+        $ref: '../components/responses/common.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 刷新令牌
+/api/auth/refresh:
+  post:
+    tags:
+      - 认证管理
+    summary: 刷新访问令牌
+    description: |
+      使用刷新令牌获取新的访问令牌。
+      
+      **刷新机制**:
+      - 验证刷新令牌有效性
+      - 生成新的访问令牌
+      - 可选择轮换刷新令牌
+      - 更新令牌过期时间
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/RefreshTokenRequest'
+          example:
+            refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+    responses:
+      '200':
+        description: 令牌刷新成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas/auth.yaml#/RefreshTokenResponse'
+            example:
+              success: true
+              message: "令牌刷新成功"
+              data:
+                accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+                tokenType: "Bearer"
+                expiresIn: 86400
+              timestamp: 1642780800000
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '401':
+        description: 刷新令牌无效
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              success: false
+              message: "刷新令牌无效或已过期"
+              timestamp: 1642780800000
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 获取当前用户信息
+/api/auth/me:
+  get:
+    tags:
+      - 认证管理
+    summary: 获取当前用户信息
+    description: |
+      获取当前登录用户的详细信息。
+      
+      **返回信息**:
+      - 基本用户信息
+      - 角色和权限
+      - 账户状态
+      - 最后登录信息
+      - 存储使用情况
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: 用户信息获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas/auth.yaml#/UserInfo'
+            example:
+              success: true
+              message: "用户信息获取成功"
+              data:
+                id: 1
+                username: "admin"
+                email: "admin@lyra.com"
+                displayName: "系统管理员"
+                avatar: "https://example.com/avatar.jpg"
+                roles: ["ADMIN", "USER"]
+                permissions: ["system.admin", "file.read", "file.write"]
+                status: "ACTIVE"
+                emailVerified: true
+                lastLoginAt: "2024-01-01T12:00:00Z"
+                createdAt: "2024-01-01T00:00:00Z"
+                updatedAt: "2024-01-01T12:00:00Z"
+              timestamp: 1642780800000
+      '401':
+        $ref: '../components/responses/common.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 更新用户资料
+/api/auth/profile:
+  put:
+    tags:
+      - 认证管理
+    summary: 更新用户资料
+    description: |
+      更新当前用户的个人资料信息。
+
+      **可更新字段**:
+      - 显示名称
+      - 头像
+      - 个人简介
+      - 用户偏好设置
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/UpdateProfileRequest'
+          example:
+            displayName: "新的显示名称"
+            avatar: "https://example.com/new-avatar.jpg"
+            bio: "这是我的个人简介"
+            preferences:
+              theme: "dark"
+              language: "zh-CN"
+              timezone: "Asia/Shanghai"
+    responses:
+      '200':
+        description: 资料更新成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../components/schemas/auth.yaml#/UserInfo'
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses/common.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 修改密码
+/api/auth/password:
+  put:
+    tags:
+      - 认证管理
+    summary: 修改密码
+    description: |
+      修改当前用户的登录密码。
+
+      **安全要求**:
+      - 需要提供当前密码
+      - 新密码强度验证
+      - 密码不能与历史密码重复
+      - 修改后需要重新登录
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/ChangePasswordRequest'
+          example:
+            oldPassword: "oldpassword123"
+            newPassword: "newpassword123"
+            confirmPassword: "newpassword123"
+    responses:
+      '200':
+        description: 密码修改成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ApiResponse'
+            example:
+              success: true
+              message: "密码修改成功，请重新登录"
+              timestamp: 1642780800000
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../components/responses/common.yaml#/Unauthorized'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 请求重置密码
+/api/auth/password/reset-request:
+  post:
+    tags:
+      - 认证管理
+    summary: 请求重置密码
+    description: |
+      通过邮箱请求重置密码。
+
+      **重置流程**:
+      1. 验证邮箱是否存在
+      2. 生成重置令牌
+      3. 发送重置邮件
+      4. 返回操作结果
+
+      **安全特性**:
+      - 重置令牌有效期限制
+      - 频率限制
+      - 邮箱验证
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/ResetPasswordRequest'
+          example:
+            email: "user@example.com"
+    responses:
+      '200':
+        description: 重置邮件发送成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ApiResponse'
+            example:
+              success: true
+              message: "密码重置邮件已发送，请检查您的邮箱"
+              timestamp: 1642780800000
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '404':
+        description: 邮箱不存在
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              success: false
+              message: "邮箱地址不存在"
+              timestamp: 1642780800000
+      '429':
+        $ref: '../components/responses/common.yaml#/TooManyRequests'
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'
+
+# 确认重置密码
+/api/auth/password/reset-confirm:
+  post:
+    tags:
+      - 认证管理
+    summary: 确认重置密码
+    description: |
+      使用重置令牌设置新密码。
+
+      **确认流程**:
+      1. 验证重置令牌
+      2. 验证新密码强度
+      3. 更新用户密码
+      4. 使所有令牌失效
+      5. 记录密码重置日志
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/auth.yaml#/ResetPasswordConfirmRequest'
+          example:
+            token: "reset-token-123"
+            newPassword: "newpassword123"
+            confirmPassword: "newpassword123"
+    responses:
+      '200':
+        description: 密码重置成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ApiResponse'
+            example:
+              success: true
+              message: "密码重置成功，请使用新密码登录"
+              timestamp: 1642780800000
+      '400':
+        $ref: '../components/responses/common.yaml#/BadRequest'
+      '401':
+        description: 重置令牌无效
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              success: false
+              message: "重置令牌无效或已过期"
+              timestamp: 1642780800000
+      '500':
+        $ref: '../components/responses/common.yaml#/InternalServerError'

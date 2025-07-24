@@ -1,0 +1,399 @@
+# 统计监控API路径定义
+
+# 获取用户统计信息
+/api/admin/statistics/users:
+  get:
+    tags:
+      - 系统监控
+    summary: 获取用户统计信息
+    description: |
+      获取系统用户相关的统计信息和分析数据。
+      
+      **权限要求**: 管理员权限
+      
+      **统计内容**:
+      - 用户总数和增长趋势
+      - 活跃用户统计
+      - 用户状态分布
+      - 注册趋势分析
+      - 登录活跃度
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/PeriodParam'
+      - name: includeInactive
+        in: query
+        description: 是否包含非活跃用户
+        required: false
+        schema:
+          type: boolean
+          default: true
+        example: true
+    responses:
+      '200':
+        description: 用户统计信息获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/system.yaml#/UserStatistics'
+            example:
+              success: true
+              message: "用户统计信息获取成功"
+              data:
+                totalUsers: 1250
+                activeUsers: 890
+                newUsersThisMonth: 45
+                newUsersLastMonth: 38
+                userGrowthRate: 18.4
+                usersByStatus:
+                  active: 890
+                  inactive: 200
+                  locked: 160
+                  pending: 0
+                registrationTrend:
+                  - date: "2024-01-01"
+                    count: 15
+                  - date: "2024-01-02"
+                    count: 12
+              timestamp: 1642780800000
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+# 获取文件统计信息
+/api/admin/statistics/files:
+  get:
+    tags:
+      - 系统监控
+    summary: 获取文件统计信息
+    description: |
+      获取系统文件相关的统计信息和分析数据。
+      
+      **权限要求**: 管理员权限
+      
+      **统计内容**:
+      - 文件总数和大小
+      - 文件类型分布
+      - 上传趋势分析
+      - 存储使用情况
+      - 热门文件类型
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/PeriodParam'
+      - name: groupBy
+        in: query
+        description: 分组方式
+        required: false
+        schema:
+          type: string
+          enum: [type, size, date, user]
+          default: type
+        example: type
+    responses:
+      '200':
+        description: 文件统计信息获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/system.yaml#/FileStatistics'
+            example:
+              success: true
+              message: "文件统计信息获取成功"
+              data:
+                totalFiles: 15000
+                totalSize: 1073741824
+                totalSizeReadable: "1.0 GB"
+                averageFileSize: 71582
+                filesUploadedToday: 150
+                filesUploadedThisMonth: 3500
+                filesByType:
+                  pdf:
+                    count: 5000
+                    size: 524288000
+                  docx:
+                    count: 3000
+                    size: 314572800
+              timestamp: 1642780800000
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+# 获取存储统计信息
+/api/admin/statistics/storage:
+  get:
+    tags:
+      - 系统监控
+    summary: 获取存储统计信息
+    description: |
+      获取系统存储相关的统计信息和分析数据。
+      
+      **权限要求**: 管理员权限
+      
+      **统计内容**:
+      - 总存储空间和使用情况
+      - 用户存储分布
+      - 存储增长趋势
+      - 配额使用情况
+      - 存储优化建议
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/PeriodParam'
+      - name: includeDeleted
+        in: query
+        description: 是否包含已删除文件
+        required: false
+        schema:
+          type: boolean
+          default: false
+        example: false
+    responses:
+      '200':
+        description: 存储统计信息获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/system.yaml#/StorageStatistics'
+            example:
+              success: true
+              message: "存储统计信息获取成功"
+              data:
+                totalSpace: 10737418240
+                usedSpace: 1073741824
+                freeSpace: 9663676416
+                usagePercentage: 10.0
+                totalSpaceReadable: "10.0 GB"
+                usedSpaceReadable: "1.0 GB"
+                freeSpaceReadable: "9.0 GB"
+                storageByUser:
+                  - userId: 1
+                    username: "admin"
+                    usedSpace: 536870912
+                    quota: 10737418240
+                    usagePercentage: 5.0
+              timestamp: 1642780800000
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+# 获取系统统计信息
+/api/admin/statistics/system:
+  get:
+    tags:
+      - 系统监控
+    summary: 获取系统统计信息
+    description: |
+      获取系统整体的统计信息和性能指标。
+      
+      **权限要求**: 管理员权限
+      
+      **统计内容**:
+      - 系统运行状态
+      - 性能指标
+      - 资源使用情况
+      - 错误率统计
+      - 健康检查结果
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/PeriodParam'
+      - name: includeMetrics
+        in: query
+        description: 是否包含详细性能指标
+        required: false
+        schema:
+          type: boolean
+          default: true
+        example: true
+    responses:
+      '200':
+        description: 系统统计信息获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/system.yaml#/SystemStatistics'
+            example:
+              success: true
+              message: "系统统计信息获取成功"
+              data:
+                users:
+                  totalUsers: 1250
+                  activeUsers: 890
+                files:
+                  totalFiles: 15000
+                  totalSize: 1073741824
+                storage:
+                  totalSpace: 10737418240
+                  usedSpace: 1073741824
+                  usagePercentage: 10.0
+                system:
+                  uptime: 86400
+                  cpuUsage: 25.5
+                  memoryUsage: 60.2
+                  diskUsage: 45.8
+                timestamp: "2024-01-01T12:00:00Z"
+              timestamp: 1642780800000
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+# 获取仪表板数据
+/api/admin/statistics/dashboard:
+  get:
+    tags:
+      - 系统监控
+    summary: 获取仪表板数据
+    description: |
+      获取管理员仪表板所需的综合统计数据。
+      
+      **权限要求**: 管理员权限
+      
+      **仪表板内容**:
+      - 关键指标概览
+      - 实时状态信息
+      - 趋势图表数据
+      - 告警和通知
+      - 快速操作入口
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: refresh
+        in: query
+        description: 是否强制刷新缓存
+        required: false
+        schema:
+          type: boolean
+          default: false
+        example: false
+    responses:
+      '200':
+        description: 仪表板数据获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      type: object
+                      properties:
+                        overview:
+                          type: object
+                          properties:
+                            totalUsers:
+                              type: integer
+                            totalFiles:
+                              type: integer
+                            totalStorage:
+                              type: integer
+                              format: int64
+                            systemHealth:
+                              type: string
+                              enum: [UP, DOWN, DEGRADED]
+                        trends:
+                          type: object
+                          properties:
+                            userGrowth:
+                              type: array
+                              items:
+                                $ref: '../../components/schemas/common.yaml#/TrendData'
+                            fileUploads:
+                              type: array
+                              items:
+                                $ref: '../../components/schemas/common.yaml#/TrendData'
+                            storageUsage:
+                              type: array
+                              items:
+                                $ref: '../../components/schemas/common.yaml#/TrendData'
+                        alerts:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                                enum: [INFO, WARNING, ERROR, CRITICAL]
+                              message:
+                                type: string
+                              timestamp:
+                                type: string
+                                format: date-time
+                        recentActivities:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              type:
+                                type: string
+                              description:
+                                type: string
+                              user:
+                                type: string
+                              timestamp:
+                                type: string
+                                format: date-time
+            example:
+              success: true
+              message: "仪表板数据获取成功"
+              data:
+                overview:
+                  totalUsers: 1250
+                  totalFiles: 15000
+                  totalStorage: 1073741824
+                  systemHealth: "UP"
+                trends:
+                  userGrowth:
+                    - date: "2024-01-01"
+                      value: 1200
+                      change: 50
+                      changePercent: 4.3
+                alerts:
+                  - type: "WARNING"
+                    message: "存储使用率超过80%"
+                    timestamp: "2024-01-01T12:00:00Z"
+                recentActivities:
+                  - type: "USER_LOGIN"
+                    description: "用户登录"
+                    user: "admin"
+                    timestamp: "2024-01-01T12:00:00Z"
+              timestamp: 1642780800000
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'

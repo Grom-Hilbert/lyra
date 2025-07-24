@@ -1,0 +1,489 @@
+# 文件夹相关数据模型定义
+
+# 文件夹信息
+FolderInfo:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 文件夹ID
+      example: 1
+    name:
+      type: string
+      description: 文件夹名称
+      example: "项目文档"
+    description:
+      type: string
+      description: 文件夹描述
+      nullable: true
+      example: "存放项目相关文档"
+    path:
+      type: string
+      description: 文件夹路径
+      example: "/项目文档"
+    fullPath:
+      type: string
+      description: 完整路径
+      example: "/个人空间/项目文档"
+    parentId:
+      type: integer
+      format: int64
+      description: 父文件夹ID
+      nullable: true
+      example: null
+    parentPath:
+      type: string
+      description: 父文件夹路径
+      nullable: true
+      example: null
+    spaceId:
+      type: integer
+      format: int64
+      description: 所属空间ID
+      example: 1
+    spaceName:
+      type: string
+      description: 空间名称
+      example: "个人空间"
+    ownerId:
+      type: integer
+      format: int64
+      description: 文件夹所有者ID
+      example: 1
+    ownerName:
+      type: string
+      description: 文件夹所有者名称
+      example: "admin"
+    level:
+      type: integer
+      description: 文件夹层级（根目录为0）
+      example: 1
+    isRoot:
+      type: boolean
+      description: 是否为根目录
+      example: false
+    isPublic:
+      type: boolean
+      description: 是否公开
+      example: false
+    fileCount:
+      type: integer
+      description: 直接子文件数量
+      example: 10
+    folderCount:
+      type: integer
+      description: 直接子文件夹数量
+      example: 3
+    totalFileCount:
+      type: integer
+      description: 总文件数量（包含子文件夹）
+      example: 25
+    totalSize:
+      type: integer
+      format: int64
+      description: 总大小（字节）
+      example: 104857600
+    totalSizeReadable:
+      type: string
+      description: 可读的总大小
+      example: "100 MB"
+    tags:
+      type: array
+      items:
+        type: string
+      description: 文件夹标签
+      example: ["项目", "重要"]
+    permissions:
+      type: object
+      properties:
+        read:
+          type: boolean
+        write:
+          type: boolean
+        delete:
+          type: boolean
+        share:
+          type: boolean
+      description: 当前用户对此文件夹的权限
+      example:
+        read: true
+        write: true
+        delete: true
+        share: true
+    createdAt:
+      type: string
+      format: date-time
+      description: 创建时间
+      example: "2024-01-01T12:00:00Z"
+    updatedAt:
+      type: string
+      format: date-time
+      description: 更新时间
+      example: "2024-01-01T12:00:00Z"
+
+# 创建文件夹请求
+CreateFolderRequest:
+  type: object
+  required:
+    - name
+    - spaceId
+  properties:
+    name:
+      type: string
+      description: 文件夹名称
+      pattern: '^[^/\\:*?"<>|]+$'
+      maxLength: 255
+      example: "新文件夹"
+    description:
+      type: string
+      description: 文件夹描述
+      maxLength: 500
+      example: "这是一个新的文件夹"
+    parentId:
+      type: integer
+      format: int64
+      description: 父文件夹ID（null表示根目录）
+      nullable: true
+      example: 1
+    spaceId:
+      type: integer
+      format: int64
+      description: 所属空间ID
+      example: 1
+    tags:
+      type: array
+      items:
+        type: string
+      description: 文件夹标签
+      example: ["新建", "文件夹"]
+    isPublic:
+      type: boolean
+      description: 是否公开
+      default: false
+      example: false
+
+# 更新文件夹请求
+UpdateFolderRequest:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 文件夹名称
+      pattern: '^[^/\\:*?"<>|]+$'
+      maxLength: 255
+      example: "更新的文件夹名称"
+    description:
+      type: string
+      description: 文件夹描述
+      maxLength: 500
+      example: "更新的文件夹描述"
+    tags:
+      type: array
+      items:
+        type: string
+      description: 文件夹标签
+      example: ["更新", "文件夹"]
+    isPublic:
+      type: boolean
+      description: 是否公开
+      example: true
+
+# 移动文件夹请求
+MoveFolderRequest:
+  type: object
+  required:
+    - targetParentId
+  properties:
+    targetParentId:
+      type: integer
+      format: int64
+      description: 目标父文件夹ID（null表示移动到根目录）
+      nullable: true
+      example: 2
+    targetSpaceId:
+      type: integer
+      format: int64
+      description: 目标空间ID（可选，默认为当前空间）
+      example: 2
+
+# 复制文件夹请求
+CopyFolderRequest:
+  type: object
+  required:
+    - targetParentId
+  properties:
+    targetParentId:
+      type: integer
+      format: int64
+      description: 目标父文件夹ID
+      example: 2
+    targetSpaceId:
+      type: integer
+      format: int64
+      description: 目标空间ID（可选，默认为当前空间）
+      example: 2
+    newName:
+      type: string
+      description: 新文件夹名称（可选）
+      example: "复制的文件夹"
+    copyFiles:
+      type: boolean
+      description: 是否复制文件
+      default: true
+      example: true
+    copySubfolders:
+      type: boolean
+      description: 是否复制子文件夹
+      default: true
+      example: true
+
+# 文件夹树节点
+FolderTreeNode:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 文件夹ID
+      example: 1
+    name:
+      type: string
+      description: 文件夹名称
+      example: "项目文档"
+    path:
+      type: string
+      description: 文件夹路径
+      example: "/项目文档"
+    parentId:
+      type: integer
+      format: int64
+      description: 父文件夹ID
+      nullable: true
+      example: null
+    level:
+      type: integer
+      description: 层级
+      example: 1
+    isRoot:
+      type: boolean
+      description: 是否为根目录
+      example: false
+    hasChildren:
+      type: boolean
+      description: 是否有子文件夹
+      example: true
+    fileCount:
+      type: integer
+      description: 文件数量
+      example: 10
+    folderCount:
+      type: integer
+      description: 子文件夹数量
+      example: 3
+    isExpanded:
+      type: boolean
+      description: 是否展开（前端状态）
+      default: false
+      example: false
+    children:
+      type: array
+      items:
+        $ref: '#/FolderTreeNode'
+      description: 子文件夹列表
+    permissions:
+      type: object
+      properties:
+        read:
+          type: boolean
+        write:
+          type: boolean
+        delete:
+          type: boolean
+      description: 权限信息
+
+# 文件夹内容
+FolderContent:
+  type: object
+  properties:
+    folder:
+      $ref: '#/FolderInfo'
+    subfolders:
+      type: array
+      items:
+        $ref: '#/FolderInfo'
+      description: 子文件夹列表
+    files:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+            format: int64
+          name:
+            type: string
+          size:
+            type: integer
+            format: int64
+          mimeType:
+            type: string
+          extension:
+            type: string
+          thumbnailUrl:
+            type: string
+            format: uri
+            nullable: true
+          createdAt:
+            type: string
+            format: date-time
+          updatedAt:
+            type: string
+            format: date-time
+      description: 文件列表
+    breadcrumb:
+      type: array
+      items:
+        type: object
+        properties:
+          id:
+            type: integer
+            format: int64
+          name:
+            type: string
+          path:
+            type: string
+      description: 面包屑导航
+    pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+      description: 分页信息
+
+# 文件夹搜索请求
+FolderSearchRequest:
+  type: object
+  properties:
+    query:
+      type: string
+      description: 搜索关键词
+      example: "项目"
+    spaceId:
+      type: integer
+      format: int64
+      description: 空间ID筛选
+      example: 1
+    parentId:
+      type: integer
+      format: int64
+      description: 父文件夹ID筛选
+      example: 1
+    tags:
+      type: array
+      items:
+        type: string
+      description: 标签筛选
+      example: ["项目", "重要"]
+    isPublic:
+      type: boolean
+      description: 是否公开筛选
+      example: false
+    dateRange:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date
+        end:
+          type: string
+          format: date
+      description: 创建日期范围
+    ownerId:
+      type: integer
+      format: int64
+      description: 所有者ID筛选
+      example: 1
+
+# 文件夹统计信息
+FolderStatistics:
+  type: object
+  properties:
+    totalFolders:
+      type: integer
+      description: 文件夹总数
+      example: 500
+    rootFolders:
+      type: integer
+      description: 根文件夹数量
+      example: 10
+    averageDepth:
+      type: number
+      format: double
+      description: 平均深度
+      example: 2.5
+    maxDepth:
+      type: integer
+      description: 最大深度
+      example: 8
+    emptyFolders:
+      type: integer
+      description: 空文件夹数量
+      example: 50
+    foldersWithFiles:
+      type: integer
+      description: 包含文件的文件夹数量
+      example: 350
+    averageFilesPerFolder:
+      type: number
+      format: double
+      description: 每个文件夹平均文件数
+      example: 12.5
+    foldersByDepth:
+      type: object
+      additionalProperties:
+        type: integer
+      description: 按深度分组的文件夹数量
+      example:
+        "0": 10
+        "1": 50
+        "2": 150
+        "3": 200
+        "4": 90
+
+# 批量文件夹操作请求
+BatchFolderOperationRequest:
+  type: object
+  required:
+    - folderIds
+    - operation
+  properties:
+    folderIds:
+      type: array
+      items:
+        type: integer
+        format: int64
+      description: 文件夹ID列表
+      example: [1, 2, 3]
+    operation:
+      type: string
+      enum: [DELETE, MOVE, COPY, SET_PUBLIC, SET_PRIVATE]
+      description: 批量操作类型
+      example: "DELETE"
+    targetParentId:
+      type: integer
+      format: int64
+      description: 目标父文件夹ID（移动/复制操作时需要）
+      nullable: true
+      example: 5
+    targetSpaceId:
+      type: integer
+      format: int64
+      description: 目标空间ID（移动/复制操作时可选）
+      example: 2

@@ -1,0 +1,375 @@
+# 系统管理API路径定义
+
+# 获取用户列表
+/api/admin/system/users:
+  get:
+    tags:
+      - 系统管理
+    summary: 获取用户列表
+    description: |
+      获取系统中所有用户的分页列表，支持搜索和筛选。
+      
+      **权限要求**: 管理员权限
+      
+      **功能特性**:
+      - 分页查询
+      - 关键词搜索
+      - 状态筛选
+      - 排序支持
+      - 批量导出
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/PageParam'
+      - $ref: '../../components/parameters/common.yaml#/SizeParam'
+      - $ref: '../../components/parameters/common.yaml#/KeywordParam'
+      - name: status
+        in: query
+        description: 用户状态筛选
+        required: false
+        schema:
+          type: string
+          enum: [ACTIVE, INACTIVE, LOCKED, PENDING]
+        example: ACTIVE
+      - name: role
+        in: query
+        description: 角色筛选
+        required: false
+        schema:
+          type: string
+        example: "ADMIN"
+      - name: emailVerified
+        in: query
+        description: 邮箱验证状态筛选
+        required: false
+        schema:
+          type: boolean
+        example: true
+      - $ref: '../../components/parameters/common.yaml#/SortParam'
+      - $ref: '../../components/parameters/common.yaml#/DirectionParam'
+    responses:
+      '200':
+        description: 用户列表获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/user.yaml#/UserListResponse'
+            example:
+              success: true
+              message: "用户列表获取成功"
+              data:
+                users:
+                  - id: 1
+                    username: "admin"
+                    email: "admin@lyra.com"
+                    displayName: "系统管理员"
+                    status: "ACTIVE"
+                    roles: ["ADMIN"]
+                    createdAt: "2024-01-01T00:00:00Z"
+                pagination:
+                  page: 0
+                  size: 20
+                  totalElements: 150
+                  totalPages: 8
+              timestamp: 1642780800000
+      '400':
+        $ref: '../../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+  post:
+    tags:
+      - 系统管理
+    summary: 创建用户
+    description: |
+      创建新用户账户。
+      
+      **权限要求**: 管理员权限
+      
+      **创建流程**:
+      1. 验证用户信息
+      2. 检查用户名和邮箱唯一性
+      3. 创建用户账户
+      4. 分配角色和权限
+      5. 发送欢迎邮件（可选）
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/schemas/user.yaml#/CreateUserRequest'
+          example:
+            username: "newuser"
+            email: "newuser@example.com"
+            password: "password123"
+            displayName: "新用户"
+            roles: ["USER"]
+            storageQuota: 10737418240
+            status: "ACTIVE"
+            sendWelcomeEmail: true
+    responses:
+      '201':
+        description: 用户创建成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/user.yaml#/UserDetail'
+      '400':
+        $ref: '../../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '409':
+        description: 用户名或邮箱已存在
+        content:
+          application/json:
+            schema:
+              $ref: '../../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              success: false
+              message: "用户名或邮箱已存在"
+              errors: ["用户名 'newuser' 已被使用"]
+              timestamp: 1642780800000
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+# 获取用户详情
+/api/admin/system/users/{userId}:
+  get:
+    tags:
+      - 系统管理
+    summary: 获取用户详情
+    description: |
+      获取指定用户的详细信息。
+      
+      **权限要求**: 管理员权限
+      
+      **返回信息**:
+      - 完整用户信息
+      - 角色和权限详情
+      - 存储使用情况
+      - 活动统计
+      - 登录历史
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/UserIdParam'
+    responses:
+      '200':
+        description: 用户详情获取成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/user.yaml#/UserDetail'
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '404':
+        $ref: '../../components/responses/common.yaml#/NotFound'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+  put:
+    tags:
+      - 系统管理
+    summary: 更新用户信息
+    description: |
+      更新指定用户的信息。
+      
+      **权限要求**: 管理员权限
+      
+      **可更新字段**:
+      - 基本信息
+      - 角色权限
+      - 账户状态
+      - 存储配额
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/UserIdParam'
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/schemas/user.yaml#/UpdateUserRequest'
+          example:
+            email: "updated@example.com"
+            displayName: "更新的显示名称"
+            status: "ACTIVE"
+            roles: ["USER", "EDITOR"]
+            storageQuota: 21474836480
+    responses:
+      '200':
+        description: 用户信息更新成功
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/user.yaml#/UserDetail'
+      '400':
+        $ref: '../../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '404':
+        $ref: '../../components/responses/common.yaml#/NotFound'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+  delete:
+    tags:
+      - 系统管理
+    summary: 删除用户
+    description: |
+      删除指定用户账户。
+      
+      **权限要求**: 管理员权限
+      
+      **删除操作**:
+      - 软删除用户账户
+      - 保留用户数据用于审计
+      - 撤销所有权限
+      - 使所有令牌失效
+      - 记录删除日志
+      
+      **注意事项**:
+      - 无法删除自己的账户
+      - 无法删除其他管理员账户
+      - 删除操作不可逆
+    security:
+      - BearerAuth: []
+    parameters:
+      - $ref: '../../components/parameters/common.yaml#/UserIdParam'
+    responses:
+      '200':
+        description: 用户删除成功
+        content:
+          application/json:
+            schema:
+              $ref: '../../components/schemas/common.yaml#/ApiResponse'
+            example:
+              success: true
+              message: "用户删除成功"
+              timestamp: 1642780800000
+      '400':
+        description: 删除操作不允许
+        content:
+          application/json:
+            schema:
+              $ref: '../../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              self_delete:
+                summary: 不能删除自己
+                value:
+                  success: false
+                  message: "不能删除自己的账户"
+                  timestamp: 1642780800000
+              admin_delete:
+                summary: 不能删除管理员
+                value:
+                  success: false
+                  message: "不能删除其他管理员账户"
+                  timestamp: 1642780800000
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '404':
+        $ref: '../../components/responses/common.yaml#/NotFound'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'
+
+# 批量用户操作
+/api/admin/system/users/batch:
+  post:
+    tags:
+      - 系统管理
+    summary: 批量用户操作
+    description: |
+      对多个用户执行批量操作，如激活、禁用、锁定等。
+      
+      **权限要求**: 管理员权限
+      
+      **支持操作**:
+      - ACTIVATE: 激活用户
+      - DEACTIVATE: 禁用用户
+      - LOCK: 锁定用户
+      - UNLOCK: 解锁用户
+      - DELETE: 删除用户
+      
+      **安全限制**:
+      - 不能对自己执行操作
+      - 不能对其他管理员执行某些操作
+      - 批量操作有数量限制
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../../components/schemas/user.yaml#/BatchUserOperationRequest'
+          example:
+            userIds: [1, 2, 3]
+            operation: "ACTIVATE"
+            reason: "批量激活用户"
+    responses:
+      '200':
+        description: 批量操作完成
+        content:
+          application/json:
+            schema:
+              allOf:
+                - $ref: '../../components/schemas/common.yaml#/ApiResponse'
+                - type: object
+                  properties:
+                    data:
+                      $ref: '../../components/schemas/common.yaml#/BatchOperationResult'
+            example:
+              success: true
+              message: "批量操作完成"
+              data:
+                total: 3
+                successful: 2
+                failed: 1
+                failures:
+                  - id: 1
+                    reason: "不能对管理员执行此操作"
+              timestamp: 1642780800000
+      '400':
+        $ref: '../../components/responses/common.yaml#/BadRequest'
+      '401':
+        $ref: '../../components/responses/common.yaml#/Unauthorized'
+      '403':
+        $ref: '../../components/responses/common.yaml#/Forbidden'
+      '500':
+        $ref: '../../components/responses/common.yaml#/InternalServerError'

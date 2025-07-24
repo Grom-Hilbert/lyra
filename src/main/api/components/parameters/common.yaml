@@ -1,0 +1,430 @@
+# 通用参数定义
+
+# 分页参数
+PageParam:
+  name: page
+  in: query
+  description: 页码（从0开始）
+  required: false
+  schema:
+    type: integer
+    minimum: 0
+    default: 0
+  example: 0
+
+SizeParam:
+  name: size
+  in: query
+  description: 每页大小
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+  example: 20
+
+# 排序参数
+SortParam:
+  name: sort
+  in: query
+  description: 排序字段
+  required: false
+  schema:
+    type: string
+  examples:
+    by_name:
+      value: "name"
+      summary: 按名称排序
+    by_date:
+      value: "createdAt"
+      summary: 按创建时间排序
+    by_size:
+      value: "size"
+      summary: 按大小排序
+
+DirectionParam:
+  name: direction
+  in: query
+  description: 排序方向
+  required: false
+  schema:
+    type: string
+    enum: [asc, desc]
+    default: desc
+  example: desc
+
+# 搜索参数
+KeywordParam:
+  name: keyword
+  in: query
+  description: 搜索关键词
+  required: false
+  schema:
+    type: string
+    maxLength: 100
+  example: "重要文档"
+
+# 筛选参数
+StatusParam:
+  name: status
+  in: query
+  description: 状态筛选
+  required: false
+  schema:
+    type: string
+    enum: [ACTIVE, INACTIVE, PENDING, LOCKED, DELETED]
+  example: ACTIVE
+
+TypeParam:
+  name: type
+  in: query
+  description: 类型筛选
+  required: false
+  schema:
+    type: string
+  example: "pdf"
+
+# 日期范围参数
+StartDateParam:
+  name: startDate
+  in: query
+  description: 开始日期
+  required: false
+  schema:
+    type: string
+    format: date
+  example: "2024-01-01"
+
+EndDateParam:
+  name: endDate
+  in: query
+  description: 结束日期
+  required: false
+  schema:
+    type: string
+    format: date
+  example: "2024-12-31"
+
+# 资源ID参数
+FileIdParam:
+  name: fileId
+  in: path
+  description: 文件ID
+  required: true
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 123
+
+FolderIdParam:
+  name: folderId
+  in: path
+  description: 文件夹ID
+  required: true
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 1
+
+UserIdParam:
+  name: userId
+  in: path
+  description: 用户ID
+  required: true
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 1
+
+SpaceIdParam:
+  name: spaceId
+  in: path
+  description: 空间ID
+  required: true
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 1
+
+# 可选资源ID参数
+OptionalSpaceIdParam:
+  name: spaceId
+  in: query
+  description: 空间ID筛选
+  required: false
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 1
+
+OptionalFolderIdParam:
+  name: folderId
+  in: query
+  description: 文件夹ID筛选
+  required: false
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 1
+
+OptionalUserIdParam:
+  name: userId
+  in: query
+  description: 用户ID筛选
+  required: false
+  schema:
+    type: integer
+    format: int64
+    minimum: 1
+  example: 1
+
+# 标签参数
+TagsParam:
+  name: tags
+  in: query
+  description: 标签筛选（多个标签用逗号分隔）
+  required: false
+  schema:
+    type: string
+  example: "重要,文档,项目"
+
+# 文件相关参数
+MimeTypeParam:
+  name: mimeType
+  in: query
+  description: MIME类型筛选
+  required: false
+  schema:
+    type: string
+  examples:
+    pdf:
+      value: "application/pdf"
+      summary: PDF文件
+    image:
+      value: "image/*"
+      summary: 图片文件
+    document:
+      value: "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      summary: Word文档
+
+ExtensionParam:
+  name: extension
+  in: query
+  description: 文件扩展名筛选
+  required: false
+  schema:
+    type: string
+    pattern: '^[a-zA-Z0-9]+$'
+  example: "pdf"
+
+MinSizeParam:
+  name: minSize
+  in: query
+  description: 最小文件大小（字节）
+  required: false
+  schema:
+    type: integer
+    format: int64
+    minimum: 0
+  example: 1024
+
+MaxSizeParam:
+  name: maxSize
+  in: query
+  description: 最大文件大小（字节）
+  required: false
+  schema:
+    type: integer
+    format: int64
+    minimum: 0
+  example: 10485760
+
+# 布尔参数
+IsPublicParam:
+  name: isPublic
+  in: query
+  description: 是否公开筛选
+  required: false
+  schema:
+    type: boolean
+  example: false
+
+IncludeDeletedParam:
+  name: includeDeleted
+  in: query
+  description: 是否包含已删除项目
+  required: false
+  schema:
+    type: boolean
+    default: false
+  example: false
+
+RecursiveParam:
+  name: recursive
+  in: query
+  description: 是否递归查询子文件夹
+  required: false
+  schema:
+    type: boolean
+    default: false
+  example: true
+
+# 版本参数
+VersionParam:
+  name: version
+  in: query
+  description: 版本号
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+  example: 1
+
+LatestOnlyParam:
+  name: latestOnly
+  in: query
+  description: 仅显示最新版本
+  required: false
+  schema:
+    type: boolean
+    default: true
+  example: true
+
+# 统计参数
+PeriodParam:
+  name: period
+  in: query
+  description: 统计周期
+  required: false
+  schema:
+    type: string
+    enum: [day, week, month, quarter, year]
+    default: month
+  example: month
+
+GroupByParam:
+  name: groupBy
+  in: query
+  description: 分组字段
+  required: false
+  schema:
+    type: string
+    enum: [date, type, user, space, folder]
+  example: date
+
+# 格式参数
+FormatParam:
+  name: format
+  in: query
+  description: 响应格式
+  required: false
+  schema:
+    type: string
+    enum: [json, xml, csv]
+    default: json
+  example: json
+
+# 语言参数
+LanguageParam:
+  name: lang
+  in: query
+  description: 语言设置
+  required: false
+  schema:
+    type: string
+    enum: [zh-CN, en-US, ja-JP]
+    default: zh-CN
+  example: zh-CN
+
+# 时区参数
+TimezoneParam:
+  name: timezone
+  in: query
+  description: 时区设置
+  required: false
+  schema:
+    type: string
+    default: Asia/Shanghai
+  example: Asia/Shanghai
+
+# 限制参数
+LimitParam:
+  name: limit
+  in: query
+  description: 结果数量限制
+  required: false
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 1000
+    default: 100
+  example: 100
+
+OffsetParam:
+  name: offset
+  in: query
+  description: 结果偏移量
+  required: false
+  schema:
+    type: integer
+    minimum: 0
+    default: 0
+  example: 0
+
+# 缓存参数
+CacheParam:
+  name: cache
+  in: query
+  description: 是否使用缓存
+  required: false
+  schema:
+    type: boolean
+    default: true
+  example: true
+
+RefreshParam:
+  name: refresh
+  in: query
+  description: 是否强制刷新
+  required: false
+  schema:
+    type: boolean
+    default: false
+  example: false
+
+# 详细程度参数
+DetailParam:
+  name: detail
+  in: query
+  description: 详细程度
+  required: false
+  schema:
+    type: string
+    enum: [minimal, basic, full]
+    default: basic
+  example: full
+
+IncludeParam:
+  name: include
+  in: query
+  description: 包含的关联数据（多个用逗号分隔）
+  required: false
+  schema:
+    type: string
+  example: "owner,permissions,statistics"
+
+ExcludeParam:
+  name: exclude
+  in: query
+  description: 排除的字段（多个用逗号分隔）
+  required: false
+  schema:
+    type: string
+  example: "metadata,content"

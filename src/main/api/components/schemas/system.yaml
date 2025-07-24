@@ -1,0 +1,543 @@
+# 系统管理相关数据模型定义
+
+# 系统统计信息
+SystemStatistics:
+  type: object
+  properties:
+    users:
+      $ref: '#/UserStatistics'
+    files:
+      $ref: '#/FileStatistics'
+    storage:
+      $ref: '#/StorageStatistics'
+    system:
+      $ref: '#/SystemMetrics'
+    timestamp:
+      type: string
+      format: date-time
+      description: 统计时间
+      example: "2024-01-01T12:00:00Z"
+
+# 用户统计信息
+UserStatistics:
+  type: object
+  properties:
+    totalUsers:
+      type: integer
+      description: 用户总数
+      example: 1250
+    activeUsers:
+      type: integer
+      description: 活跃用户数（30天内登录）
+      example: 890
+    newUsersThisMonth:
+      type: integer
+      description: 本月新增用户数
+      example: 45
+    newUsersLastMonth:
+      type: integer
+      description: 上月新增用户数
+      example: 38
+    userGrowthRate:
+      type: number
+      format: double
+      description: 用户增长率(%)
+      example: 18.4
+    usersByStatus:
+      type: object
+      properties:
+        active:
+          type: integer
+          example: 890
+        inactive:
+          type: integer
+          example: 200
+        locked:
+          type: integer
+          example: 160
+        pending:
+          type: integer
+          example: 0
+      description: 按状态分组的用户数
+    registrationTrend:
+      type: array
+      items:
+        type: object
+        properties:
+          date:
+            type: string
+            format: date
+          count:
+            type: integer
+      description: 注册趋势数据
+    loginTrend:
+      type: array
+      items:
+        type: object
+        properties:
+          date:
+            type: string
+            format: date
+          count:
+            type: integer
+      description: 登录趋势数据
+
+# 文件统计信息
+FileStatistics:
+  type: object
+  properties:
+    totalFiles:
+      type: integer
+      description: 文件总数
+      example: 15000
+    totalSize:
+      type: integer
+      format: int64
+      description: 总文件大小（字节）
+      example: 1073741824
+    totalSizeReadable:
+      type: string
+      description: 可读的总文件大小
+      example: "1.0 GB"
+    averageFileSize:
+      type: integer
+      format: int64
+      description: 平均文件大小（字节）
+      example: 71582
+    filesUploadedToday:
+      type: integer
+      description: 今日上传文件数
+      example: 150
+    filesUploadedThisMonth:
+      type: integer
+      description: 本月上传文件数
+      example: 3500
+    uploadTrend:
+      type: array
+      items:
+        type: object
+        properties:
+          date:
+            type: string
+            format: date
+          count:
+            type: integer
+          size:
+            type: integer
+            format: int64
+      description: 上传趋势数据
+    filesByType:
+      type: object
+      additionalProperties:
+        type: object
+        properties:
+          count:
+            type: integer
+          size:
+            type: integer
+            format: int64
+      description: 按文件类型分组的统计
+      example:
+        pdf:
+          count: 5000
+          size: 524288000
+        docx:
+          count: 3000
+          size: 314572800
+
+# 存储统计信息
+StorageStatistics:
+  type: object
+  properties:
+    totalSpace:
+      type: integer
+      format: int64
+      description: 总存储空间（字节）
+      example: 10737418240
+    usedSpace:
+      type: integer
+      format: int64
+      description: 已使用空间（字节）
+      example: 1073741824
+    freeSpace:
+      type: integer
+      format: int64
+      description: 剩余空间（字节）
+      example: 9663676416
+    usagePercentage:
+      type: number
+      format: double
+      description: 使用率(%)
+      example: 10.0
+    totalSpaceReadable:
+      type: string
+      description: 可读的总空间
+      example: "10.0 GB"
+    usedSpaceReadable:
+      type: string
+      description: 可读的已使用空间
+      example: "1.0 GB"
+    freeSpaceReadable:
+      type: string
+      description: 可读的剩余空间
+      example: "9.0 GB"
+    storageByUser:
+      type: array
+      items:
+        type: object
+        properties:
+          userId:
+            type: integer
+            format: int64
+          username:
+            type: string
+          usedSpace:
+            type: integer
+            format: int64
+          quota:
+            type: integer
+            format: int64
+          usagePercentage:
+            type: number
+            format: double
+      description: 按用户分组的存储使用情况
+    storageGrowthTrend:
+      type: array
+      items:
+        type: object
+        properties:
+          date:
+            type: string
+            format: date
+          totalSize:
+            type: integer
+            format: int64
+          growth:
+            type: integer
+            format: int64
+      description: 存储增长趋势
+
+# 系统指标
+SystemMetrics:
+  type: object
+  properties:
+    uptime:
+      type: integer
+      format: int64
+      description: 系统运行时间（秒）
+      example: 86400
+    uptimeReadable:
+      type: string
+      description: 可读的运行时间
+      example: "1 day"
+    cpuUsage:
+      type: number
+      format: double
+      description: CPU使用率(%)
+      example: 25.5
+    memoryUsage:
+      type: number
+      format: double
+      description: 内存使用率(%)
+      example: 60.2
+    diskUsage:
+      type: number
+      format: double
+      description: 磁盘使用率(%)
+      example: 45.8
+    networkIn:
+      type: integer
+      format: int64
+      description: 网络入流量（字节/秒）
+      example: 1048576
+    networkOut:
+      type: integer
+      format: int64
+      description: 网络出流量（字节/秒）
+      example: 2097152
+    activeConnections:
+      type: integer
+      description: 活跃连接数
+      example: 150
+    requestsPerSecond:
+      type: number
+      format: double
+      description: 每秒请求数
+      example: 25.5
+    averageResponseTime:
+      type: number
+      format: double
+      description: 平均响应时间（毫秒）
+      example: 120.5
+    errorRate:
+      type: number
+      format: double
+      description: 错误率(%)
+      example: 0.5
+
+# 系统健康检查
+SystemHealth:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [UP, DOWN, OUT_OF_SERVICE, UNKNOWN]
+      description: 整体健康状态
+      example: "UP"
+    components:
+      type: object
+      properties:
+        database:
+          $ref: '#/HealthComponent'
+        redis:
+          $ref: '#/HealthComponent'
+        storage:
+          $ref: '#/HealthComponent'
+        email:
+          $ref: '#/HealthComponent'
+      description: 各组件健康状态
+    checks:
+      type: array
+      items:
+        $ref: '#/HealthCheck'
+      description: 健康检查详情
+
+# 健康检查组件
+HealthComponent:
+  type: object
+  properties:
+    status:
+      type: string
+      enum: [UP, DOWN, OUT_OF_SERVICE, UNKNOWN]
+      description: 组件状态
+      example: "UP"
+    details:
+      type: object
+      additionalProperties: true
+      description: 详细信息
+      example:
+        version: "8.0.33"
+        validationQuery: "SELECT 1"
+        responseTime: "5ms"
+
+# 健康检查项
+HealthCheck:
+  type: object
+  properties:
+    name:
+      type: string
+      description: 检查项名称
+      example: "database-connectivity"
+    status:
+      type: string
+      enum: [PASS, FAIL, WARN]
+      description: 检查状态
+      example: "PASS"
+    message:
+      type: string
+      description: 检查消息
+      example: "Database connection is healthy"
+    duration:
+      type: integer
+      description: 检查耗时（毫秒）
+      example: 5
+    timestamp:
+      type: string
+      format: date-time
+      description: 检查时间
+      example: "2024-01-01T12:00:00Z"
+
+# 系统配置
+SystemConfiguration:
+  type: object
+  properties:
+    general:
+      type: object
+      properties:
+        siteName:
+          type: string
+          example: "Lyra 云盘系统"
+        siteDescription:
+          type: string
+          example: "企业级文档管理系统"
+        adminEmail:
+          type: string
+          format: email
+          example: "admin@lyra.com"
+        timezone:
+          type: string
+          example: "Asia/Shanghai"
+        language:
+          type: string
+          example: "zh-CN"
+    storage:
+      type: object
+      properties:
+        maxFileSize:
+          type: string
+          example: "100MB"
+        allowedFileTypes:
+          type: array
+          items:
+            type: string
+          example: ["pdf", "docx", "xlsx", "jpg", "png"]
+        defaultQuota:
+          type: string
+          example: "10GB"
+        enableVersioning:
+          type: boolean
+          example: true
+    security:
+      type: object
+      properties:
+        jwtExpiration:
+          type: string
+          example: "24h"
+        passwordMinLength:
+          type: integer
+          example: 8
+        enableTwoFactor:
+          type: boolean
+          example: false
+        sessionTimeout:
+          type: string
+          example: "30m"
+    email:
+      type: object
+      properties:
+        smtpHost:
+          type: string
+          example: "smtp.example.com"
+        smtpPort:
+          type: integer
+          example: 587
+        enableTLS:
+          type: boolean
+          example: true
+        fromAddress:
+          type: string
+          format: email
+          example: "noreply@lyra.com"
+
+# 系统配置更新请求
+UpdateSystemConfigRequest:
+  type: object
+  properties:
+    general:
+      type: object
+      additionalProperties: true
+    storage:
+      type: object
+      additionalProperties: true
+    security:
+      type: object
+      additionalProperties: true
+    email:
+      type: object
+      additionalProperties: true
+
+# 系统日志
+SystemLog:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 日志ID
+      example: 1
+    level:
+      type: string
+      enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL]
+      description: 日志级别
+      example: "INFO"
+    logger:
+      type: string
+      description: 日志记录器
+      example: "tslc.beihaiyun.lyra.controller.AuthController"
+    message:
+      type: string
+      description: 日志消息
+      example: "User admin logged in successfully"
+    exception:
+      type: string
+      description: 异常信息
+      nullable: true
+      example: null
+    userId:
+      type: integer
+      format: int64
+      description: 相关用户ID
+      nullable: true
+      example: 1
+    ipAddress:
+      type: string
+      description: IP地址
+      nullable: true
+      example: "192.168.1.100"
+    userAgent:
+      type: string
+      description: 用户代理
+      nullable: true
+      example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    requestId:
+      type: string
+      description: 请求ID
+      nullable: true
+      example: "req-123"
+    timestamp:
+      type: string
+      format: date-time
+      description: 日志时间
+      example: "2024-01-01T12:00:00Z"
+
+# 系统事件
+SystemEvent:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 事件ID
+      example: 1
+    type:
+      type: string
+      enum: [USER_LOGIN, USER_LOGOUT, FILE_UPLOAD, FILE_DOWNLOAD, SYSTEM_START, SYSTEM_STOP, CONFIG_CHANGE]
+      description: 事件类型
+      example: "USER_LOGIN"
+    description:
+      type: string
+      description: 事件描述
+      example: "用户登录系统"
+    userId:
+      type: integer
+      format: int64
+      description: 相关用户ID
+      nullable: true
+      example: 1
+    resourceId:
+      type: string
+      description: 相关资源ID
+      nullable: true
+      example: "file-123"
+    resourceType:
+      type: string
+      description: 资源类型
+      nullable: true
+      example: "FILE"
+    metadata:
+      type: object
+      additionalProperties: true
+      description: 事件元数据
+      example:
+        ipAddress: "192.168.1.100"
+        userAgent: "Mozilla/5.0"
+    severity:
+      type: string
+      enum: [LOW, MEDIUM, HIGH, CRITICAL]
+      description: 事件严重程度
+      example: "LOW"
+    timestamp:
+      type: string
+      format: date-time
+      description: 事件时间
+      example: "2024-01-01T12:00:00Z"

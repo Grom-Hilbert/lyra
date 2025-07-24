@@ -1,0 +1,1933 @@
+openapi: 3.0.3
+info:
+  title: Lyra 企业级文档管理系统 API
+  description: |
+    Lyra是一个企业级云原生文档管理系统，提供带有版本控制的文档管理服务。
+    
+    ## 核心功能
+    - 用户认证与授权管理
+    - 文件上传、下载、管理
+    - 文件夹结构化管理
+    - 文件搜索与版本控制
+    - WebDAV协议支持
+    - 权限管理与空间隔离
+    
+    ## 技术架构
+    - **后端**: Spring Boot 3.5.x + Spring Security + JPA
+    - **数据库**: SQLite/MySQL/PostgreSQL + Redis
+    - **部署**: Docker + Kubernetes + Helm
+    
+    ## API特性
+    - RESTful设计规范
+    - JWT令牌认证
+    - 统一响应格式
+    - 完整的错误处理
+    - 分页和排序支持
+    - 文件流传输优化
+    
+  version: "1.0.0"
+  termsOfService: https://github.com/your-org/lyra/blob/main/TERMS.md
+  contact:
+    name: Lyra API Support
+    url: https://github.com/your-org/lyra
+    email: support@lyra.example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: 本地开发环境
+  - url: https://api-dev.lyra.example.com
+    description: 开发环境
+  - url: https://api-staging.lyra.example.com  
+    description: 预发布环境
+  - url: https://api.lyra.example.com
+    description: 生产环境
+
+# ==================== 安全方案 ====================
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        JWT访问令牌认证。
+        
+        **获取令牌**: 通过 `/api/auth/login` 端点登录获取访问令牌。
+        
+        **使用方式**: 在请求头中添加 `Authorization: Bearer <token>`
+        
+        **令牌刷新**: 使用 `/api/auth/refresh` 端点刷新过期令牌。
+
+  # ==================== 通用响应格式 ====================
+  schemas:
+    # 通用API响应格式
+    ApiResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: 操作是否成功
+          example: true
+        message:
+          type: string
+          description: 响应消息
+          example: "操作成功"
+        data:
+          description: 响应数据，根据具体接口而定
+        timestamp:
+          type: integer
+          format: int64
+          description: 时间戳(毫秒)
+          example: 1642780800000
+        errors:
+          type: array
+          description: 错误信息列表(仅在失败时出现)
+          items:
+            type: string
+          example: ["参数验证失败", "用户名不能为空"]
+      required:
+        - success
+        - message
+
+    # 分页响应格式
+    PageResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                content:
+                  type: array
+                  description: 当前页数据
+                  items: {}
+                totalElements:
+                  type: integer
+                  description: 总记录数
+                  example: 100
+                totalPages:
+                  type: integer
+                  description: 总页数
+                  example: 10
+                currentPage:
+                  type: integer
+                  description: 当前页码(从0开始)
+                  example: 0
+                pageSize:
+                  type: integer
+                  description: 每页大小
+                  example: 10
+                hasNext:
+                  type: boolean
+                  description: 是否有下一页
+                  example: true
+                hasPrevious:
+                  type: boolean
+                  description: 是否有上一页
+                  example: false
+
+    # ==================== 认证相关数据模型 ====================
+    
+    # 登录请求
+    LoginRequest:
+      type: object
+      required:
+        - usernameOrEmail
+        - password
+      properties:
+        usernameOrEmail:
+          type: string
+          description: 用户名或邮箱
+          example: "admin@lyra.com"
+        password:
+          type: string
+          format: password
+          description: 密码
+          example: "password123"
+        rememberMe:
+          type: boolean
+          description: 是否记住登录状态
+          default: false
+
+    # 登录响应
+    LoginResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          description: 访问令牌
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        refreshToken:
+          type: string
+          description: 刷新令牌
+          example: "eyJhbGciOiJIUzI1NiIs..."
+        tokenType:
+          type: string
+          description: 令牌类型
+          example: "Bearer"
+        expiresIn:
+          type: integer
+          description: 令牌过期时间(秒)
+          example: 3600
+        user:
+          $ref: '#/components/schemas/UserInfo'
+
+    # 注册请求
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          description: 用户名
+          pattern: '^[a-zA-Z0-9_]{3,20}$'
+          example: "newuser"
+        email:
+          type: string
+          format: email
+          description: 邮箱地址
+          example: "newuser@example.com"
+        password:
+          type: string
+          format: password
+          minLength: 8
+          description: 密码(至少8位)
+          example: "password123"
+        displayName:
+          type: string
+          description: 显示名称
+          example: "新用户"
+
+    # 用户信息
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 用户ID
+          example: 1
+        username:
+          type: string
+          description: 用户名
+          example: "admin"
+        email:
+          type: string
+          format: email
+          description: 邮箱
+          example: "admin@lyra.com"
+        displayName:
+          type: string
+          description: 显示名称
+          example: "系统管理员"
+        avatar:
+          type: string
+          format: uri
+          description: 头像URL
+          example: "https://example.com/avatar.jpg"
+        roles:
+          type: array
+          description: 用户角色
+          items:
+            type: string
+          example: ["ADMIN", "USER"]
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED, LOCKED]
+          description: 账户状态
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+          example: "2024-01-01T12:00:00Z"
+
+    # 刷新令牌请求
+    RefreshTokenRequest:
+      type: object
+      required:
+        - refreshToken
+      properties:
+        refreshToken:
+          type: string
+          description: 刷新令牌
+          example: "eyJhbGciOiJIUzI1NiIs..."
+
+    # ==================== 文件相关数据模型 ====================
+    
+    # 文件信息
+    FileInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 文件ID
+          example: 1
+        filename:
+          type: string
+          description: 文件名
+          example: "document.pdf"
+        originalName:
+          type: string
+          description: 原始文件名
+          example: "重要文档.pdf"
+        path:
+          type: string
+          description: 文件路径
+          example: "/documents/important/document.pdf"
+        sizeBytes:
+          type: integer
+          format: int64
+          description: 文件大小(字节)
+          example: 1048576
+        mimeType:
+          type: string
+          description: MIME类型
+          example: "application/pdf"
+        fileHash:
+          type: string
+          description: 文件哈希值
+          example: "abc123def456"
+        version:
+          type: integer
+          description: 文件版本
+          example: 1
+        isPublic:
+          type: boolean
+          description: 是否公开
+          example: false
+        downloadCount:
+          type: integer
+          description: 下载次数
+          example: 10
+        spaceId:
+          type: integer
+          format: int64
+          description: 所属空间ID
+          example: 1
+        folderId:
+          type: integer
+          format: int64
+          description: 所属文件夹ID
+          nullable: true
+          example: 1
+        uploaderId:
+          type: integer
+          format: int64
+          description: 上传者ID
+          example: 1
+        status:
+          type: string
+          enum: [ACTIVE, DELETED, ARCHIVED]
+          description: 文件状态
+          example: "ACTIVE"
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+          example: "2024-01-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+          example: "2024-01-01T12:00:00Z"
+
+    # 文件上传请求
+    FileUploadRequest:
+      type: object
+      required:
+        - file
+        - spaceId
+      properties:
+        file:
+          type: string
+          format: binary
+          description: 上传的文件
+        spaceId:
+          type: integer
+          format: int64
+          description: 目标空间ID
+          example: 1
+        folderId:
+          type: integer
+          format: int64
+          description: 目标文件夹ID(可选)
+          nullable: true
+          example: 1
+        description:
+          type: string
+          description: 文件描述
+          example: "重要文档备份"
+
+    # 文件搜索请求
+    FileSearchRequest:
+      type: object
+      required:
+        - spaceId
+      properties:
+        spaceId:
+          type: integer
+          format: int64
+          description: 搜索空间ID
+          example: 1
+        keyword:
+          type: string
+          description: 搜索关键词
+          example: "重要"
+        mimeType:
+          type: string
+          description: 文件类型过滤
+          example: "application/pdf"
+        includeDeleted:
+          type: boolean
+          description: 是否包含已删除文件
+          default: false
+        page:
+          type: integer
+          description: 页码(从0开始)
+          default: 0
+          example: 0
+        size:
+          type: integer
+          description: 每页大小
+          default: 20
+          example: 20
+
+    # ==================== 文件夹相关数据模型 ====================
+    
+    # 文件夹信息
+    FolderInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: 文件夹ID
+          example: 1
+        name:
+          type: string
+          description: 文件夹名称
+          example: "重要文档"
+        path:
+          type: string
+          description: 文件夹路径
+          example: "/documents/important"
+        parentId:
+          type: integer
+          format: int64
+          description: 父文件夹ID
+          nullable: true
+          example: null
+        spaceId:
+          type: integer
+          format: int64
+          description: 所属空间ID
+          example: 1
+        level:
+          type: integer
+          description: 文件夹层级
+          example: 1
+        isRoot:
+          type: boolean
+          description: 是否为根文件夹
+          example: false
+        fileCount:
+          type: integer
+          description: 包含文件数量
+          example: 10
+        sizeBytes:
+          type: integer
+          format: int64
+          description: 文件夹总大小(字节)
+          example: 10485760
+        createdAt:
+          type: string
+          format: date-time
+          description: 创建时间
+          example: "2024-01-01T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: 更新时间
+          example: "2024-01-01T12:00:00Z"
+
+    # 创建文件夹请求
+    CreateFolderRequest:
+      type: object
+      required:
+        - name
+        - spaceId
+      properties:
+        name:
+          type: string
+          description: 文件夹名称
+          pattern: '^[^/\\:*?"<>|]+$'
+          example: "新文件夹"
+        spaceId:
+          type: integer
+          format: int64
+          description: 所属空间ID
+          example: 1
+        parentFolderId:
+          type: integer
+          format: int64
+          description: 父文件夹ID(可选)
+          nullable: true
+          example: 1
+
+    # 文件夹树节点
+    FolderTreeNode:
+      type: object
+      properties:
+        folder:
+          $ref: '#/components/schemas/FolderInfo'
+        children:
+          type: array
+          description: 子文件夹
+          items:
+            $ref: '#/components/schemas/FolderTreeNode'
+        totalSize:
+          type: integer
+          format: int64
+          description: 总大小(包含子文件夹)
+          example: 20971520
+        totalFileCount:
+          type: integer
+          description: 总文件数(包含子文件夹)
+          example: 25
+
+    # ==================== 系统管理相关数据模型 ====================
+
+    # 批量用户操作请求
+    BatchUserOperationRequest:
+      type: object
+      required:
+        - userIds
+        - operation
+      properties:
+        userIds:
+          type: array
+          items:
+            type: integer
+            format: int64
+          description: 用户ID列表
+          example: [1, 2, 3]
+        operation:
+          type: string
+          enum: [ACTIVATE, DEACTIVATE, LOCK, UNLOCK]
+          description: 批量操作类型
+          example: "ACTIVATE"
+
+    # 批量操作响应
+    BatchOperationResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            processedCount:
+              type: integer
+              description: 成功处理的数量
+              example: 3
+            failedCount:
+              type: integer
+              description: 失败的数量
+              example: 0
+            failedItems:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                  reason:
+                    type: string
+              description: 失败的项目详情
+
+    # 用户统计信息
+    UserStatistics:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+          description: 用户总数
+          example: 1250
+        activeUsers:
+          type: integer
+          description: 活跃用户数
+          example: 890
+        newUsersThisPeriod:
+          type: integer
+          description: 本周期新增用户数
+          example: 45
+        userGrowthRate:
+          type: number
+          format: double
+          description: 用户增长率(%)
+          example: 3.7
+        usersByStatus:
+          type: object
+          properties:
+            active:
+              type: integer
+              example: 890
+            inactive:
+              type: integer
+              example: 200
+            locked:
+              type: integer
+              example: 160
+        registrationTrend:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              count:
+                type: integer
+          description: 注册趋势数据
+
+    # 系统统计信息
+    SystemStatistics:
+      type: object
+      properties:
+        users:
+          $ref: '#/components/schemas/UserStatistics'
+        files:
+          type: object
+          properties:
+            totalFiles:
+              type: integer
+              example: 15000
+            totalSize:
+              type: integer
+              format: int64
+              example: 1073741824
+            averageFileSize:
+              type: integer
+              format: int64
+              example: 71582
+        storage:
+          type: object
+          properties:
+            usedSpace:
+              type: integer
+              format: int64
+              example: 1073741824
+            totalSpace:
+              type: integer
+              format: int64
+              example: 10737418240
+            usagePercentage:
+              type: number
+              format: double
+              example: 10.0
+
+    # ==================== 错误响应模型 ====================
+    
+    ErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ApiResponse'
+        - type: object
+          properties:
+            success:
+              type: boolean
+              enum: [false]
+            errors:
+              type: array
+              items:
+                type: string
+
+  # ==================== 通用参数 ====================
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: 页码(从0开始)
+      required: false
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    
+    SizeParam:
+      name: size
+      in: query
+      description: 每页大小
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+    
+    SortParam:
+      name: sort
+      in: query
+      description: 排序字段
+      required: false
+      schema:
+        type: string
+        default: "updatedAt"
+        
+    DirectionParam:
+      name: direction
+      in: query
+      description: 排序方向
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: "desc"
+
+  # ==================== 通用响应 ====================
+  responses:
+    BadRequest:
+      description: 请求参数错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "请求参数验证失败"
+            errors: ["用户名不能为空"]
+            timestamp: 1642780800000
+    
+    Unauthorized:
+      description: 未授权访问
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "访问令牌无效或已过期"
+            timestamp: 1642780800000
+    
+    Forbidden:
+      description: 权限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "权限不足，无法访问此资源"
+            timestamp: 1642780800000
+    
+    NotFound:
+      description: 资源不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "请求的资源不存在"
+            timestamp: 1642780800000
+    
+    InternalServerError:
+      description: 服务器内部错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            message: "服务器内部错误，请稍后重试"
+            timestamp: 1642780800000
+
+# ==================== API路径定义 ====================
+paths:
+  # ==================== 认证相关API ====================
+  /api/auth/login:
+    post:
+      tags:
+        - 认证管理
+      summary: 用户登录
+      description: |
+        用户通过用户名/邮箱和密码进行登录认证。
+        
+        **注意事项**:
+        - 支持用户名或邮箱登录
+        - 密码错误次数过多将导致账户锁定
+        - 返回的访问令牌有效期为1小时
+        - 刷新令牌有效期为7天
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              usernameOrEmail: "admin@lyra.com"
+              password: "password123"
+              rememberMe: true
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/LoginResponse'
+              example:
+                success: true
+                message: "登录成功"
+                data:
+                  accessToken: "eyJhbGciOiJIUzI1NiIs..."
+                  refreshToken: "eyJhbGciOiJIUzI1NiIs..."
+                  tokenType: "Bearer"
+                  expiresIn: 3600
+                  user:
+                    id: 1
+                    username: "admin"
+                    email: "admin@lyra.com"
+                    displayName: "系统管理员"
+                    roles: ["ADMIN", "USER"]
+                    status: "ACTIVE"
+                timestamp: 1642780800000
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          description: 登录失败
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                message: "用户名或密码错误"
+                timestamp: 1642780800000
+
+  /api/auth/register:
+    post:
+      tags:
+        - 认证管理
+      summary: 用户注册
+      description: |
+        新用户注册账户。
+        
+        **注意事项**:
+        - 用户名必须是3-20位字母数字下划线
+        - 密码至少8位
+        - 邮箱地址必须唯一
+        - 注册后需要邮箱验证(如果启用)
+      operationId: registerUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: "newuser"
+              email: "newuser@example.com"
+              password: "password123"
+              displayName: "新用户"
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/UserInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: 用户名或邮箱已存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/refresh:
+    post:
+      tags:
+        - 认证管理
+      summary: 刷新访问令牌
+      description: |
+        使用刷新令牌获取新的访问令牌。
+        
+        **注意事项**:
+        - 当访问令牌过期时使用
+        - 刷新令牌只能使用一次
+        - 返回新的访问令牌和刷新令牌
+      operationId: refreshToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: 令牌刷新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          accessToken:
+                            type: string
+                          refreshToken:
+                            type: string
+                          tokenType:
+                            type: string
+                          expiresIn:
+                            type: integer
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/auth/logout:
+    post:
+      tags:
+        - 认证管理
+      summary: 用户登出
+      description: |
+        用户登出，令牌加入黑名单。
+        
+        **注意事项**:
+        - 当前访问令牌将被加入黑名单
+        - 登出后需要重新登录获取新令牌
+      operationId: logoutUser
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 登出成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+              example:
+                success: true
+                message: "登出成功"
+                timestamp: 1642780800000
+
+  # ==================== 文件管理API ====================
+  /api/files/upload:
+    post:
+      tags:
+        - 文件管理
+      summary: 上传文件
+      description: |
+        上传单个文件到指定空间和文件夹。
+        
+        **注意事项**:
+        - 支持多种文件类型
+        - 单个文件最大100MB
+        - 自动检测文件类型和生成哈希值
+        - 支持文件去重
+      operationId: uploadFile
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FileUploadRequest'
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FileInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          description: 文件过大
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/files/{fileId}:
+    get:
+      tags:
+        - 文件管理
+      summary: 获取文件信息
+      description: |
+        根据文件ID获取文件详细信息。
+        
+        **权限要求**: 需要对文件有读取权限
+      operationId: getFileInfo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: 文件ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FileInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    put:
+      tags:
+        - 文件管理
+      summary: 更新文件信息
+      description: |
+        更新文件的元数据信息，如文件名、描述等。
+        
+        **权限要求**: 需要对文件有写入权限
+      operationId: updateFileInfo
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: 文件ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filename:
+                  type: string
+                  description: 新文件名
+                  example: "重要文档-修订版.pdf"
+                description:
+                  type: string
+                  description: 文件描述
+                  example: "这是修订后的重要文档"
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FileInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    
+    delete:
+      tags:
+        - 文件管理
+      summary: 删除文件
+      description: |
+        删除指定文件。文件将被标记为已删除状态。
+        
+        **权限要求**: 需要对文件有删除权限
+      operationId: deleteFile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: 文件ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/files/{fileId}/download:
+    get:
+      tags:
+        - 文件管理
+      summary: 下载文件
+      description: |
+        下载指定文件的内容。
+        
+        **权限要求**: 需要对文件有读取权限
+      operationId: downloadFile
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: fileId
+          in: path
+          required: true
+          description: 文件ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 文件内容
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          headers:
+            Content-Disposition:
+              description: 文件下载名称
+              schema:
+                type: string
+                example: 'attachment; filename="document.pdf"'
+            Content-Length:
+              description: 文件大小
+              schema:
+                type: integer
+                example: 1048576
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/files/search:
+    get:
+      tags:
+        - 文件管理
+      summary: 搜索文件(GET)
+      description: |
+        根据关键词搜索文件。支持文件名、内容、标签等多维度搜索。
+        
+        **搜索功能**:
+        - 文件名模糊匹配
+        - MIME类型过滤
+        - 删除状态过滤
+        - 分页结果返回
+      operationId: searchFilesGet
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: spaceId
+          in: query
+          required: true
+          description: 搜索空间ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: query
+          in: query
+          required: false
+          description: 搜索关键词
+          schema:
+            type: string
+            example: "重要文档"
+        - name: mimeType
+          in: query
+          required: false
+          description: 文件类型过滤
+          schema:
+            type: string
+            example: "application/pdf"
+        - name: includeDeleted
+          in: query
+          required: false
+          description: 是否包含已删除文件
+          schema:
+            type: boolean
+            default: false
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          content:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/FileInfo'
+                          totalElements:
+                            type: integer
+                          totalPages:
+                            type: integer
+                          currentPage:
+                            type: integer
+                          pageSize:
+                            type: integer
+                          hasNext:
+                            type: boolean
+                          hasPrevious:
+                            type: boolean
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+    post:
+      tags:
+        - 文件管理
+      summary: 搜索文件(POST)
+      description: |
+        使用POST方式进行复杂文件搜索，支持更多搜索条件。
+        
+        **高级搜索功能**:
+        - 多条件组合搜索
+        - 日期范围过滤
+        - 文件大小范围
+        - 标签搜索
+      operationId: searchFilesPost
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FileSearchRequest'
+            example:
+              spaceId: 1
+              keyword: "重要"
+              mimeType: "application/pdf"
+              includeDeleted: false
+              page: 0
+              size: 20
+      responses:
+        '200':
+          description: 搜索成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FileInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==================== 文件夹管理API ====================
+  /api/folders:
+    post:
+      tags:
+        - 文件夹管理
+      summary: 创建文件夹
+      description: |
+        在指定空间和父文件夹下创建新文件夹。
+        
+        **注意事项**:
+        - 文件夹名不能包含特殊字符
+        - 同一父目录下不能有重名文件夹
+        - 文件夹路径自动生成
+      operationId: createFolder
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateFolderRequest'
+            example:
+              name: "重要文档"
+              spaceId: 1
+              parentFolderId: null
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FolderInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '409':
+          description: 文件夹名冲突
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - 文件夹管理
+      summary: 获取文件夹列表
+      description: |
+        获取指定空间下的文件夹列表，支持分页和排序。
+        
+        **查询功能**:
+        - 按父文件夹过滤
+        - 支持分页浏览
+        - 多种排序方式
+      operationId: getFolders
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: spaceId
+          in: query
+          required: true
+          description: 空间ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: parentId
+          in: query
+          required: false
+          description: 父文件夹ID(为空时获取根目录)
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - name: sort
+          in: query
+          required: false
+          description: 排序字段
+          schema:
+            type: string
+            enum: [name, createdAt, updatedAt, sizeBytes, fileCount]
+            default: "name"
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PageResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          content:
+                            type: array
+                            items:
+                              $ref: '#/components/schemas/FolderInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /api/folders/{folderId}:
+    get:
+      tags:
+        - 文件夹管理
+      summary: 获取文件夹详情
+      description: |
+        根据文件夹ID获取详细信息。
+        
+        **权限要求**: 需要对文件夹有读取权限
+      operationId: getFolderDetail
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          description: 文件夹ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FolderInfo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    put:
+      tags:
+        - 文件夹管理
+      summary: 更新文件夹信息
+      description: |
+        更新文件夹的名称等信息。
+        
+        **权限要求**: 需要对文件夹有写入权限
+      operationId: updateFolder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          description: 文件夹ID
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: 新文件夹名称
+                  example: "重要文档-已归档"
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        $ref: '#/components/schemas/FolderInfo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - 文件夹管理
+      summary: 删除文件夹
+      description: |
+        删除指定文件夹。注意：删除文件夹会同时删除其中的所有文件和子文件夹。
+        
+        **权限要求**: 需要对文件夹有删除权限
+        
+        **危险操作**: 此操作不可逆，请谨慎使用
+      operationId: deleteFolder
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: folderId
+          in: path
+          required: true
+          description: 文件夹ID
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 删除成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: 文件夹非空，无法删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/folders/tree:
+    get:
+      tags:
+        - 文件夹管理
+      summary: 获取文件夹树结构
+      description: |
+        获取指定空间的完整文件夹树结构。
+        
+        **功能特性**:
+        - 层次化文件夹结构
+        - 包含每个节点的统计信息
+        - 支持深度限制
+      operationId: getFolderTree
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: spaceId
+          in: query
+          required: true
+          description: 空间ID
+          schema:
+            type: integer
+            format: int64
+            example: 1
+        - name: maxDepth
+          in: query
+          required: false
+          description: 最大深度(-1表示无限制)
+          schema:
+            type: integer
+            default: -1
+            example: 3
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/FolderTreeNode'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  # ==================== 系统配置API ====================
+  /api/admin/config:
+    get:
+      tags:
+        - 系统管理
+      summary: 获取系统配置
+      description: |
+        获取当前系统的所有配置信息。
+        
+        **权限要求**: 需要ADMIN角色
+      operationId: getAllConfigs
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: 获取成功
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/ApiResponse'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          current:
+                            type: object
+                            description: 当前配置
+                          dynamic:
+                            type: object
+                            description: 动态配置
+                          sources:
+                            type: array
+                            description: 配置源信息
+                            items:
+                              type: string
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ==================== 系统管理API ====================
+  /api/admin/system/users:
+    get:
+      tags:
+        - 系统管理
+      summary: 获取用户列表
+      description: |
+        获取系统中所有用户的分页列表，支持搜索和筛选。
+
+        **权限要求**: 管理员权限
+
+        **功能特性**:
+        - 分页查询
+        - 关键词搜索
+        - 状态筛选
+        - 排序支持
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: 页码（从0开始）
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: size
+          in: query
+          description: 每页大小
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: keyword
+          in: query
+          description: 搜索关键词（用户名、邮箱、昵称）
+          required: false
+          schema:
+            type: string
+        - name: status
+          in: query
+          description: 用户状态筛选
+          required: false
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, LOCKED, PENDING]
+      responses:
+        '200':
+          description: 用户列表获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "用户列表获取成功"
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/UserInfo'
+                  totalElements:
+                    type: integer
+                    example: 150
+                  totalPages:
+                    type: integer
+                    example: 8
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  /api/admin/system/users/batch:
+    post:
+      tags:
+        - 系统管理
+      summary: 批量用户操作
+      description: |
+        对多个用户执行批量操作，如激活、禁用、锁定等。
+
+        **权限要求**: 管理员权限
+
+        **支持操作**:
+        - ACTIVATE: 激活用户
+        - DEACTIVATE: 禁用用户
+        - LOCK: 锁定用户
+        - UNLOCK: 解锁用户
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userIds
+                - operation
+              properties:
+                userIds:
+                  type: array
+                  items:
+                    type: integer
+                    format: int64
+                  description: 用户ID列表
+                  example: [1, 2, 3]
+                operation:
+                  type: string
+                  enum: [ACTIVATE, DEACTIVATE, LOCK, UNLOCK]
+                  description: 批量操作类型
+                  example: "ACTIVATE"
+      responses:
+        '200':
+          description: 批量操作成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "批量操作完成"
+                  processedCount:
+                    type: integer
+                    example: 3
+                  failedCount:
+                    type: integer
+                    example: 0
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+  # ==================== 系统监控API ====================
+  /api/admin/statistics/users:
+    get:
+      tags:
+        - 系统监控
+      summary: 获取用户统计信息
+      description: |
+        获取系统用户相关的统计信息和分析数据。
+
+        **权限要求**: 管理员权限
+
+        **统计内容**:
+        - 用户总数和增长趋势
+        - 活跃用户统计
+        - 用户状态分布
+        - 注册趋势分析
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: period
+          in: query
+          description: 统计周期
+          required: false
+          schema:
+            type: string
+            enum: [day, week, month, year]
+            default: month
+      responses:
+        '200':
+          description: 用户统计信息获取成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      totalUsers:
+                        type: integer
+                        example: 1250
+                      activeUsers:
+                        type: integer
+                        example: 890
+                      newUsersThisPeriod:
+                        type: integer
+                        example: 45
+                      userGrowthRate:
+                        type: number
+                        format: double
+                        example: 3.7
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+
+# ==================== 标签分组 ====================
+tags:
+  - name: 认证管理
+    description: |
+      用户认证相关的API接口，包括登录、注册、令牌管理等功能。
+      
+      **核心功能**:
+      - 用户登录/注册
+      - JWT令牌管理
+      - 密码重置
+      - 会话管理
+  
+  - name: 文件管理
+    description: |
+      文件操作相关的API接口，提供完整的文件生命周期管理。
+      
+      **核心功能**:
+      - 文件上传/下载
+      - 文件信息管理
+      - 文件搜索
+      - 版本控制
+      - 权限管理
+  
+  - name: 文件夹管理
+    description: |
+      文件夹结构管理相关的API接口，支持层次化的文件组织。
+      
+      **核心功能**:
+      - 文件夹CRUD操作
+      - 文件夹树结构
+      - 批量操作
+      - 权限继承
+  
+  - name: 系统管理
+    description: |
+      系统配置和管理相关的API接口，仅限管理员使用。
+
+      **核心功能**:
+      - 用户管理（查询、创建、更新、删除）
+      - 角色权限管理
+      - 批量用户操作
+      - 用户状态管理
+      - 存储配额管理
+
+  - name: 系统监控
+    description: |
+      系统监控和统计相关的API接口，提供系统运行状态和业务指标。
+
+      **核心功能**:
+      - 用户统计分析
+      - 文件存储统计
+      - 系统性能指标
+      - 活跃度分析
+      - 实时监控数据
+
+  - name: 配置管理
+    description: |
+      系统配置管理相关的API接口，支持动态配置更新。
+
+      **核心功能**:
+      - 系统配置查询
+      - 配置项更新
+      - 配置验证
+      - 配置重载
+
+  - name: 缓存管理
+    description: |
+      缓存系统管理相关的API接口，提供缓存监控和管理功能。
+
+      **核心功能**:
+      - 缓存统计信息
+      - 缓存清理操作
+      - 缓存性能监控
+      - 缓存配置管理
+
+  - name: 搜索功能
+    description: |
+      文件和文件夹搜索相关的API接口，支持全文搜索和高级筛选。
+
+      **核心功能**:
+      - 全文搜索
+      - 高级筛选
+      - 搜索建议
+      - 搜索历史
+
+  - name: 文件预览
+    description: |
+      文件预览相关的API接口，支持多种文件格式的在线预览。
+
+      **核心功能**:
+      - 文档预览
+      - 图片预览
+      - 视频预览
+      - 预览配置
+
+  - name: 在线编辑
+    description: |
+      文件在线编辑相关的API接口，支持协同编辑和版本控制。
+
+      **核心功能**:
+      - 编辑会话管理
+      - 实时协同编辑
+      - 编辑历史
+      - 冲突解决
+
+# ==================== 外部文档链接 ====================
+externalDocs:
+  description: "Lyra项目文档和开发指南"
+  url: "https://github.com/your-org/lyra/wiki" 

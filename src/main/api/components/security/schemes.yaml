@@ -1,0 +1,219 @@
+# 安全认证方案定义
+
+# JWT Bearer Token认证
+BearerAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: JWT
+  description: |
+    JWT访问令牌认证。
+    
+    **获取令牌**: 通过 `/api/auth/login` 端点登录获取访问令牌。
+    
+    **使用方式**: 在请求头中添加 `Authorization: Bearer <token>`
+    
+    **令牌格式**: JWT (JSON Web Token)
+    
+    **令牌内容**:
+    - `sub`: 用户ID
+    - `username`: 用户名
+    - `roles`: 用户角色列表
+    - `permissions`: 用户权限列表
+    - `iat`: 签发时间
+    - `exp`: 过期时间
+    - `jti`: JWT唯一标识
+    
+    **令牌有效期**: 默认24小时
+    
+    **令牌刷新**: 使用 `/api/auth/refresh` 端点刷新过期令牌。
+    
+    **安全注意事项**:
+    - 令牌应安全存储，避免泄露
+    - 建议使用HTTPS传输
+    - 令牌过期后需要重新获取
+    - 支持令牌黑名单机制
+
+# API Key认证（可选，用于第三方集成）
+ApiKeyAuth:
+  type: apiKey
+  in: header
+  name: X-API-Key
+  description: |
+    API密钥认证，主要用于第三方系统集成。
+    
+    **获取API Key**: 在用户设置中生成API密钥。
+    
+    **使用方式**: 在请求头中添加 `X-API-Key: <your-api-key>`
+    
+    **权限范围**: API密钥权限基于生成用户的权限
+    
+    **安全注意事项**:
+    - API密钥应妥善保管
+    - 定期轮换API密钥
+    - 可以设置IP白名单限制
+    - 支持密钥撤销功能
+
+# Basic认证（用于WebDAV）
+BasicAuth:
+  type: http
+  scheme: basic
+  description: |
+    HTTP Basic认证，主要用于WebDAV协议支持。
+    
+    **使用方式**: 在请求头中添加 `Authorization: Basic <base64(username:password)>`
+    
+    **适用场景**:
+    - WebDAV客户端连接
+    - 简单的脚本集成
+    - 不支持JWT的客户端
+    
+    **安全注意事项**:
+    - 必须使用HTTPS传输
+    - 用户名密码会在每次请求中传输
+    - 建议使用应用专用密码
+
+# OAuth 2.0认证（预留，用于第三方登录）
+OAuth2:
+  type: oauth2
+  description: |
+    OAuth 2.0认证，用于第三方登录集成。
+    
+    **支持的授权流程**:
+    - Authorization Code Flow
+    - Client Credentials Flow
+    
+    **支持的第三方提供商**:
+    - Google
+    - Microsoft
+    - GitHub
+    - 企业微信
+    - 钉钉
+  flows:
+    authorizationCode:
+      authorizationUrl: https://api.lyra.com/oauth/authorize
+      tokenUrl: https://api.lyra.com/oauth/token
+      refreshUrl: https://api.lyra.com/oauth/refresh
+      scopes:
+        read: 读取权限
+        write: 写入权限
+        admin: 管理员权限
+        files.read: 文件读取权限
+        files.write: 文件写入权限
+        files.delete: 文件删除权限
+        users.read: 用户信息读取权限
+        users.write: 用户信息写入权限
+        system.admin: 系统管理权限
+    clientCredentials:
+      tokenUrl: https://api.lyra.com/oauth/token
+      refreshUrl: https://api.lyra.com/oauth/refresh
+      scopes:
+        api.read: API读取权限
+        api.write: API写入权限
+        webhook: Webhook权限
+
+# Cookie认证（用于Web界面）
+CookieAuth:
+  type: apiKey
+  in: cookie
+  name: JSESSIONID
+  description: |
+    Cookie会话认证，主要用于Web界面。
+    
+    **使用方式**: 浏览器自动管理Cookie
+    
+    **会话管理**:
+    - 会话超时时间：30分钟
+    - 支持记住我功能
+    - 自动会话延期
+    
+    **安全特性**:
+    - HttpOnly Cookie
+    - Secure Cookie（HTTPS）
+    - SameSite保护
+    - CSRF令牌保护
+
+# 多因素认证（MFA）
+MFAAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: MFA-Token
+  description: |
+    多因素认证令牌，用于需要额外安全验证的操作。
+    
+    **触发条件**:
+    - 敏感操作（删除、权限变更等）
+    - 管理员操作
+    - 异常登录检测
+    
+    **支持的MFA方式**:
+    - TOTP（时间基础一次性密码）
+    - SMS短信验证码
+    - 邮箱验证码
+    - 硬件安全密钥
+    
+    **使用流程**:
+    1. 执行敏感操作时返回MFA挑战
+    2. 用户提供MFA验证码
+    3. 获取MFA令牌
+    4. 使用MFA令牌完成操作
+
+# 临时访问令牌
+TemporaryAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: Temporary-Token
+  description: |
+    临时访问令牌，用于特定场景的短期访问。
+    
+    **使用场景**:
+    - 文件分享链接
+    - 邮箱验证链接
+    - 密码重置链接
+    - 一次性下载链接
+    
+    **特性**:
+    - 短期有效（通常几小时到几天）
+    - 单次使用或限制使用次数
+    - 特定资源访问权限
+    - 可以设置IP限制
+
+# 服务间认证
+ServiceAuth:
+  type: http
+  scheme: bearer
+  bearerFormat: Service-Token
+  description: |
+    服务间认证令牌，用于微服务架构中的服务间调用。
+    
+    **使用场景**:
+    - 内部服务调用
+    - 定时任务执行
+    - 系统集成
+    
+    **特性**:
+    - 长期有效
+    - 服务级别权限
+    - 内网访问限制
+    - 审计日志记录
+
+# Webhook认证
+WebhookAuth:
+  type: apiKey
+  in: header
+  name: X-Webhook-Signature
+  description: |
+    Webhook签名认证，用于验证Webhook请求的真实性。
+    
+    **签名算法**: HMAC-SHA256
+    
+    **签名格式**: `sha256=<signature>`
+    
+    **验证方式**:
+    1. 使用共享密钥对请求体进行HMAC-SHA256签名
+    2. 将签名与请求头中的签名进行比较
+    3. 验证时间戳防止重放攻击
+    
+    **安全注意事项**:
+    - 共享密钥应安全存储
+    - 验证请求时间戳
+    - 记录验证失败的请求

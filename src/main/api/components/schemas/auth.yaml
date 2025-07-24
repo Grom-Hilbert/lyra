@@ -1,0 +1,363 @@
+# 认证相关数据模型定义
+
+# 登录请求
+LoginRequest:
+  type: object
+  required:
+    - usernameOrEmail
+    - password
+  properties:
+    usernameOrEmail:
+      type: string
+      description: 用户名或邮箱
+      example: "admin"
+    password:
+      type: string
+      description: 密码
+      format: password
+      example: "admin123"
+    rememberMe:
+      type: boolean
+      description: 记住我
+      default: false
+      example: false
+
+# 登录响应
+LoginResponse:
+  type: object
+  properties:
+    accessToken:
+      type: string
+      description: 访问令牌
+      example: "eyJhbGciOiJIUzI1NiIs..."
+    refreshToken:
+      type: string
+      description: 刷新令牌
+      example: "eyJhbGciOiJIUzI1NiIs..."
+    tokenType:
+      type: string
+      description: 令牌类型
+      example: "Bearer"
+    expiresIn:
+      type: integer
+      description: 令牌有效期(秒)
+      example: 86400
+    user:
+      $ref: '#/UserInfo'
+
+# 注册请求
+RegisterRequest:
+  type: object
+  required:
+    - username
+    - email
+    - password
+  properties:
+    username:
+      type: string
+      description: 用户名
+      pattern: '^[a-zA-Z0-9_]{3,20}$'
+      example: "newuser"
+    email:
+      type: string
+      format: email
+      description: 邮箱
+      example: "newuser@example.com"
+    password:
+      type: string
+      description: 密码
+      format: password
+      minLength: 8
+      example: "password123"
+    confirmPassword:
+      type: string
+      description: 确认密码
+      format: password
+      example: "password123"
+    displayName:
+      type: string
+      description: 显示名称
+      example: "新用户"
+    inviteCode:
+      type: string
+      description: 邀请码（可选）
+      example: "INVITE123"
+
+# 注册响应
+RegisterResponse:
+  type: object
+  properties:
+    user:
+      $ref: '#/UserInfo'
+    requiresEmailVerification:
+      type: boolean
+      description: 是否需要邮箱验证
+      example: true
+    message:
+      type: string
+      description: 注册结果消息
+      example: "注册成功，请检查邮箱进行验证"
+
+# 用户信息
+UserInfo:
+  type: object
+  properties:
+    id:
+      type: integer
+      format: int64
+      description: 用户ID
+      example: 1
+    username:
+      type: string
+      description: 用户名
+      example: "admin"
+    email:
+      type: string
+      format: email
+      description: 邮箱
+      example: "admin@lyra.com"
+    displayName:
+      type: string
+      description: 显示名称
+      example: "系统管理员"
+    avatar:
+      type: string
+      format: uri
+      description: 头像URL
+      nullable: true
+      example: "https://example.com/avatar.jpg"
+    roles:
+      type: array
+      description: 用户角色
+      items:
+        type: string
+      example: ["ADMIN", "USER"]
+    permissions:
+      type: array
+      description: 用户权限
+      items:
+        type: string
+      example: ["system.admin", "file.read", "file.write"]
+    status:
+      type: string
+      enum: [ACTIVE, INACTIVE, LOCKED, PENDING]
+      description: 账户状态
+      example: "ACTIVE"
+    emailVerified:
+      type: boolean
+      description: 邮箱是否已验证
+      example: true
+    lastLoginAt:
+      type: string
+      format: date-time
+      description: 最后登录时间
+      nullable: true
+      example: "2024-01-01T12:00:00Z"
+    createdAt:
+      type: string
+      format: date-time
+      description: 创建时间
+      example: "2024-01-01T12:00:00Z"
+    updatedAt:
+      type: string
+      format: date-time
+      description: 更新时间
+      example: "2024-01-01T12:00:00Z"
+
+# 刷新令牌请求
+RefreshTokenRequest:
+  type: object
+  required:
+    - refreshToken
+  properties:
+    refreshToken:
+      type: string
+      description: 刷新令牌
+      example: "eyJhbGciOiJIUzI1NiIs..."
+
+# 刷新令牌响应
+RefreshTokenResponse:
+  type: object
+  properties:
+    accessToken:
+      type: string
+      description: 新的访问令牌
+      example: "eyJhbGciOiJIUzI1NiIs..."
+    refreshToken:
+      type: string
+      description: 新的刷新令牌
+      example: "eyJhbGciOiJIUzI1NiIs..."
+    tokenType:
+      type: string
+      description: 令牌类型
+      example: "Bearer"
+    expiresIn:
+      type: integer
+      description: 令牌有效期(秒)
+      example: 86400
+
+# 修改密码请求
+ChangePasswordRequest:
+  type: object
+  required:
+    - oldPassword
+    - newPassword
+  properties:
+    oldPassword:
+      type: string
+      description: 当前密码
+      format: password
+      example: "oldpassword123"
+    newPassword:
+      type: string
+      description: 新密码
+      format: password
+      minLength: 8
+      example: "newpassword123"
+    confirmPassword:
+      type: string
+      description: 确认新密码
+      format: password
+      example: "newpassword123"
+
+# 重置密码请求
+ResetPasswordRequest:
+  type: object
+  required:
+    - email
+  properties:
+    email:
+      type: string
+      format: email
+      description: 邮箱地址
+      example: "user@example.com"
+
+# 重置密码确认请求
+ResetPasswordConfirmRequest:
+  type: object
+  required:
+    - token
+    - newPassword
+  properties:
+    token:
+      type: string
+      description: 重置令牌
+      example: "reset-token-123"
+    newPassword:
+      type: string
+      description: 新密码
+      format: password
+      minLength: 8
+      example: "newpassword123"
+    confirmPassword:
+      type: string
+      description: 确认新密码
+      format: password
+      example: "newpassword123"
+
+# 邮箱验证请求
+EmailVerificationRequest:
+  type: object
+  required:
+    - token
+  properties:
+    token:
+      type: string
+      description: 验证令牌
+      example: "verify-token-123"
+
+# 更新用户资料请求
+UpdateProfileRequest:
+  type: object
+  properties:
+    displayName:
+      type: string
+      description: 显示名称
+      example: "新的显示名称"
+    avatar:
+      type: string
+      format: uri
+      description: 头像URL
+      nullable: true
+      example: "https://example.com/new-avatar.jpg"
+    bio:
+      type: string
+      description: 个人简介
+      maxLength: 500
+      example: "这是我的个人简介"
+    preferences:
+      type: object
+      description: 用户偏好设置
+      additionalProperties: true
+      example:
+        theme: "dark"
+        language: "zh-CN"
+        timezone: "Asia/Shanghai"
+
+# JWT令牌信息
+TokenInfo:
+  type: object
+  properties:
+    sub:
+      type: string
+      description: 主题（用户ID）
+      example: "1"
+    username:
+      type: string
+      description: 用户名
+      example: "admin"
+    roles:
+      type: array
+      description: 角色列表
+      items:
+        type: string
+      example: ["ADMIN", "USER"]
+    iat:
+      type: integer
+      description: 签发时间
+      example: 1642780800
+    exp:
+      type: integer
+      description: 过期时间
+      example: 1642867200
+    jti:
+      type: string
+      description: JWT ID
+      example: "jwt-id-123"
+
+# 会话信息
+SessionInfo:
+  type: object
+  properties:
+    sessionId:
+      type: string
+      description: 会话ID
+      example: "session-123"
+    userId:
+      type: integer
+      format: int64
+      description: 用户ID
+      example: 1
+    ipAddress:
+      type: string
+      description: IP地址
+      example: "192.168.1.100"
+    userAgent:
+      type: string
+      description: 用户代理
+      example: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    createdAt:
+      type: string
+      format: date-time
+      description: 创建时间
+      example: "2024-01-01T12:00:00Z"
+    lastAccessAt:
+      type: string
+      format: date-time
+      description: 最后访问时间
+      example: "2024-01-01T12:30:00Z"
+    expiresAt:
+      type: string
+      format: date-time
+      description: 过期时间
+      example: "2024-01-02T12:00:00Z"
