@@ -1,16 +1,18 @@
 package tslc.beihaiyun.lyra.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import tslc.beihaiyun.lyra.entity.User;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import tslc.beihaiyun.lyra.entity.User;
+import tslc.beihaiyun.lyra.entity.UserRole;
 
 /**
  * 用户Repository接口
@@ -355,5 +357,23 @@ public interface UserRepository extends JpaRepository<User, Long> {
     default List<User> findActiveUsers(int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         return findActiveUsers(since);
+    }
+
+    /**
+     * 统计管理员用户数量
+     * 
+     * @return 管理员用户数量
+     */
+    @Query("SELECT COUNT(DISTINCT u) FROM User u JOIN u.userRoles ur JOIN ur.role r " +
+           "WHERE r.code = :roleCode AND ur.status = :status AND ur.deleted = false")
+    long countUsersByRoleAndStatus(@Param("roleCode") String roleCode, @Param("status") UserRole.AssignmentStatus status);
+    
+    /**
+     * 统计管理员用户数量
+     * 
+     * @return 管理员用户数量
+     */
+    default long countAdminUsers() {
+        return countUsersByRoleAndStatus("ADMIN", UserRole.AssignmentStatus.ACTIVE);
     }
 } 

@@ -1,18 +1,19 @@
 package tslc.beihaiyun.lyra.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
 import tslc.beihaiyun.lyra.entity.FileEntity;
 import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 /**
  * 文件Entity Repository接口
@@ -390,4 +391,12 @@ public interface FileEntityRepository extends JpaRepository<FileEntity, Long> {
      */
     @Query("SELECT f FROM FileEntity f WHERE f.status = 'DELETED' AND f.updatedAt < :daysAgo")
     List<FileEntity> findDeletedFilesOlderThan(@Param("daysAgo") LocalDateTime daysAgo);
+
+    /**
+     * 获取所有文件的总大小
+     * 
+     * @return 文件总大小（字节）
+     */
+    @Query("SELECT COALESCE(SUM(f.sizeBytes), 0) FROM FileEntity f")
+    long getTotalFileSize();
 } 
