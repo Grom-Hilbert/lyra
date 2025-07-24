@@ -39,6 +39,7 @@ dependencies {
 	// 缓存支持
 	implementation 'com.github.ben-manes.caffeine:caffeine'
 	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+	implementation 'org.apache.commons:commons-pool2' // Redis 连接池
 	
 	// 数据库支持
 	runtimeOnly 'org.xerial:sqlite-jdbc'

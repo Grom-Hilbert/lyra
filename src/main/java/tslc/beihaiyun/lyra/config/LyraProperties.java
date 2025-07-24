@@ -560,6 +560,13 @@ public class LyraProperties {
         @Min(value = 0, message = "连接池最小空闲连接数不能小于0")
         private Integer minIdle = 2;
 
+        /**
+         * Redis集群配置
+         */
+        @Valid
+        @NestedConfigurationProperty
+        private ClusterConfig cluster = new ClusterConfig();
+
         // Getters and Setters
         public String getHost() {
             return host;
@@ -623,6 +630,14 @@ public class LyraProperties {
 
         public void setMinIdle(Integer minIdle) {
             this.minIdle = minIdle;
+        }
+
+        public ClusterConfig getCluster() {
+            return cluster;
+        }
+
+        public void setCluster(ClusterConfig cluster) {
+            this.cluster = cluster;
         }
     }
 
@@ -699,6 +714,39 @@ public class LyraProperties {
 
         public void setRefreshAfterWrite(Integer refreshAfterWrite) {
             this.refreshAfterWrite = refreshAfterWrite;
+        }
+    }
+
+    /**
+     * Redis集群配置
+     */
+    public static class ClusterConfig {
+        /**
+         * 集群节点列表
+         */
+        private java.util.List<String> nodes = new java.util.ArrayList<>();
+
+        /**
+         * 最大重定向次数
+         */
+        @Min(value = 1, message = "最大重定向次数不能小于1")
+        private Integer maxRedirects = 3;
+
+        // Getters and Setters
+        public java.util.List<String> getNodes() {
+            return nodes;
+        }
+
+        public void setNodes(java.util.List<String> nodes) {
+            this.nodes = nodes;
+        }
+
+        public Integer getMaxRedirects() {
+            return maxRedirects;
+        }
+
+        public void setMaxRedirects(Integer maxRedirects) {
+            this.maxRedirects = maxRedirects;
         }
     }
 }

@@ -16,6 +16,7 @@ import tslc.beihaiyun.lyra.entity.Folder;
 import tslc.beihaiyun.lyra.entity.Space;
 import tslc.beihaiyun.lyra.repository.FileEntityRepository;
 import tslc.beihaiyun.lyra.repository.FolderRepository;
+import tslc.beihaiyun.lyra.service.FileCacheService;
 import tslc.beihaiyun.lyra.service.FileService;
 import tslc.beihaiyun.lyra.service.StorageService;
 import tslc.beihaiyun.lyra.util.FileUtils;
@@ -46,14 +47,17 @@ public class FileServiceImpl implements FileService {
     private final FileEntityRepository fileEntityRepository;
     private final FolderRepository folderRepository;
     private final StorageService storageService;
+    private final FileCacheService fileCacheService;
 
     @Autowired
     public FileServiceImpl(FileEntityRepository fileEntityRepository,
                           FolderRepository folderRepository,
-                          StorageService storageService) {
+                          StorageService storageService,
+                          FileCacheService fileCacheService) {
         this.fileEntityRepository = fileEntityRepository;
         this.folderRepository = folderRepository;
         this.storageService = storageService;
+        this.fileCacheService = fileCacheService;
     }
 
     // ==================== 基础CRUD操作 ====================
@@ -203,7 +207,8 @@ public class FileServiceImpl implements FileService {
             return Optional.empty();
         }
 
-        return storageService.load(file.getStoragePath());
+        // 使用文件缓存服务获取文件流
+        return fileCacheService.getCachedFileStream(fileId, file);
     }
 
     @Override
@@ -235,6 +240,9 @@ public class FileServiceImpl implements FileService {
             fileEntity.setUpdatedBy(updaterId.toString());
 
             fileEntity = fileEntityRepository.save(fileEntity);
+
+            // 清除文件缓存
+            fileCacheService.evictAllFileCache(fileId);
 
             logger.info("文件内容更新成功: {}, 用户: {}", fileEntity.getName(), updaterId);
             return new FileOperationResult(true, "文件内容更新成功", fileEntity);
@@ -322,6 +330,9 @@ public class FileServiceImpl implements FileService {
             fileEntity.setUpdatedBy(deleterId.toString());
             fileEntityRepository.save(fileEntity);
 
+            // 清除文件缓存
+            fileCacheService.evictAllFileCache(fileId);
+
             logger.info("文件删除成功: {}, 用户: {}", fileEntity.getName(), deleterId);
             return true;
 
@@ -350,6 +361,9 @@ public class FileServiceImpl implements FileService {
 
             // 删除数据库记录
             fileEntityRepository.delete(fileEntity);
+
+            // 清除文件缓存
+            fileCacheService.evictAllFileCache(fileId);
 
             logger.info("文件永久删除成功: {}, 用户: {}", fileEntity.getName(), deleterId);
             return true;

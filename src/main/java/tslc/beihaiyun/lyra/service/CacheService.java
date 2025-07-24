@@ -12,9 +12,11 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import tslc.beihaiyun.lyra.config.CacheConfig;
 import tslc.beihaiyun.lyra.config.LyraProperties;
+import tslc.beihaiyun.lyra.entity.FileEntity;
 import tslc.beihaiyun.lyra.entity.User;
 import tslc.beihaiyun.lyra.entity.Role;
 import tslc.beihaiyun.lyra.entity.Space;
+import tslc.beihaiyun.lyra.repository.FileEntityRepository;
 import tslc.beihaiyun.lyra.repository.UserRepository;
 import tslc.beihaiyun.lyra.repository.RoleRepository;
 import tslc.beihaiyun.lyra.repository.SpaceRepository;
@@ -53,12 +55,18 @@ public class CacheService {
     
     @Autowired
     private SpaceRepository spaceRepository;
-    
+
+    @Autowired
+    private FileEntityRepository fileEntityRepository;
+
     @Autowired
     private PermissionService permissionService;
-    
+
     @Autowired
     private RoleService roleService;
+
+    @Autowired
+    private FileCacheService fileCacheService;
 
     // 缓存统计信息
     private final Map<String, CacheStats> cacheStatsMap = new ConcurrentHashMap<>();
@@ -123,7 +131,10 @@ public class CacheService {
             
             // 预热空间信息缓存
             warmUpSpaceInfo();
-            
+
+            // 预热文件缓存
+            warmUpFileCache();
+
             long endTime = System.currentTimeMillis();
             log.info("缓存预热完成，耗时: {}ms", endTime - startTime);
             
@@ -215,6 +226,28 @@ public class CacheService {
         }
         
         log.debug("空间信息缓存预热完成，处理了 {} 个空间", spaces.size());
+    }
+
+    /**
+     * 预热文件缓存
+     */
+    private void warmUpFileCache() {
+        log.debug("预热文件缓存...");
+
+        // 获取活跃文件（限制数量以避免过多缓存）
+        List<FileEntity> activeFiles = fileEntityRepository.findByStatus(FileEntity.FileStatus.ACTIVE);
+
+        // 限制预热文件数量，选择最近修改的前50个文件
+        List<FileEntity> hotFiles = activeFiles.stream()
+                .sorted((f1, f2) -> f2.getLastModifiedAt().compareTo(f1.getLastModifiedAt()))
+                .limit(50)
+                .collect(java.util.stream.Collectors.toList());
+
+        if (!hotFiles.isEmpty()) {
+            fileCacheService.warmUpFileCache(hotFiles);
+        }
+
+        log.debug("文件缓存预热完成，处理了 {} 个文件", hotFiles.size());
     }
 
     /**
