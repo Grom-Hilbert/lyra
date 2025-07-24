@@ -226,7 +226,8 @@ public class FolderServiceImpl implements FolderService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConfig.FOLDER_TREE_CACHE, key = "'tree:' + #space.id + ':' + #maxDepth")
+    @Cacheable(value = CacheConfig.FOLDER_TREE_CACHE, key = "'tree:' + #space.id + ':' + #maxDepth",
+               condition = "#space != null and #maxDepth > 0", unless = "#result == null")
     public List<FolderTreeNode> buildFolderTree(Space space, int maxDepth) {
         if (space == null) {
             return Collections.emptyList();

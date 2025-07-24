@@ -88,7 +88,8 @@ public class UserService {
      * @return 用户实体
      * @throws IllegalArgumentException 如果用户不存在
      */
-    @Cacheable(value = CacheConfig.USER_SESSION_CACHE, key = "'user:' + #userId")
+    @Cacheable(value = CacheConfig.USER_SESSION_CACHE, key = "'user:' + #userId",
+               condition = "#userId != null", unless = "#result == null")
     public User getUserById(Long userId) {
         return findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("用户不存在: " + userId));

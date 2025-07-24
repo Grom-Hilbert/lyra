@@ -59,6 +59,7 @@ public class FileServiceImpl implements FileService {
     // ==================== 基础CRUD操作 ====================
 
     @Override
+    @CacheEvict(value = CacheConfig.FILE_METADATA_CACHE, allEntries = true)
     public FileOperationResult uploadFile(MultipartFile file, Space space, Folder folder, Long uploaderId) {
         String originalFilename = file != null ? file.getOriginalFilename() : "unknown";
         try {
@@ -112,6 +113,7 @@ public class FileServiceImpl implements FileService {
     }
 
     @Override
+    @CacheEvict(value = CacheConfig.FILE_METADATA_CACHE, allEntries = true)
     public FileOperationResult createFile(InputStream inputStream, String filename, String contentType,
                                         Space space, Folder folder, Long creatorId) {
         try {
@@ -166,7 +168,8 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConfig.FILE_METADATA_CACHE, key = "'file:' + #fileId", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.FILE_METADATA_CACHE, key = "'file:' + #fileId",
+               condition = "#fileId != null", unless = "#result == null")
     public Optional<FileEntity> getFileById(Long fileId) {
         if (fileId == null) {
             return Optional.empty();
@@ -176,7 +179,10 @@ public class FileServiceImpl implements FileService {
 
     @Override
     @Transactional(readOnly = true)
-    @Cacheable(value = CacheConfig.FILE_METADATA_CACHE, key = "'path:' + #space.id + ':' + #path", unless = "#result.isEmpty()")
+    @Cacheable(value = CacheConfig.FILE_METADATA_CACHE,
+               key = "'path:' + #space.id + ':' + #path",
+               condition = "#space != null and #path != null and !#path.trim().isEmpty()",
+               unless = "#result == null")
     public Optional<FileEntity> getFileByPath(Space space, String path) {
         if (space == null || path == null || path.trim().isEmpty()) {
             return Optional.empty();
