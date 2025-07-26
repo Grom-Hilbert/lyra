@@ -45,7 +45,9 @@ dependencies {
 	implementation 'org.apache.commons:commons-pool2' // Redis 连接池
 	
 	// 数据库支持
-	runtimeOnly 'org.xerial:sqlite-jdbc'
+	runtimeOnly 'org.xerial:sqlite-jdbc'                    // SQLite 驱动
+	runtimeOnly 'com.mysql:mysql-connector-j'               // MySQL 驱动
+	runtimeOnly 'org.postgresql:postgresql'                 // PostgreSQL 驱动
 	implementation 'org.hibernate.orm:hibernate-community-dialects'
 	
 	// JWT 认证支持

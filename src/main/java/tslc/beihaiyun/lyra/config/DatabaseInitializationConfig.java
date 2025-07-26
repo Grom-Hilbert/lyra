@@ -1,6 +1,7 @@
 package tslc.beihaiyun.lyra.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
@@ -30,6 +32,12 @@ public class DatabaseInitializationConfig {
 
     @Value("${lyra.database.init.enabled:false}")
     private boolean initEnabled;
+
+    @Autowired
+    private AdminInitializationProperties adminProperties;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * 数据库初始化器
@@ -93,7 +101,7 @@ public class DatabaseInitializationConfig {
     /**
      * 检查是否需要初始化数据
      * 通过检查核心表是否存在数据来判断
-     * 
+     *
      * @param jdbcTemplate JDBC模板
      * @return 是否需要初始化
      */
@@ -101,16 +109,16 @@ public class DatabaseInitializationConfig {
         try {
             // 检查roles表是否存在数据
             Integer roleCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM roles WHERE is_system = TRUE", Integer.class);
-            
+                "SELECT COUNT(*) FROM roles WHERE is_system = 1", Integer.class);
+
             if (roleCount != null && roleCount > 0) {
                 log.info("发现系统角色数据 {} 条，数据库已初始化", roleCount);
                 return false;
             }
-            
+
             log.info("未发现系统角色数据，需要执行初始化");
             return true;
-            
+
         } catch (Exception e) {
             log.warn("检查初始化状态时发生错误，将执行初始化: {}", e.getMessage());
             return true;
@@ -139,7 +147,10 @@ public class DatabaseInitializationConfig {
             
             populator.execute(dataSource);
             log.info("数据库初始化脚本执行成功");
-            
+
+            // 创建管理员用户
+            createAdminUser(dataSource);
+
         } catch (Exception e) {
             log.error("执行数据库初始化脚本失败", e);
             throw new RuntimeException("数据库初始化脚本执行失败", e);
@@ -148,40 +159,52 @@ public class DatabaseInitializationConfig {
 
     /**
      * 验证数据库初始化结果
-     * 
+     *
      * @param jdbcTemplate JDBC模板
      */
     private void validateInitialization(JdbcTemplate jdbcTemplate) {
         try {
             log.info("验证数据库初始化结果...");
-            
+
             // 验证基础角色
             Integer roleCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM roles WHERE is_system = TRUE", Integer.class);
+                "SELECT COUNT(*) FROM roles WHERE is_system = 1", Integer.class);
             log.info("系统角色数量: {}", roleCount);
-            
+
             // 验证基础权限
             Integer permissionCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM permissions", Integer.class);
             log.info("权限数量: {}", permissionCount);
-            
+
             // 验证管理员用户
             Integer adminCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM users WHERE username = 'admin'", Integer.class);
             log.info("管理员用户: {}", adminCount > 0 ? "存在" : "不存在");
-            
+
             // 验证系统配置
             Integer configCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM system_config", Integer.class);
             log.info("系统配置项数量: {}", configCount);
-            
-            // 验证关键数据完整性
+
+            // 如果数据不足，提供详细的调试信息
             if (roleCount < 3 || permissionCount < 10 || adminCount < 1) {
+                log.error("数据库初始化验证失败 - 详细信息:");
+                log.error("期望: 角色>=3, 权限>=10, 管理员>=1");
+                log.error("实际: 角色={}, 权限={}, 管理员={}", roleCount, permissionCount, adminCount);
+
+                // 查询具体的角色信息
+                try {
+                    var roles = jdbcTemplate.queryForList("SELECT code, name FROM roles");
+                    log.error("当前角色列表: {}", roles);
+                } catch (Exception ex) {
+                    log.error("无法查询角色列表", ex);
+                }
+
                 throw new RuntimeException("数据库初始化验证失败：关键数据缺失");
             }
-            
+
             log.info("数据库初始化验证通过");
-            
+
         } catch (Exception e) {
             log.error("数据库初始化验证失败", e);
             throw new RuntimeException("数据库初始化验证失败", e);
@@ -240,4 +263,98 @@ public class DatabaseInitializationConfig {
             }
         }
     }
-} 
+
+    /**
+     * 创建管理员用户
+     *
+     * @param dataSource 数据源
+     */
+    private void createAdminUser(DataSource dataSource) {
+        try {
+            JdbcTemplate jdbcTemplate = new JdbcTemplate(dataSource);
+
+            // 检查管理员用户是否已存在
+            Integer existingUserCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM users WHERE username = ?",
+                Integer.class,
+                adminProperties.getUsername()
+            );
+
+            if (existingUserCount != null && existingUserCount > 0) {
+                log.info("管理员用户 '{}' 已存在，跳过创建", adminProperties.getUsername());
+                return;
+            }
+
+            log.info("创建管理员用户: {}", adminProperties.getUsername());
+
+            // 加密密码
+            String encodedPassword = passwordEncoder.encode(adminProperties.getPassword());
+
+            // 插入管理员用户
+            String insertUserSql = """
+                INSERT INTO users (username, email, password, display_name, status, enabled,
+                                 account_non_expired, account_non_locked, credentials_non_expired,
+                                 email_verified, failed_login_attempts, storage_quota, storage_used,
+                                 created_at, updated_at, created_by, updated_by, is_deleted)
+                VALUES (?, ?, ?, ?, 'ACTIVE', 1, 1, 1, 1, 1, 0, ?, 0,
+                        CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0)
+                """;
+
+            jdbcTemplate.update(insertUserSql,
+                adminProperties.getUsername(),
+                adminProperties.getEmail(),
+                encodedPassword,
+                adminProperties.getDisplayName(),
+                adminProperties.getStorageQuota()
+            );
+
+            // 为管理员分配ADMIN角色
+            String assignRoleSql = """
+                INSERT INTO user_roles (user_id, role_id, assigned_by, status,
+                                      created_at, updated_at, created_by, updated_by, is_deleted)
+                SELECT u.id, r.id, 'system', 'ACTIVE',
+                       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0
+                FROM users u, roles r
+                WHERE u.username = ? AND r.code = 'ADMIN'
+                """;
+
+            jdbcTemplate.update(assignRoleSql, adminProperties.getUsername());
+
+            // 为管理员创建个人空间
+            String createSpaceSql = """
+                INSERT INTO spaces (name, type, owner_id, description, quota_limit, quota_used,
+                                  version_control_enabled, version_control_mode, status,
+                                  created_by, created_at, updated_at, is_deleted)
+                SELECT ?, 'PERSONAL', u.id, ?, 10737418240, 0,
+                       1, 'NORMAL', 'ACTIVE',
+                       'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0
+                FROM users u
+                WHERE u.username = ?
+                """;
+
+            jdbcTemplate.update(createSpaceSql,
+                adminProperties.getDisplayName() + "的个人空间",
+                adminProperties.getDisplayName() + "的个人文档空间",
+                adminProperties.getUsername()
+            );
+
+            // 为管理员个人空间创建根文件夹
+            String createRootFolderSql = """
+                INSERT INTO folders (name, path, space_id, is_root, created_by,
+                                   created_at, updated_at, is_deleted)
+                SELECT '/', '/', s.id, 1, 'system',
+                       CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0
+                FROM spaces s, users u
+                WHERE s.owner_id = u.id AND u.username = ? AND s.type = 'PERSONAL'
+                """;
+
+            jdbcTemplate.update(createRootFolderSql, adminProperties.getUsername());
+
+            log.info("管理员用户创建成功: {} ({})", adminProperties.getUsername(), adminProperties.getEmail());
+
+        } catch (Exception e) {
+            log.error("创建管理员用户失败", e);
+            throw new RuntimeException("创建管理员用户失败", e);
+        }
+    }
+}

@@ -3,69 +3,51 @@
 -- ===========================================
 
 -- 插入基础角色
-INSERT OR IGNORE INTO roles (code, name, description, type, is_system) VALUES
-('ADMIN', '系统管理员', '系统管理员，拥有所有权限', 'SYSTEM_ADMIN', TRUE),
-('USER', '普通用户', '普通用户，拥有基础权限', 'USER', TRUE),
-('GUEST', '访客用户', '访客用户，只读权限', 'GUEST', TRUE),
-('SPACE_ADMIN', '空间管理员', '空间管理员，管理特定空间', 'CUSTOM', FALSE),
-('SPACE_USER', '空间用户', '空间用户，访问特定空间', 'CUSTOM', FALSE);
+INSERT OR REPLACE INTO roles (code, name, description, type, is_system, enabled, sort_order, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
+('ADMIN', '系统管理员', '系统管理员，拥有所有权限', 'SYSTEM_ADMIN', 1, 1, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('USER', '普通用户', '普通用户，拥有基础权限', 'USER', 1, 1, 2, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('GUEST', '访客用户', '访客用户，只读权限', 'GUEST', 1, 1, 3, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('SPACE_ADMIN', '空间管理员', '空间管理员，管理特定空间', 'CUSTOM', 0, 1, 4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('SPACE_USER', '空间用户', '空间用户，访问特定空间', 'CUSTOM', 0, 1, 5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0);
 
 -- 插入基础权限
-INSERT OR IGNORE INTO permissions (code, name, description, resource_type, category, level, is_system, permission_group) VALUES
+INSERT OR REPLACE INTO permissions (code, name, description, resource_type, category, level, is_system, is_enabled, permission_group, created_at, updated_at, created_by, updated_by, is_deleted) VALUES
 -- 系统权限
-('system.admin', '系统管理', '系统管理权限', 'SYSTEM', 'ADMIN', 90, TRUE, 'SYSTEM'),
-('system.config', '系统配置', '系统配置权限', 'SYSTEM', 'ADMIN', 80, TRUE, 'SYSTEM'),
-('user.manage', '用户管理', '用户管理权限', 'SYSTEM', 'ADMIN', 70, TRUE, 'USER'),
-('role.manage', '角色管理', '角色管理权限', 'SYSTEM', 'ADMIN', 70, TRUE, 'USER'),
-('audit.read', '审计查看', '查看审计日志权限', 'SYSTEM', 'READ', 60, TRUE, 'AUDIT'),
+('system.admin', '系统管理', '系统管理权限', 'SYSTEM', 'ADMIN', 90, 1, 1, 'SYSTEM', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('system.config', '系统配置', '系统配置权限', 'SYSTEM', 'ADMIN', 80, 1, 1, 'SYSTEM', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('user.manage', '用户管理', '用户管理权限', 'SYSTEM', 'ADMIN', 70, 1, 1, 'USER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('role.manage', '角色管理', '角色管理权限', 'SYSTEM', 'ADMIN', 70, 1, 1, 'USER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('audit.read', '审计查看', '查看审计日志权限', 'SYSTEM', 'READ', 60, 1, 1, 'AUDIT', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
 
 -- 空间权限
-('space.create', '创建空间', '创建新空间权限', 'SPACE', 'WRITE', 50, TRUE, 'SPACE'),
-('space.read', '访问空间', '访问空间权限', 'SPACE', 'READ', 30, TRUE, 'SPACE'),
-('space.write', '修改空间', '修改空间权限', 'SPACE', 'WRITE', 40, TRUE, 'SPACE'),
-('space.delete', '删除空间', '删除空间权限', 'SPACE', 'DELETE', 60, TRUE, 'SPACE'),
-('space.admin', '管理空间', '管理空间权限', 'SPACE', 'ADMIN', 70, TRUE, 'SPACE'),
+('space.create', '创建空间', '创建新空间权限', 'SPACE', 'WRITE', 50, 1, 1, 'SPACE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('space.read', '访问空间', '访问空间权限', 'SPACE', 'READ', 30, 1, 1, 'SPACE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('space.write', '修改空间', '修改空间权限', 'SPACE', 'WRITE', 40, 1, 1, 'SPACE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('space.delete', '删除空间', '删除空间权限', 'SPACE', 'DELETE', 60, 1, 1, 'SPACE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('space.admin', '管理空间', '管理空间权限', 'SPACE', 'ADMIN', 70, 1, 1, 'SPACE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
 
 -- 文件夹权限
-('folder.create', '创建文件夹', '创建文件夹权限', 'FOLDER', 'WRITE', 50, TRUE, 'FOLDER'),
-('folder.read', '访问文件夹', '访问文件夹权限', 'FOLDER', 'READ', 30, TRUE, 'FOLDER'),
-('folder.write', '修改文件夹', '修改文件夹权限', 'FOLDER', 'WRITE', 40, TRUE, 'FOLDER'),
-('folder.delete', '删除文件夹', '删除文件夹权限', 'FOLDER', 'DELETE', 60, TRUE, 'FOLDER'),
-('folder.admin', '管理文件夹', '管理文件夹权限', 'FOLDER', 'ADMIN', 70, TRUE, 'FOLDER'),
+('folder.create', '创建文件夹', '创建文件夹权限', 'FOLDER', 'WRITE', 50, 1, 1, 'FOLDER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('folder.read', '访问文件夹', '访问文件夹权限', 'FOLDER', 'READ', 30, 1, 1, 'FOLDER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('folder.write', '修改文件夹', '修改文件夹权限', 'FOLDER', 'WRITE', 40, 1, 1, 'FOLDER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('folder.delete', '删除文件夹', '删除文件夹权限', 'FOLDER', 'DELETE', 60, 1, 1, 'FOLDER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('folder.admin', '管理文件夹', '管理文件夹权限', 'FOLDER', 'ADMIN', 70, 1, 1, 'FOLDER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
 
 -- 文件权限
-('file.upload', '上传文件', '上传文件权限', 'FILE', 'WRITE', 50, TRUE, 'FILE'),
-('file.read', '读取文件', '读取文件权限', 'FILE', 'READ', 30, TRUE, 'FILE'),
-('file.download', '下载文件', '下载文件权限', 'FILE', 'READ', 35, TRUE, 'FILE'),
-('file.write', '修改文件', '修改文件权限', 'FILE', 'WRITE', 40, TRUE, 'FILE'),
-('file.delete', '删除文件', '删除文件权限', 'FILE', 'DELETE', 60, TRUE, 'FILE'),
-('file.share', '分享文件', '分享文件权限', 'FILE', 'SHARE', 45, TRUE, 'FILE'),
-('file.version', '版本管理', '文件版本管理权限', 'FILE', 'WRITE', 50, TRUE, 'FILE');
+('file.upload', '上传文件', '上传文件权限', 'FILE', 'WRITE', 50, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('file.read', '读取文件', '读取文件权限', 'FILE', 'READ', 30, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('file.download', '下载文件', '下载文件权限', 'FILE', 'READ', 35, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('file.write', '修改文件', '修改文件权限', 'FILE', 'WRITE', 40, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('file.delete', '删除文件', '删除文件权限', 'FILE', 'DELETE', 60, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('file.share', '分享文件', '分享文件权限', 'FILE', 'SHARE', 45, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0),
+('file.version', '版本管理', '文件版本管理权限', 'FILE', 'WRITE', 50, 1, 1, 'FILE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 'system', 'system', 0);
 
 -- 注意：角色权限关联由@ManyToMany注解自动管理，不需要手动插入数据
 -- 权限分配将通过应用程序代码在首次启动时自动完成
 
--- 插入默认管理员用户
-INSERT OR IGNORE INTO users (username, email, password, display_name, status, enabled, email_verified)
-VALUES ('admin', 'admin@lyra.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lbdOIig7cO86yx/Iq', '系统管理员', 'ACTIVE', TRUE, TRUE);
-
--- 为默认管理员分配ADMIN角色
-INSERT OR IGNORE INTO user_roles (user_id, role_id, assigned_by)
-SELECT u.id, r.id, 'system'
-FROM users u, roles r
-WHERE u.username = 'admin' AND r.code = 'ADMIN';
-
--- 为默认管理员创建个人空间
-INSERT OR IGNORE INTO spaces (name, type, owner_id, description, created_by)
-SELECT '管理员个人空间', 'PERSONAL', u.id, '系统管理员的个人文档空间', 'system'
-FROM users u
-WHERE u.username = 'admin';
-
--- 为管理员个人空间创建根文件夹
-INSERT OR IGNORE INTO folders (name, path, space_id, is_root, created_by)
-SELECT '/', '/', s.id, TRUE, 'system'
-FROM spaces s, users u
-WHERE s.owner_id = u.id AND u.username = 'admin' AND s.type = 'PERSONAL';
+-- 注意：管理员用户、角色分配、个人空间和根文件夹的创建
+-- 现在由 DatabaseInitializationConfig.createAdminUser() 方法动态处理
+-- 支持通过配置文件和环境变量自定义管理员信息
 
 -- 插入系统配置
 INSERT OR IGNORE INTO system_config (config_key, config_value, data_type, description) VALUES
