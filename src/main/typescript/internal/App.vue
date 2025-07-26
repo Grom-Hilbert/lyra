@@ -32,7 +32,7 @@ const userStore = useUserStore()
 
 // 判断是否为认证页面
 const isAuthPage = computed(() => {
-  const authRoutes = ['/login', '/register', '/about']
+  const authRoutes = ['/', '/login', '/register', '/forgot-password', '/reset-password', '/about']
   return authRoutes.includes(route.path)
 })
 
@@ -222,26 +222,10 @@ const userEmail = computed(() => {
         </main>
       </div>
       
-      <!-- 未登录状态 -->
-      <div v-if="!userStore.isAuthenticated" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-accent/10">
-        <div class="text-center space-y-6">
-          <div class="w-20 h-20 bg-gradient-to-br from-tech-blue to-tech-purple rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
-            <Zap class="w-10 h-10 text-white" />
-          </div>
-          <div>
-            <h1 class="text-3xl font-bold bg-gradient-to-r from-tech-blue to-tech-purple bg-clip-text text-transparent mb-2">
-              欢迎使用 Lyra
-            </h1>
-            <p class="text-muted-foreground">企业级云原生文档管理系统</p>
-          </div>
-          <div class="flex space-x-4 justify-center">
-            <Button @click="$router.push('/login')" class="bg-gradient-to-r from-tech-blue to-tech-purple hover:opacity-90 transition-opacity">
-              登录
-            </Button>
-            <Button @click="$router.push('/register')" variant="outline">
-              注册
-            </Button>
-          </div>
+      <!-- 未登录状态 - 重定向到首页 -->
+      <div v-if="!userStore.isAuthenticated && !isAuthPage" class="min-h-screen flex items-center justify-center">
+        <div class="text-center">
+          <p class="text-muted-foreground">正在重定向到首页...</p>
         </div>
       </div>
     </template>

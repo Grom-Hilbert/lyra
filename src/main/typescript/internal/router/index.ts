@@ -6,7 +6,12 @@ import { useUserStore } from '@/stores/user.ts'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/dashboard'
+    name: 'Home',
+    component: () => import('@/views/HomeView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Lyra 文档管理系统'
+    }
   },
   {
     path: '/login',
@@ -27,6 +32,24 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('@/views/auth/ForgotPasswordView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '忘记密码'
+    }
+  },
+  {
+    path: '/reset-password',
+    name: 'ResetPassword',
+    component: () => import('@/views/auth/ResetPasswordView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '重置密码'
+    }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('@/views/DashboardView.vue'),
@@ -36,12 +59,40 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/profile',
+    name: 'Profile',
+    component: () => import('@/views/user/ProfileView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: '个人信息'
+    }
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: () => import('@/views/user/SettingsView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: '用户设置'
+    }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('@/views/AboutView.vue'),
     meta: {
       requiresAuth: false,
       title: '关于'
+    }
+  },
+  // 404 页面
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFoundView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '页面未找到'
     }
   }
 ]
@@ -60,7 +111,7 @@ const router = createRouter({
 })
 
 // 全局前置守卫 - 认证检查
-router.beforeEach(async (to, _, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
   
   // 设置页面标题
@@ -68,11 +119,22 @@ router.beforeEach(async (to, _, next) => {
     document.title = `${to.meta.title} - Lyra 文档管理系统`
   }
   
+  // 初始化用户认证状态（仅在首次加载时）
+  if (!userStore.isAuthenticated && userStore.token) {
+    try {
+      await userStore.initAuth()
+    } catch (error) {
+      console.error('Failed to initialize auth:', error)
+      userStore.clearAuth()
+    }
+  }
+  
   // 检查是否需要认证
   if (to.meta?.requiresAuth === false) {
-    // 不需要认证的页面，如果已登录则重定向到仪表板
-    if (userStore.isAuthenticated && (to.name === 'Login' || to.name === 'Register')) {
-      next('/dashboard')
+    // 不需要认证的页面，如果已登录则重定向到仪表板（登录、注册页面除外，但保留首页访问权限）
+    const authPageNames = ['Login', 'Register', 'ForgotPassword', 'ResetPassword']
+    if (userStore.isAuthenticated && to.name && authPageNames.includes(String(to.name))) {
+      next({ name: 'Dashboard' })
     } else {
       next()
     }
@@ -81,11 +143,16 @@ router.beforeEach(async (to, _, next) => {
   
   // 需要认证的页面
   if (!userStore.isAuthenticated) {
-    // 未登录，重定向到登录页面
-    next({
-      name: 'Login',
-      query: { redirect: to.fullPath }
-    })
+    // 对于核心功能页面，先重定向到首页让用户了解系统
+    if (['Dashboard', 'Profile', 'Settings'].includes(to.name as string)) {
+      next({ name: 'Home' })
+    } else {
+      // 其他需要认证的页面直接跳转到登录页
+      next({
+        name: 'Login',
+        query: { redirect: to.fullPath }
+      })
+    }
     return
   }
   
@@ -94,7 +161,7 @@ router.beforeEach(async (to, _, next) => {
     const hasPermission = to.meta.roles.some((role: string) => userStore.user?.roles.includes(role))
     if (!hasPermission) {
       // 权限不足，重定向到仪表板
-      next('/dashboard')
+      next({ name: 'Dashboard' })
       return
     }
   }
@@ -103,9 +170,15 @@ router.beforeEach(async (to, _, next) => {
 })
 
 // 全局后置钩子 - 加载状态处理
-router.afterEach(() => {
+router.afterEach((to, from) => {
   // 路由切换完成后的处理
   // 可以在这里添加页面加载完成的逻辑
+  console.log(`Route changed from ${String(from.name)} to ${String(to.name)}`)
+})
+
+// 路由错误处理
+router.onError((error) => {
+  console.error('Router error:', error)
 })
 
 export default router 
