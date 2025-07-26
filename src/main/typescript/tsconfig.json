@@ -12,6 +12,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./internal/*"]
-    }
+    },
+    "typeRoots": ["./node_modules/@types", "./internal/types"]
   }
 }

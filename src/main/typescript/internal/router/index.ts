@@ -81,7 +81,7 @@ const routes: RouteRecordRaw[] = [
     name: 'Files',
     component: () => import('@/views/FileManagerView.vue'),
     meta: {
-      requiresAuth: false,
+      requiresAuth: true,
       title: '文件管理'
     }
   },
@@ -90,7 +90,7 @@ const routes: RouteRecordRaw[] = [
     name: 'FilesSpace',
     component: () => import('@/views/FileManagerView.vue'),
     meta: {
-      requiresAuth: false,
+      requiresAuth: true,
       title: '文件管理'
     }
   },
@@ -99,7 +99,7 @@ const routes: RouteRecordRaw[] = [
     name: 'FilesFolder',
     component: () => import('@/views/FileManagerView.vue'),
     meta: {
-      requiresAuth: false,
+      requiresAuth: true,
       title: '文件管理'
     }
   },
@@ -110,6 +110,47 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: false,
       title: '关于'
+    }
+  },
+  // 管理后台路由
+  {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: () => import('@/views/admin/AdminDashboardView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN'],
+      title: '管理仪表板'
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'UserManagement',
+    component: () => import('@/views/admin/UserManagementView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN'],
+      title: '用户管理'
+    }
+  },
+  {
+    path: '/admin/config',
+    name: 'SystemConfig',
+    component: () => import('@/views/admin/SystemConfigView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN'],
+      title: '系统配置'
+    }
+  },
+  {
+    path: '/admin/version-control',
+    name: 'VersionControl',
+    component: () => import('@/views/admin/VersionControlView.vue'),
+    meta: {
+      requiresAuth: true,
+      roles: ['ADMIN'],
+      title: '版本控制'
     }
   },
   // 404 页面

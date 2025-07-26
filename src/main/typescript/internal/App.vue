@@ -23,7 +23,10 @@ import {
   Bell, 
   Menu,
   Zap,
-  Sparkles
+  Sparkles,
+  Shield,
+  Users,
+  GitBranch
 } from 'lucide-vue-next'
 
 const route = useRoute()
@@ -57,12 +60,32 @@ const handleUserMenuAction = async (action: string) => {
 }
 
 // 侧边栏菜单项
-const menuItems = [
-  { path: '/dashboard', icon: Monitor, label: '仪表板', badge: null },
-  { path: '/files', icon: FolderOpen, label: '文件管理', badge: 'New' },
-  { path: '/search', icon: Search, label: '搜索', badge: null },
-  { path: '/about', icon: Sparkles, label: '关于', badge: null }
-]
+const menuItems = computed(() => {
+  const baseItems: Array<{
+    path: string
+    icon: any
+    label: string
+    badge: string | null
+    roles: string[]
+  }> = [
+    { path: '/dashboard', icon: Monitor, label: '仪表板', badge: null, roles: [] },
+    { path: '/files', icon: FolderOpen, label: '文件管理', badge: 'New', roles: [] },
+    { path: '/search', icon: Search, label: '搜索', badge: null, roles: [] },
+    { path: '/about', icon: Sparkles, label: '关于', badge: null, roles: [] }
+  ]
+  
+  // 如果是管理员，添加管理后台菜单
+  if (userStore.isAdmin) {
+    baseItems.splice(-1, 0, // 在"关于"之前插入管理菜单
+      { path: '/admin', icon: Shield, label: '管理仪表板', badge: 'Admin', roles: ['ADMIN'] },
+      { path: '/admin/users', icon: Users, label: '用户管理', badge: null, roles: ['ADMIN'] },
+      { path: '/admin/config', icon: Settings, label: '系统配置', badge: null, roles: ['ADMIN'] },
+      { path: '/admin/version-control', icon: GitBranch, label: '版本控制', badge: null, roles: ['ADMIN'] }
+    )
+  }
+  
+  return baseItems
+})
 
 onMounted(() => {
   // 初始化主题

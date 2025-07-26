@@ -30,7 +30,12 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   (response: AxiosResponse) => {
-    return response.data
+    // 如果响应包含data字段，返回data内容，否则返回整个response.data
+    const responseData = response.data
+    if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+      return responseData.data
+    }
+    return responseData
   },
   (error) => {
     const userStore = useUserStore()
