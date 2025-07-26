@@ -13,6 +13,6 @@
     "paths": {
       "@/*": ["./internal/*"]
     },
-    "types": ["vite/client", "element-plus/global"]
+    "types": ["vite/client"]
   }
 }

@@ -1,4 +1,4 @@
-import { request } from './request'
+import request from './request'
 import type { IUser, ILoginForm, IRegisterForm, IApiResponse } from '@/types'
 
 // 登录响应

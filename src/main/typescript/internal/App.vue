@@ -1,22 +1,44 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user.ts'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { useUserStore } from '@/stores/user'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { 
+  User, 
+  Settings, 
+  LogOut, 
+  Monitor, 
+  FolderOpen, 
+  Search, 
+  Bell, 
+  Menu,
+  Zap,
+  Sparkles
+} from 'lucide-vue-next'
 
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-// 判断是否为认证页面（登录、注册等）
+// 判断是否为认证页面
 const isAuthPage = computed(() => {
   const authRoutes = ['/login', '/register', '/about']
   return authRoutes.includes(route.path)
 })
 
-// 处理用户下拉菜单命令
-const handleUserCommand = async (command: string) => {
-  switch (command) {
+// 处理用户下拉菜单
+const handleUserMenuAction = async (action: string) => {
+  switch (action) {
     case 'profile':
       router.push('/profile')
       break
@@ -25,212 +47,241 @@ const handleUserCommand = async (command: string) => {
       break
     case 'logout':
       try {
-        await ElMessageBox.confirm(
-          '确定要退出登录吗？',
-          '确认退出',
-          {
-            confirmButtonText: '确定',
-            cancelButtonText: '取消',
-            type: 'warning'
-          }
-        )
-        
         await userStore.logout()
-        ElMessage.success('已成功退出登录')
         router.push('/login')
       } catch (error) {
-        // 用户取消操作
+        console.error('退出登录失败:', error)
       }
       break
   }
 }
+
+// 侧边栏菜单项
+const menuItems = [
+  { path: '/dashboard', icon: Monitor, label: '仪表板', badge: null },
+  { path: '/files', icon: FolderOpen, label: '文件管理', badge: 'New' },
+  { path: '/search', icon: Search, label: '搜索', badge: null },
+  { path: '/about', icon: Sparkles, label: '关于', badge: null }
+]
+
+onMounted(() => {
+  // 初始化主题
+  document.documentElement.classList.add('dark')
+})
+
+// 获取页面标题
+const pageTitle = computed(() => {
+  return (route.meta?.title as string) || '仪表板'
+})
+
+// 获取用户邮箱
+const userEmail = computed(() => {
+  return userStore.user?.email || ''
+})
 </script>
 
 <template>
-  <div id="app">
-    <!-- 登录页面不显示布局 -->
+  <div id="app" class="min-h-screen bg-background text-foreground">
+    <!-- 认证页面布局 -->
     <template v-if="isAuthPage">
-      <router-view />
+      <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-accent/10">
+        <router-view />
+      </div>
     </template>
     
     <!-- 主应用布局 -->
     <template v-else>
-      <el-container class="app-container">
-        <!-- 顶部导航栏 -->
-        <el-header class="app-header">
-          <div class="header-left">
-            <div class="logo-placeholder">L</div>
-            <h1 class="app-title">Lyra 文档管理系统</h1>
-          </div>
-          
-          <div class="header-right">
-            <!-- 用户信息下拉菜单 -->
-            <el-dropdown v-if="userStore.isAuthenticated" @command="handleUserCommand">
-              <span class="user-info">
-                <el-avatar :size="32" :src="userStore.user?.avatar">
-                  {{ userStore.displayName.charAt(0) }}
-                </el-avatar>
-                <span class="username">{{ userStore.displayName }}</span>
-                <el-icon><ArrowDown /></el-icon>
-              </span>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item command="profile">
-                    <el-icon><User /></el-icon>
-                    个人资料
-                  </el-dropdown-item>
-                  <el-dropdown-item command="settings">
-                    <el-icon><Setting /></el-icon>
-                    用户设置
-                  </el-dropdown-item>
-                  <el-dropdown-item divided command="logout">
-                    <el-icon><SwitchButton /></el-icon>
-                    退出登录
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-            
-            <!-- 未登录状态 -->
-            <div v-else class="auth-buttons">
-              <el-button @click="$router.push('/login')">登录</el-button>
-              <el-button type="primary" @click="$router.push('/register')">注册</el-button>
+      <div class="flex h-screen bg-background">
+        <!-- 侧边栏 -->
+        <aside v-if="userStore.isAuthenticated" class="w-64 bg-card border-r border-border flex flex-col">
+          <!-- Logo区域 -->
+          <div class="p-6 border-b border-border">
+            <div class="flex items-center space-x-3">
+              <div class="relative">
+                <div class="w-10 h-10 bg-gradient-to-br from-tech-blue to-tech-purple rounded-xl flex items-center justify-center shadow-lg">
+                  <Zap class="w-6 h-6 text-white" />
+                </div>
+                <div class="absolute -top-1 -right-1 w-3 h-3 bg-neon-green rounded-full animate-pulse"></div>
+              </div>
+              <div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-tech-blue to-tech-purple bg-clip-text text-transparent">
+                  Lyra
+                </h1>
+                <p class="text-xs text-muted-foreground">文档管理系统</p>
+              </div>
             </div>
           </div>
-        </el-header>
+          
+          <!-- 导航菜单 -->
+          <nav class="flex-1 p-4 space-y-2">
+            <template v-for="item in menuItems" :key="item.path">
+              <router-link
+                :to="item.path"
+                :class="[
+                  'flex items-center space-x-3 w-full px-4 py-3 rounded-lg transition-all duration-200',
+                  'hover:bg-accent hover:shadow-sm group',
+                  route.path === item.path 
+                    ? 'bg-primary text-primary-foreground shadow-md' 
+                    : 'text-foreground hover:text-accent-foreground'
+                ]"
+              >
+                <component 
+                  :is="item.icon" 
+                  :class="[
+                    'w-5 h-5 transition-colors',
+                    route.path === item.path ? 'text-primary-foreground' : 'text-muted-foreground group-hover:text-accent-foreground'
+                  ]" 
+                />
+                <span class="font-medium">{{ item.label }}</span>
+                <Badge v-if="item.badge" variant="secondary" class="ml-auto text-xs">
+                  {{ item.badge }}
+                </Badge>
+              </router-link>
+            </template>
+          </nav>
+          
+          <!-- 用户信息区域 -->
+          <div class="p-4 border-t border-border">
+            <DropdownMenu>
+              <DropdownMenuTrigger as-child>
+                <Button 
+                  variant="ghost" 
+                  class="w-full justify-start space-x-3 h-auto p-3 hover:bg-accent"
+                >
+                  <Avatar class="w-8 h-8">
+                    <AvatarImage :src="userStore.user?.avatar || ''" />
+                    <AvatarFallback class="bg-gradient-to-br from-tech-blue to-tech-purple text-white font-semibold">
+                      {{ userStore.displayName.charAt(0) }}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div class="flex-1 text-left">
+                    <p class="text-sm font-medium">{{ userStore.displayName }}</p>
+                    <p class="text-xs text-muted-foreground">{{ userEmail }}</p>
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" class="w-56">
+                <DropdownMenuItem @click="handleUserMenuAction('profile')" class="cursor-pointer">
+                  <User class="w-4 h-4 mr-2" />
+                  个人资料
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleUserMenuAction('settings')" class="cursor-pointer">
+                  <Settings class="w-4 h-4 mr-2" />
+                  用户设置
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="handleUserMenuAction('logout')" class="cursor-pointer text-destructive">
+                  <LogOut class="w-4 h-4 mr-2" />
+                  退出登录
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </aside>
 
-        <el-container>
-          <!-- 侧边导航栏 -->
-          <el-aside v-if="userStore.isAuthenticated" width="240px" class="app-sidebar">
-            <el-menu
-              :default-active="$route.path"
-              :router="true"
-              class="sidebar-menu"
-              background-color="#304156"
-              text-color="#bfcbd9"
-              active-text-color="#409EFF"
-            >
-              <el-menu-item index="/dashboard">
-                <el-icon><Monitor /></el-icon>
-                <span>仪表板</span>
-              </el-menu-item>
+        <!-- 主内容区域 -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+          <!-- 顶部导航栏 -->
+          <header v-if="userStore.isAuthenticated" class="bg-card border-b border-border px-6 py-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-4">
+                <!-- 移动端菜单按钮 -->
+                <Button variant="ghost" size="sm" class="md:hidden">
+                  <Menu class="w-5 h-5" />
+                </Button>
+                
+                <!-- 页面标题 -->
+                <h2 class="text-xl font-semibold">
+                  {{ pageTitle }}
+                </h2>
+              </div>
               
-              <el-menu-item index="/about">
-                <el-icon><InfoFilled /></el-icon>
-                <span>关于</span>
-              </el-menu-item>
-            </el-menu>
-          </el-aside>
-
-          <!-- 主内容区域 -->
-          <el-main class="app-main">
-            <router-view />
-          </el-main>
-        </el-container>
-      </el-container>
+              <!-- 右侧操作 -->
+              <div class="flex items-center space-x-3">
+                <!-- 通知按钮 -->
+                <Button variant="ghost" size="sm" class="relative">
+                  <Bell class="w-5 h-5" />
+                  <span class="absolute -top-1 -right-1 w-2 h-2 bg-destructive rounded-full"></span>
+                </Button>
+                
+                <!-- 状态指示器 -->
+                <div class="flex items-center space-x-2">
+                  <div class="w-2 h-2 bg-success rounded-full animate-pulse"></div>
+                  <span class="text-sm text-muted-foreground">在线</span>
+                </div>
+              </div>
+            </div>
+          </header>
+          
+          <!-- 页面内容 -->
+          <div class="flex-1 overflow-auto bg-muted/30">
+            <div class="h-full p-6">
+              <router-view />
+            </div>
+          </div>
+        </main>
+      </div>
+      
+      <!-- 未登录状态 -->
+      <div v-if="!userStore.isAuthenticated" class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-accent/10">
+        <div class="text-center space-y-6">
+          <div class="w-20 h-20 bg-gradient-to-br from-tech-blue to-tech-purple rounded-2xl flex items-center justify-center mx-auto shadow-2xl">
+            <Zap class="w-10 h-10 text-white" />
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold bg-gradient-to-r from-tech-blue to-tech-purple bg-clip-text text-transparent mb-2">
+              欢迎使用 Lyra
+            </h1>
+            <p class="text-muted-foreground">企业级云原生文档管理系统</p>
+          </div>
+          <div class="flex space-x-4 justify-center">
+            <Button @click="$router.push('/login')" class="bg-gradient-to-r from-tech-blue to-tech-purple hover:opacity-90 transition-opacity">
+              登录
+            </Button>
+            <Button @click="$router.push('/register')" variant="outline">
+              注册
+            </Button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <style scoped>
-.app-container {
-  height: 100vh;
+/* 自定义样式补充 */
+/* 移除了有问题的@apply样式，改为在模板中直接使用类名 */
+
+/* 渐变动画 */
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
 }
 
-.app-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 20px;
-  background-color: #ffffff;
-  border-bottom: 1px solid #e6e8eb;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-}
-
-.logo-placeholder {
-  width: 32px;
-  height: 32px;
-  margin-right: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 18px;
-}
-
-.app-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 6px;
-  transition: background-color 0.2s;
-}
-
-.user-info:hover {
-  background-color: #f5f7fa;
-}
-
-.username {
-  margin: 0 8px;
-  font-size: 14px;
-  color: #606266;
-}
-
-.auth-buttons {
-  display: flex;
-  gap: 12px;
-}
-
-.app-sidebar {
-  background-color: #304156;
-}
-
-.sidebar-menu {
-  border-right: none;
-  height: 100%;
-}
-
-.app-main {
-  background-color: #f0f2f5;
-  padding: 20px;
+.animate-gradient {
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease infinite;
 }
 
 /* 响应式设计 */
 @media (max-width: 768px) {
-  .app-header {
-    padding: 0 16px;
+  aside {
+    width: 100%;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 50;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
   }
   
-  .app-title {
-    font-size: 18px;
-  }
-  
-  .app-sidebar {
-    width: 200px !important;
-  }
-  
-  .app-main {
-    padding: 16px;
+  aside.open {
+    transform: translateX(0);
   }
 }
 </style>

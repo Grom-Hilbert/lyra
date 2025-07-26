@@ -1,62 +1,90 @@
 <template>
-  <div class="login-container">
-    <div class="login-card">
-      <div class="login-header">
-        <h2>登录到 Lyra</h2>
-        <p>企业级文档管理系统</p>
-      </div>
-      
-      <el-form 
-        ref="loginFormRef" 
-        :model="loginForm" 
-        :rules="loginRules" 
-        class="login-form"
-        @submit.prevent="handleLogin"
-      >
-        <el-form-item prop="username">
-          <el-input
-            v-model="loginForm.username"
-            placeholder="请输入用户名或邮箱"
-            size="large"
-            prefix-icon="User"
-          />
-        </el-form-item>
-        
-        <el-form-item prop="password">
-          <el-input
-            v-model="loginForm.password"
-            type="password"
-            placeholder="请输入密码"
-            size="large"
-            prefix-icon="Lock"
-            @keyup.enter="handleLogin"
-          />
-        </el-form-item>
-        
-        <el-form-item>
-          <div class="login-options">
-            <el-checkbox v-model="loginForm.rememberMe">记住我</el-checkbox>
-            <el-link type="primary" @click="handleForgotPassword">忘记密码？</el-link>
-          </div>
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            size="large" 
-            class="login-button"
-            :loading="loading"
-            @click="handleLogin"
-          >
-            {{ loading ? '登录中...' : '登录' }}
-          </el-button>
-        </el-form-item>
-        
-        <div class="register-link">
-          还没有账号？ 
-          <el-link type="primary" @click="$router.push('/register')">立即注册</el-link>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-accent/10">
+    <div class="w-full max-w-md p-8 bg-card rounded-2xl shadow-2xl border border-border">
+      <!-- Logo和标题 -->
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-br from-tech-blue to-tech-purple rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
         </div>
-      </el-form>
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-tech-blue to-tech-purple bg-clip-text text-transparent">
+          登录 Lyra
+        </h1>
+        <p class="text-muted-foreground mt-2">企业级云原生文档管理系统</p>
+      </div>
+
+      <!-- 登录表单 -->
+      <form @submit.prevent="handleLogin" class="space-y-6">
+        <div class="space-y-4">
+          <!-- 用户名输入 -->
+          <div>
+            <label for="username" class="block text-sm font-medium text-foreground mb-2">
+              用户名或邮箱
+            </label>
+            <input
+              id="username"
+              v-model="loginForm.username"
+              type="text"
+              required
+              placeholder="请输入用户名或邮箱"
+              class="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
+          <!-- 密码输入 -->
+          <div>
+            <label for="password" class="block text-sm font-medium text-foreground mb-2">
+              密码
+            </label>
+            <input
+              id="password"
+              v-model="loginForm.password"
+              type="password"
+              required
+              placeholder="请输入密码"
+              class="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
+          <!-- 记住我 -->
+          <div class="flex items-center">
+            <input
+              id="remember"
+              v-model="loginForm.rememberMe"
+              type="checkbox"
+              class="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+            />
+            <label for="remember" class="ml-2 text-sm text-muted-foreground">
+              记住我（7天内免登录）
+            </label>
+          </div>
+        </div>
+
+        <!-- 登录按钮 -->
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full py-3 px-4 bg-gradient-to-r from-tech-blue to-tech-purple text-white font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 transition-all"
+        >
+          <span v-if="loading">登录中...</span>
+          <span v-else>登录</span>
+        </button>
+
+        <!-- 其他选项 -->
+        <div class="text-center space-y-3">
+          <router-link
+            to="/register"
+            class="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            还没有账号？立即注册
+          </router-link>
+          
+          <div class="text-xs text-muted-foreground">
+            忘记密码？请联系管理员重置
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -64,68 +92,48 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '@/stores/user.ts'
-import { ElMessage, ElNotification } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import type { ILoginForm } from '@/types/index.ts'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 
-const loginFormRef = ref<FormInstance>()
 const loading = ref(false)
 
 // 登录表单数据
-const loginForm = reactive<ILoginForm>({
+const loginForm = reactive({
   username: '',
   password: '',
   rememberMe: false
 })
 
-// 表单验证规则
-const loginRules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名或邮箱', trigger: 'blur' },
-    { min: 3, max: 50, message: '用户名长度在 3 到 50 个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 128, message: '密码长度在 6 到 128 个字符', trigger: 'blur' }
-  ]
-}
-
 // 处理登录
 const handleLogin = async () => {
-  if (!loginFormRef.value) return
-  
+  if (!loginForm.username || !loginForm.password) {
+    alert('请填写用户名和密码')
+    return
+  }
+
+  loading.value = true
+
   try {
-    await loginFormRef.value.validate()
-    loading.value = true
-    
-    await userStore.login(loginForm)
-    
-    ElNotification({
-      title: '登录成功',
-      message: `欢迎回来，${userStore.displayName}！`,
-      type: 'success',
-      duration: 3000
+    await userStore.login({
+      username: loginForm.username,
+      password: loginForm.password,
+      rememberMe: loginForm.rememberMe
     })
+
+    // 登录成功后跳转
+    const redirect = (route.query.redirect as string) || '/dashboard'
+    await router.push(redirect)
     
-    // 跳转到重定向页面或默认页面
-    const redirect = route.query.redirect as string
-    router.push(redirect || '/dashboard')
-    
-  } catch (error: any) {
-    ElMessage.error(error.message || '登录失败，请检查用户名和密码')
+    console.log('登录成功')
+  } catch (error) {
+    console.error('登录失败:', error)
+    alert('登录失败，请检查用户名和密码')
   } finally {
     loading.value = false
   }
-}
-
-// 处理忘记密码
-const handleForgotPassword = () => {
-  ElMessage.info('请联系管理员重置密码')
 }
 </script>
 

@@ -1,86 +1,124 @@
 <template>
-  <div class="register-container">
-    <div class="register-card">
-      <div class="register-header">
-        <h2>注册 Lyra 账户</h2>
-        <p>加入企业级文档管理系统</p>
-      </div>
-      
-      <el-form 
-        ref="registerFormRef" 
-        :model="registerForm" 
-        :rules="registerRules" 
-        class="register-form"
-        @submit.prevent="handleRegister"
-      >
-        <el-form-item prop="username">
-          <el-input
-            v-model="registerForm.username"
-            placeholder="请输入用户名"
-            size="large"
-            prefix-icon="User"
-          />
-        </el-form-item>
-        
-        <el-form-item prop="email">
-          <el-input
-            v-model="registerForm.email"
-            type="email"
-            placeholder="请输入邮箱地址"
-            size="large"
-            prefix-icon="Message"
-          />
-        </el-form-item>
-        
-        <el-form-item prop="displayName">
-          <el-input
-            v-model="registerForm.displayName"
-            placeholder="请输入显示名称"
-            size="large"
-            prefix-icon="UserFilled"
-          />
-        </el-form-item>
-        
-        <el-form-item prop="password">
-          <el-input
-            v-model="registerForm.password"
-            type="password"
-            placeholder="请输入密码"
-            size="large"
-            prefix-icon="Lock"
-            show-password
-          />
-        </el-form-item>
-        
-        <el-form-item prop="confirmPassword">
-          <el-input
-            v-model="registerForm.confirmPassword"
-            type="password"
-            placeholder="请确认密码"
-            size="large"
-            prefix-icon="Lock"
-            show-password
-            @keyup.enter="handleRegister"
-          />
-        </el-form-item>
-        
-        <el-form-item>
-          <el-button 
-            type="primary" 
-            size="large" 
-            class="register-button"
-            :loading="loading"
-            @click="handleRegister"
-          >
-            {{ loading ? '注册中...' : '注册账户' }}
-          </el-button>
-        </el-form-item>
-        
-        <div class="login-link">
-          已有账号？ 
-          <el-link type="primary" @click="$router.push('/login')">立即登录</el-link>
+  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-muted/50 to-accent/10">
+    <div class="w-full max-w-md p-8 bg-card rounded-2xl shadow-2xl border border-border">
+      <!-- Logo和标题 -->
+      <div class="text-center mb-8">
+        <div class="w-16 h-16 bg-gradient-to-br from-tech-blue to-tech-purple rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
         </div>
-      </el-form>
+        <h1 class="text-2xl font-bold bg-gradient-to-r from-tech-blue to-tech-purple bg-clip-text text-transparent">
+          注册 Lyra
+        </h1>
+        <p class="text-muted-foreground mt-2">加入企业级云原生文档管理系统</p>
+      </div>
+
+      <!-- 注册表单 -->
+      <form @submit.prevent="handleRegister" class="space-y-6">
+        <div class="space-y-4">
+          <!-- 用户名输入 -->
+          <div>
+            <label for="username" class="block text-sm font-medium text-foreground mb-2">
+              用户名
+            </label>
+            <input
+              id="username"
+              v-model="registerForm.username"
+              type="text"
+              required
+              placeholder="请输入用户名"
+              class="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
+          <!-- 邮箱输入 -->
+          <div>
+            <label for="email" class="block text-sm font-medium text-foreground mb-2">
+              邮箱
+            </label>
+            <input
+              id="email"
+              v-model="registerForm.email"
+              type="email"
+              required
+              placeholder="请输入邮箱地址"
+              class="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
+          <!-- 密码输入 -->
+          <div>
+            <label for="password" class="block text-sm font-medium text-foreground mb-2">
+              密码
+            </label>
+            <input
+              id="password"
+              v-model="registerForm.password"
+              type="password"
+              required
+              placeholder="请输入密码（至少6位）"
+              class="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
+          <!-- 确认密码输入 -->
+          <div>
+            <label for="confirmPassword" class="block text-sm font-medium text-foreground mb-2">
+              确认密码
+            </label>
+            <input
+              id="confirmPassword"
+              v-model="registerForm.confirmPassword"
+              type="password"
+              required
+              placeholder="请再次输入密码"
+              class="w-full px-4 py-3 bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+            />
+          </div>
+
+          <!-- 同意条款 -->
+          <div class="flex items-start">
+            <input
+              id="agree"
+              v-model="registerForm.agreeToTerms"
+              type="checkbox"
+              required
+              class="w-4 h-4 mt-1 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2"
+            />
+            <label for="agree" class="ml-2 text-sm text-muted-foreground">
+              我已阅读并同意 
+              <a href="#" class="text-primary hover:underline">服务条款</a> 
+              和 
+              <a href="#" class="text-primary hover:underline">隐私政策</a>
+            </label>
+          </div>
+        </div>
+
+        <!-- 注册按钮 -->
+        <button
+          type="submit"
+          :disabled="loading"
+          class="w-full py-3 px-4 bg-gradient-to-r from-tech-blue to-tech-purple text-white font-medium rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50 transition-all"
+        >
+          <span v-if="loading">注册中...</span>
+          <span v-else>注册账号</span>
+        </button>
+
+        <!-- 其他选项 -->
+        <div class="text-center space-y-3">
+          <router-link
+            to="/login"
+            class="text-sm text-muted-foreground hover:text-primary transition-colors"
+          >
+            已有账号？立即登录
+          </router-link>
+          
+          <div class="text-xs text-muted-foreground">
+            注册后需要管理员审核激活
+          </div>
+        </div>
+      </form>
     </div>
   </div>
 </template>
@@ -88,165 +126,63 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '@/stores/user.ts'
-import { ElMessage, ElNotification } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
-import type { IRegisterForm } from '@/types/index.ts'
+import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const registerFormRef = ref<FormInstance>()
 const loading = ref(false)
 
 // 注册表单数据
-const registerForm = reactive<IRegisterForm>({
+const registerForm = reactive({
   username: '',
   email: '',
-  displayName: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  agreeToTerms: false
 })
-
-// 确认密码验证函数
-const validateConfirmPassword = (rule: any, value: any, callback: any) => {
-  if (value === '') {
-    callback(new Error('请再次输入密码'))
-  } else if (value !== registerForm.password) {
-    callback(new Error('两次输入密码不一致'))
-  } else {
-    callback()
-  }
-}
-
-// 表单验证规则
-const registerRules: FormRules = {
-  username: [
-    { required: true, message: '请输入用户名', trigger: 'blur' },
-    { min: 3, max: 50, message: '用户名长度在 3 到 50 个字符', trigger: 'blur' },
-    { pattern: /^[a-zA-Z0-9_-]+$/, message: '用户名只能包含字母、数字、下划线和横线', trigger: 'blur' }
-  ],
-  email: [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-  ],
-  displayName: [
-    { required: true, message: '请输入显示名称', trigger: 'blur' },
-    { min: 2, max: 50, message: '显示名称长度在 2 到 50 个字符', trigger: 'blur' }
-  ],
-  password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 128, message: '密码长度在 6 到 128 个字符', trigger: 'blur' },
-    { pattern: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, message: '密码必须包含大小写字母和数字', trigger: 'blur' }
-  ],
-  confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
-    { validator: validateConfirmPassword, trigger: 'blur' }
-  ]
-}
 
 // 处理注册
 const handleRegister = async () => {
-  if (!registerFormRef.value) return
-  
+  // 基本验证
+  if (!registerForm.username || !registerForm.email || !registerForm.password || !registerForm.confirmPassword) {
+    alert('请填写所有必填字段')
+    return
+  }
+
+  if (registerForm.password !== registerForm.confirmPassword) {
+    alert('两次输入的密码不一致')
+    return
+  }
+
+  if (registerForm.password.length < 6) {
+    alert('密码长度至少6位')
+    return
+  }
+
+  if (!registerForm.agreeToTerms) {
+    alert('请同意服务条款和隐私政策')
+    return
+  }
+
+  loading.value = true
+
   try {
-    await registerFormRef.value.validate()
-    loading.value = true
-    
-    const response = await userStore.register(registerForm)
-    
-    ElNotification({
-      title: '注册成功',
-      message: response.message || '账户注册成功，欢迎使用 Lyra！',
-      type: 'success',
-      duration: 3000
-    })
-    
-    // 如果自动登录，跳转到仪表板；否则跳转到登录页面
-    if (response.autoLogin) {
-      router.push('/dashboard')
-    } else {
-      ElMessage.info('请查收邮件并验证账户后再登录')
-      router.push('/login')
-    }
-    
-  } catch (error: any) {
-    ElMessage.error(error.message || '注册失败，请稍后重试')
+    await userStore.register({
+      username: registerForm.username,
+      email: registerForm.email,
+      password: registerForm.password,
+      confirmPassword: registerForm.confirmPassword,
+      displayName: registerForm.username
+    } as any)
+
+    alert('注册成功！请等待管理员审核激活您的账号。')
+    await router.push('/login')
+  } catch (error) {
+    console.error('注册失败:', error)
+    alert('注册失败，请检查输入信息或稍后再试')
   } finally {
     loading.value = false
   }
 }
-</script>
-
-<style scoped>
-.register-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-}
-
-.register-card {
-  width: 100%;
-  max-width: 450px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.register-header {
-  padding: 40px 40px 20px;
-  text-align: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.register-header h2 {
-  margin: 0 0 8px;
-  font-size: 28px;
-  font-weight: 600;
-}
-
-.register-header p {
-  margin: 0;
-  opacity: 0.9;
-  font-size: 14px;
-}
-
-.register-form {
-  padding: 40px;
-}
-
-.register-button {
-  width: 100%;
-  height: 48px;
-  font-size: 16px;
-  font-weight: 600;
-}
-
-.login-link {
-  text-align: center;
-  margin-top: 20px;
-  color: #666;
-  font-size: 14px;
-}
-
-/* 响应式设计 */
-@media (max-width: 480px) {
-  .register-container {
-    padding: 10px;
-  }
-  
-  .register-header,
-  .register-form {
-    padding: 30px 20px;
-  }
-  
-  .register-header h2 {
-    font-size: 24px;
-  }
-}
-</style> 
+</script> 
