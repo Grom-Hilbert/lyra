@@ -77,6 +77,33 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/files',
+    name: 'Files',
+    component: () => import('@/views/FileManagerView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '文件管理'
+    }
+  },
+  {
+    path: '/files/:spaceId',
+    name: 'FilesSpace',
+    component: () => import('@/views/FileManagerView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '文件管理'
+    }
+  },
+  {
+    path: '/files/:spaceId/:folderId',
+    name: 'FilesFolder',
+    component: () => import('@/views/FileManagerView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: '文件管理'
+    }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('@/views/AboutView.vue'),
