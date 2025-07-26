@@ -3,97 +3,57 @@
 -- ===========================================
 
 -- 插入基础角色
-INSERT OR IGNORE INTO roles (name, display_name, description, is_system) VALUES
-('ADMIN', '系统管理员', '系统管理员，拥有所有权限', TRUE),
-('USER', '普通用户', '普通用户，拥有基础权限', TRUE),
-('GUEST', '访客用户', '访客用户，只读权限', TRUE),
-('SPACE_ADMIN', '空间管理员', '空间管理员，管理特定空间', FALSE),
-('SPACE_USER', '空间用户', '空间用户，访问特定空间', FALSE);
+INSERT OR IGNORE INTO roles (code, name, description, type, is_system) VALUES
+('ADMIN', '系统管理员', '系统管理员，拥有所有权限', 'SYSTEM_ADMIN', TRUE),
+('USER', '普通用户', '普通用户，拥有基础权限', 'USER', TRUE),
+('GUEST', '访客用户', '访客用户，只读权限', 'GUEST', TRUE),
+('SPACE_ADMIN', '空间管理员', '空间管理员，管理特定空间', 'CUSTOM', FALSE),
+('SPACE_USER', '空间用户', '空间用户，访问特定空间', 'CUSTOM', FALSE);
 
 -- 插入基础权限
-INSERT OR IGNORE INTO permissions (name, display_name, description, resource_type, action) VALUES
+INSERT OR IGNORE INTO permissions (code, name, description, resource_type, category, level, is_system, permission_group) VALUES
 -- 系统权限
-('SYSTEM_ADMIN', '系统管理', '系统管理权限', 'SYSTEM', 'ADMIN'),
-('SYSTEM_CONFIG', '系统配置', '系统配置权限', 'SYSTEM', 'CONFIG'),
-('USER_MANAGE', '用户管理', '用户管理权限', 'USER', 'MANAGE'),
-('ROLE_MANAGE', '角色管理', '角色管理权限', 'ROLE', 'MANAGE'),
-('AUDIT_VIEW', '审计查看', '查看审计日志权限', 'AUDIT', 'READ'),
+('system.admin', '系统管理', '系统管理权限', 'SYSTEM', 'ADMIN', 90, TRUE, 'SYSTEM'),
+('system.config', '系统配置', '系统配置权限', 'SYSTEM', 'ADMIN', 80, TRUE, 'SYSTEM'),
+('user.manage', '用户管理', '用户管理权限', 'SYSTEM', 'ADMIN', 70, TRUE, 'USER'),
+('role.manage', '角色管理', '角色管理权限', 'SYSTEM', 'ADMIN', 70, TRUE, 'USER'),
+('audit.read', '审计查看', '查看审计日志权限', 'SYSTEM', 'READ', 60, TRUE, 'AUDIT'),
 
 -- 空间权限
-('SPACE_CREATE', '创建空间', '创建新空间权限', 'SPACE', 'CREATE'),
-('SPACE_READ', '访问空间', '访问空间权限', 'SPACE', 'READ'),
-('SPACE_WRITE', '修改空间', '修改空间权限', 'SPACE', 'WRITE'),
-('SPACE_DELETE', '删除空间', '删除空间权限', 'SPACE', 'DELETE'),
-('SPACE_ADMIN', '管理空间', '管理空间权限', 'SPACE', 'ADMIN'),
+('space.create', '创建空间', '创建新空间权限', 'SPACE', 'WRITE', 50, TRUE, 'SPACE'),
+('space.read', '访问空间', '访问空间权限', 'SPACE', 'READ', 30, TRUE, 'SPACE'),
+('space.write', '修改空间', '修改空间权限', 'SPACE', 'WRITE', 40, TRUE, 'SPACE'),
+('space.delete', '删除空间', '删除空间权限', 'SPACE', 'DELETE', 60, TRUE, 'SPACE'),
+('space.admin', '管理空间', '管理空间权限', 'SPACE', 'ADMIN', 70, TRUE, 'SPACE'),
 
 -- 文件夹权限
-('FOLDER_CREATE', '创建文件夹', '创建文件夹权限', 'FOLDER', 'CREATE'),
-('FOLDER_READ', '访问文件夹', '访问文件夹权限', 'FOLDER', 'READ'),
-('FOLDER_WRITE', '修改文件夹', '修改文件夹权限', 'FOLDER', 'WRITE'),
-('FOLDER_DELETE', '删除文件夹', '删除文件夹权限', 'FOLDER', 'DELETE'),
-('FOLDER_ADMIN', '管理文件夹', '管理文件夹权限', 'FOLDER', 'ADMIN'),
+('folder.create', '创建文件夹', '创建文件夹权限', 'FOLDER', 'WRITE', 50, TRUE, 'FOLDER'),
+('folder.read', '访问文件夹', '访问文件夹权限', 'FOLDER', 'READ', 30, TRUE, 'FOLDER'),
+('folder.write', '修改文件夹', '修改文件夹权限', 'FOLDER', 'WRITE', 40, TRUE, 'FOLDER'),
+('folder.delete', '删除文件夹', '删除文件夹权限', 'FOLDER', 'DELETE', 60, TRUE, 'FOLDER'),
+('folder.admin', '管理文件夹', '管理文件夹权限', 'FOLDER', 'ADMIN', 70, TRUE, 'FOLDER'),
 
 -- 文件权限
-('FILE_UPLOAD', '上传文件', '上传文件权限', 'FILE', 'CREATE'),
-('FILE_READ', '读取文件', '读取文件权限', 'FILE', 'READ'),
-('FILE_DOWNLOAD', '下载文件', '下载文件权限', 'FILE', 'DOWNLOAD'),
-('FILE_WRITE', '修改文件', '修改文件权限', 'FILE', 'WRITE'),
-('FILE_DELETE', '删除文件', '删除文件权限', 'FILE', 'DELETE'),
-('FILE_SHARE', '分享文件', '分享文件权限', 'FILE', 'SHARE'),
-('FILE_VERSION', '版本管理', '文件版本管理权限', 'FILE', 'VERSION');
+('file.upload', '上传文件', '上传文件权限', 'FILE', 'WRITE', 50, TRUE, 'FILE'),
+('file.read', '读取文件', '读取文件权限', 'FILE', 'READ', 30, TRUE, 'FILE'),
+('file.download', '下载文件', '下载文件权限', 'FILE', 'READ', 35, TRUE, 'FILE'),
+('file.write', '修改文件', '修改文件权限', 'FILE', 'WRITE', 40, TRUE, 'FILE'),
+('file.delete', '删除文件', '删除文件权限', 'FILE', 'DELETE', 60, TRUE, 'FILE'),
+('file.share', '分享文件', '分享文件权限', 'FILE', 'SHARE', 45, TRUE, 'FILE'),
+('file.version', '版本管理', '文件版本管理权限', 'FILE', 'WRITE', 50, TRUE, 'FILE');
 
--- 为ADMIN角色分配所有权限
-INSERT OR IGNORE INTO role_permissions (role_id, permission_id, granted_by)
-SELECT r.id, p.id, 'system'
-FROM roles r, permissions p
-WHERE r.name = 'ADMIN';
-
--- 为USER角色分配基础权限
-INSERT OR IGNORE INTO role_permissions (role_id, permission_id, granted_by)
-SELECT r.id, p.id, 'system'
-FROM roles r, permissions p
-WHERE r.name = 'USER' AND p.name IN (
-    'SPACE_CREATE', 'SPACE_READ', 'SPACE_WRITE',
-    'FOLDER_CREATE', 'FOLDER_READ', 'FOLDER_WRITE', 'FOLDER_DELETE',
-    'FILE_UPLOAD', 'FILE_READ', 'FILE_DOWNLOAD', 'FILE_WRITE', 'FILE_DELETE', 'FILE_SHARE', 'FILE_VERSION'
-);
-
--- 为GUEST角色分配只读权限
-INSERT OR IGNORE INTO role_permissions (role_id, permission_id, granted_by)
-SELECT r.id, p.id, 'system'
-FROM roles r, permissions p
-WHERE r.name = 'GUEST' AND p.name IN (
-    'SPACE_READ', 'FOLDER_READ', 'FILE_READ', 'FILE_DOWNLOAD'
-);
-
--- 为SPACE_ADMIN角色分配空间管理权限
-INSERT OR IGNORE INTO role_permissions (role_id, permission_id, granted_by)
-SELECT r.id, p.id, 'system'
-FROM roles r, permissions p
-WHERE r.name = 'SPACE_ADMIN' AND p.name IN (
-    'SPACE_READ', 'SPACE_WRITE', 'SPACE_ADMIN',
-    'FOLDER_CREATE', 'FOLDER_READ', 'FOLDER_WRITE', 'FOLDER_DELETE', 'FOLDER_ADMIN',
-    'FILE_UPLOAD', 'FILE_READ', 'FILE_DOWNLOAD', 'FILE_WRITE', 'FILE_DELETE', 'FILE_SHARE', 'FILE_VERSION'
-);
-
--- 为SPACE_USER角色分配空间用户权限
-INSERT OR IGNORE INTO role_permissions (role_id, permission_id, granted_by)
-SELECT r.id, p.id, 'system'
-FROM roles r, permissions p
-WHERE r.name = 'SPACE_USER' AND p.name IN (
-    'SPACE_READ', 'FOLDER_READ', 'FOLDER_CREATE', 'FOLDER_WRITE',
-    'FILE_UPLOAD', 'FILE_READ', 'FILE_DOWNLOAD', 'FILE_WRITE', 'FILE_SHARE', 'FILE_VERSION'
-);
+-- 注意：角色权限关联由@ManyToMany注解自动管理，不需要手动插入数据
+-- 权限分配将通过应用程序代码在首次启动时自动完成
 
 -- 插入默认管理员用户
-INSERT OR IGNORE INTO users (username, email, password_hash, display_name, status, user_type)
-VALUES ('admin', 'admin@lyra.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lbdOIig7cO86yx/Iq', '系统管理员', 'ACTIVE', 'ADMIN');
+INSERT OR IGNORE INTO users (username, email, password, display_name, status, enabled, email_verified)
+VALUES ('admin', 'admin@lyra.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lbdOIig7cO86yx/Iq', '系统管理员', 'ACTIVE', TRUE, TRUE);
 
 -- 为默认管理员分配ADMIN角色
 INSERT OR IGNORE INTO user_roles (user_id, role_id, granted_by)
 SELECT u.id, r.id, 'system'
 FROM users u, roles r
-WHERE u.username = 'admin' AND r.name = 'ADMIN';
+WHERE u.username = 'admin' AND r.code = 'ADMIN';
 
 -- 为默认管理员创建个人空间
 INSERT OR IGNORE INTO spaces (name, type, owner_id, description, created_by)

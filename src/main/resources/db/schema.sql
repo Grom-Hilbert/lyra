@@ -7,30 +7,45 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username VARCHAR(50) NOT NULL UNIQUE,
     email VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
     display_name VARCHAR(100),
-    status VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE, LOCKED
-    user_type VARCHAR(20) DEFAULT 'USER', -- USER, ADMIN, SYSTEM
-    quota_limit BIGINT DEFAULT 10737418240, -- 10GB in bytes
-    quota_used BIGINT DEFAULT 0,
+    avatar_url VARCHAR(500),
+    phone VARCHAR(20),
+    status VARCHAR(20) DEFAULT 'PENDING',
+    enabled BOOLEAN DEFAULT FALSE,
+    account_non_expired BOOLEAN DEFAULT TRUE,
+    account_non_locked BOOLEAN DEFAULT TRUE,
+    credentials_non_expired BOOLEAN DEFAULT TRUE,
     last_login_at DATETIME,
+    last_login_ip VARCHAR(45),
+    failed_login_attempts INTEGER DEFAULT 0,
+    locked_at DATETIME,
+    email_verified BOOLEAN DEFAULT FALSE,
+    email_verified_at DATETIME,
+    storage_quota BIGINT DEFAULT 10737418240,
+    storage_used BIGINT DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
-    updated_by VARCHAR(50) DEFAULT 'system'
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE
 );
 
 -- 角色表
 CREATE TABLE IF NOT EXISTS roles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(100),
+    code VARCHAR(50) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
     description TEXT,
+    type VARCHAR(20) DEFAULT 'CUSTOM',
     is_system BOOLEAN DEFAULT FALSE,
+    enabled BOOLEAN DEFAULT TRUE,
+    sort_order INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
-    updated_by VARCHAR(50) DEFAULT 'system'
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE
 );
 
 -- 用户角色关联表
@@ -40,6 +55,11 @@ CREATE TABLE IF NOT EXISTS user_roles (
     role_id INTEGER NOT NULL,
     granted_by VARCHAR(50),
     granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
     UNIQUE(user_id, role_id)
@@ -61,6 +81,7 @@ CREATE TABLE IF NOT EXISTS spaces (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
     updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE SET NULL
 );
 
@@ -79,6 +100,7 @@ CREATE TABLE IF NOT EXISTS folders (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
     updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (parent_id) REFERENCES folders(id) ON DELETE CASCADE,
     FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE,
     UNIQUE(space_id, path)
@@ -105,6 +127,7 @@ CREATE TABLE IF NOT EXISTS files (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
     updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE SET NULL,
     FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE,
     UNIQUE(space_id, path)
@@ -120,7 +143,10 @@ CREATE TABLE IF NOT EXISTS file_versions (
     storage_path VARCHAR(1000) NOT NULL,
     change_comment TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
     UNIQUE(file_id, version_number)
 );
@@ -128,25 +154,52 @@ CREATE TABLE IF NOT EXISTS file_versions (
 -- 权限表
 CREATE TABLE IF NOT EXISTS permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name VARCHAR(50) NOT NULL UNIQUE,
-    display_name VARCHAR(100),
+    code VARCHAR(100) NOT NULL UNIQUE,
+    name VARCHAR(100) NOT NULL,
     description TEXT,
-    resource_type VARCHAR(50), -- SPACE, FOLDER, FILE, SYSTEM
-    action VARCHAR(50), -- READ, WRITE, DELETE, ADMIN, etc.
+    resource_type VARCHAR(20) NOT NULL, -- FILE, FOLDER, SPACE, SYSTEM
+    category VARCHAR(20) NOT NULL, -- READ, WRITE, DELETE, ADMIN, SHARE
+    level INTEGER NOT NULL DEFAULT 50,
+    is_system BOOLEAN DEFAULT FALSE,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    permission_group VARCHAR(50),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_by VARCHAR(50) DEFAULT 'system'
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE
 );
 
--- 角色权限关联表
-CREATE TABLE IF NOT EXISTS role_permissions (
+-- 角色权限关联表由@ManyToMany注解自动创建，无需手动定义
+
+-- 空间权限表（用于空间级别的权限控制）
+CREATE TABLE IF NOT EXISTS space_permissions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    role_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    space_id INTEGER NOT NULL,
     permission_id INTEGER NOT NULL,
+    resource_type VARCHAR(20) NOT NULL, -- FILE, FOLDER, SPACE
+    resource_id INTEGER,
+    status VARCHAR(20) NOT NULL, -- GRANTED, DENIED, INHERITED
+    grant_type VARCHAR(20) NOT NULL, -- DIRECT, INHERITED, ROLE_BASED
+    inherit_from_parent BOOLEAN DEFAULT TRUE,
+    permission_path VARCHAR(1000),
+    permission_level INTEGER DEFAULT 50,
+    granted_by INTEGER,
     granted_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    granted_by VARCHAR(50),
-    FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+    expires_at DATETIME,
+    remark VARCHAR(500),
+    conditions VARCHAR(2000),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE,
     FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE,
-    UNIQUE(role_id, permission_id)
+    FOREIGN KEY (granted_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE(user_id, space_id, permission_id, resource_type, resource_id)
 );
 
 -- 资源权限表（用于具体资源的权限控制）
@@ -178,7 +231,10 @@ CREATE TABLE IF NOT EXISTS share_links (
     expires_at DATETIME,
     is_active BOOLEAN DEFAULT TRUE,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
     FOREIGN KEY (file_id) REFERENCES files(id) ON DELETE CASCADE,
     FOREIGN KEY (folder_id) REFERENCES folders(id) ON DELETE CASCADE,
     FOREIGN KEY (space_id) REFERENCES spaces(id) ON DELETE CASCADE
@@ -224,6 +280,21 @@ CREATE TABLE IF NOT EXISTS jwt_blacklist (
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
+-- 搜索历史表
+CREATE TABLE IF NOT EXISTS search_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    keyword VARCHAR(255) NOT NULL,
+    search_type VARCHAR(50) DEFAULT 'GENERAL',
+    result_count INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(50) DEFAULT 'system',
+    updated_by VARCHAR(50) DEFAULT 'system',
+    is_deleted BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- 创建索引
 CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -248,4 +319,11 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_token_id ON jwt_blacklist(token_id);
-CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_expires_at ON jwt_blacklist(expires_at); 
+CREATE INDEX IF NOT EXISTS idx_jwt_blacklist_expires_at ON jwt_blacklist(expires_at);
+CREATE INDEX IF NOT EXISTS idx_space_permissions_user_id ON space_permissions(user_id);
+CREATE INDEX IF NOT EXISTS idx_space_permissions_space_id ON space_permissions(space_id);
+CREATE INDEX IF NOT EXISTS idx_space_permissions_permission_id ON space_permissions(permission_id);
+CREATE INDEX IF NOT EXISTS idx_space_permissions_resource ON space_permissions(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_search_history_user_time ON search_history(user_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_search_history_keyword ON search_history(keyword);
+CREATE INDEX IF NOT EXISTS idx_search_history_user_keyword ON search_history(user_id, keyword);
