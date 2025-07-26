@@ -50,7 +50,7 @@ INSERT OR IGNORE INTO users (username, email, password, display_name, status, en
 VALUES ('admin', 'admin@lyra.local', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lbdOIig7cO86yx/Iq', '系统管理员', 'ACTIVE', TRUE, TRUE);
 
 -- 为默认管理员分配ADMIN角色
-INSERT OR IGNORE INTO user_roles (user_id, role_id, granted_by)
+INSERT OR IGNORE INTO user_roles (user_id, role_id, assigned_by)
 SELECT u.id, r.id, 'system'
 FROM users u, roles r
 WHERE u.username = 'admin' AND r.code = 'ADMIN';
