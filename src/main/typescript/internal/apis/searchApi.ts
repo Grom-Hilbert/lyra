@@ -111,6 +111,15 @@ export const searchApi = {
     return response.data
   },
 
+  // 获取搜索建议 (别名方法)
+  async getSuggestions(params: {
+    keyword: string
+    spaceId?: number
+    limit?: number
+  }): Promise<IApiResponse<SearchSuggestion[]>> {
+    return this.getSearchSuggestions(params)
+  },
+
   // 获取搜索过滤器
   async getSearchFilters(params: {
     keyword: string

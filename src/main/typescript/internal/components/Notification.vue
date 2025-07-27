@@ -158,12 +158,13 @@ onMounted(() => {
 <template>
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
-      <Button variant="ghost" size="sm" class="relative">
+      <Button variant="ghost" size="sm" class="relative" data-testid="notification-trigger">
         <Bell class="w-5 h-5" />
-        <Badge 
-          v-if="unreadCount > 0" 
-          variant="destructive" 
+        <Badge
+          v-if="unreadCount > 0"
+          variant="destructive"
           class="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+          data-testid="unread-badge"
         >
           {{ unreadCount > 99 ? '99+' : unreadCount }}
         </Badge>
@@ -176,12 +177,13 @@ onMounted(() => {
       <div class="flex items-center justify-between p-4 border-b">
         <h3 class="font-semibold">通知</h3>
         <div class="flex items-center space-x-2">
-          <Button 
+          <Button
             v-if="unreadCount > 0"
-            variant="ghost" 
-            size="sm" 
+            variant="ghost"
+            size="sm"
             @click="markAllAsRead"
             class="text-xs"
+            data-testid="mark-all-read"
           >
             全部已读
           </Button>

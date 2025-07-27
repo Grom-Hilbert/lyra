@@ -15,7 +15,7 @@
       
       <!-- 搜索框 -->
       <SearchBox
-        :space-id="currentSpaceId"
+        :space-id="currentSpaceId || undefined"
         @search="handleSearch"
         @clear="handleClear"
       />
@@ -193,13 +193,13 @@
             <CardContent class="p-4">
               <div class="flex items-center space-x-3">
                 <div class="flex-shrink-0">
-                  <FileIcon :file-name="file.name" class="h-8 w-8" />
+                  <FileIcon :file-name="file.filename" class="h-8 w-8" />
                 </div>
                 <div class="flex-1 min-w-0">
-                  <h4 class="font-medium truncate" v-html="highlightText(file.name, currentQuery)"></h4>
+                  <h4 class="font-medium truncate" v-html="highlightText(file.filename, currentQuery)"></h4>
                   <p class="text-sm text-muted-foreground">{{ file.path }}</p>
                   <div class="flex items-center space-x-4 text-xs text-muted-foreground mt-1">
-                    <span>{{ formatFileSize(file.size) }}</span>
+                    <span>{{ formatFileSize(file.sizeBytes) }}</span>
                     <span>{{ formatDate(file.updatedAt) }}</span>
                     <span v-if="file.mimeType">{{ file.mimeType }}</span>
                   </div>
@@ -275,7 +275,7 @@ const fileTypes = [
 
 // 方法
 const handleSearch = async (query: string) => {
-  await searchStore.quickSearch(query, currentSpaceId.value)
+  await searchStore.quickSearch(query, currentSpaceId.value || undefined)
 }
 
 const handleClear = () => {
@@ -311,8 +311,8 @@ const resetFilters = () => {
 }
 
 const highlightText = (text: string, query: string): string => {
-  if (!query) return text
-  
+  if (!text || !query) return text || ''
+
   const regex = new RegExp(`(${query})`, 'gi')
   return text.replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800">$1</mark>')
 }

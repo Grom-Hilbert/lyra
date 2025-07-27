@@ -7,7 +7,13 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./test-setup.ts']
+    setupFiles: ['./test-setup.ts'],
+    env: {
+      MODE: 'test',
+      DEV: 'false',
+      PROD: 'false',
+      SSR: 'false'
+    }
   },
   resolve: {
     alias: {
@@ -20,6 +26,10 @@ export default defineConfig({
       DEV: false,
       PROD: false,
       SSR: false
-    })
+    }),
+    'import.meta.env.MODE': '"test"',
+    'import.meta.env.DEV': 'false',
+    'import.meta.env.PROD': 'false',
+    'import.meta.env.SSR': 'false'
   }
 })

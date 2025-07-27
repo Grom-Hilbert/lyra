@@ -52,7 +52,7 @@ const breadcrumbItems = computed(() => {
   // 添加首页
   if (route.path !== '/') {
     items.push({
-      path: '/dashboard',
+      path: '/',
       name: '首页',
       isLast: false
     })

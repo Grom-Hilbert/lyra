@@ -188,11 +188,11 @@ export const useSearchStore = defineStore('search', {
             searchTime: 0,
             suggestions: []
           }
-          
+
           this.searchResults = result
           this.cacheResult(cacheKey, result)
           this.addToHistory(keyword, result.total, spaceId)
-          
+
           return result
         }
       } catch (error) {
@@ -221,11 +221,16 @@ export const useSearchStore = defineStore('search', {
         const response = await searchApi.fullTextSearch(request)
 
         if (response.success && response.data) {
-          this.searchResults = response.data
-          this.cacheResult(cacheKey, response.data)
-          this.addToHistory(request.keyword, response.data.total, request.spaceId)
-          
-          return response.data
+          // 对于分页响应，data 是数组，我们需要构造 SearchResult
+          const result: SearchResult = Array.isArray(response.data)
+            ? response.data[0] || { files: [], folders: [], total: 0, searchTime: 0 }
+            : response.data
+
+          this.searchResults = result
+          this.cacheResult(cacheKey, result)
+          this.addToHistory(request.keyword, result.total, request.spaceId)
+
+          return result
         }
       } catch (error) {
         this.searchError = error instanceof Error ? error.message : '搜索失败'
@@ -253,11 +258,16 @@ export const useSearchStore = defineStore('search', {
         const response = await searchApi.advancedSearch(request)
 
         if (response.success && response.data) {
-          this.searchResults = response.data
-          this.cacheResult(cacheKey, response.data)
-          this.addToHistory(request.query, response.data.total, request.spaceId)
-          
-          return response.data
+          // 对于分页响应，data 是数组，我们需要构造 SearchResult
+          const result: SearchResult = Array.isArray(response.data)
+            ? response.data[0] || { files: [], folders: [], total: 0, searchTime: 0 }
+            : response.data
+
+          this.searchResults = result
+          this.cacheResult(cacheKey, result)
+          this.addToHistory(request.query, result.total, request.spaceId)
+
+          return result
         }
       } catch (error) {
         this.searchError = error instanceof Error ? error.message : '搜索失败'

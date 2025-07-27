@@ -20,6 +20,7 @@ describe('ProfileView Component', () => {
     router = createRouter({
       history: createWebHistory(),
       routes: [
+        { path: '/', component: { template: '<div>Home</div>' } },
         { path: '/profile', component: ProfileView },
         { path: '/settings', component: { template: '<div>Settings</div>' } }
       ]
@@ -245,8 +246,8 @@ describe('ProfileView Component', () => {
       }
     })
 
-    const settingsButton = wrapper.find('button:contains("设置")')
-    if (settingsButton.exists()) {
+    const settingsButton = wrapper.findAll('button').find(btn => btn.text().includes('设置'))
+    if (settingsButton) {
       await settingsButton.trigger('click')
       expect(router.currentRoute.value.path).toBe('/settings')
     }

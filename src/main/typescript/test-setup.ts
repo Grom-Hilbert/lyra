@@ -59,12 +59,52 @@ Object.defineProperty(globalThis, 'import', {
   writable: true,
 })
 
+// Additional mock for import.meta
+if (typeof globalThis.import === 'undefined') {
+  globalThis.import = {
+    meta: {
+      env: {
+        MODE: 'test',
+        DEV: false,
+        PROD: false,
+        SSR: false
+      }
+    }
+  }
+}
+
 // Mock reka-ui's problematic modules
 vi.mock('reka-ui', async (importOriginal) => {
   const actual = await importOriginal() as any
   return {
     ...actual,
-    useHideOthers: () => ({})
+    useHideOthers: () => ({}),
+    // Mock other problematic functions
+    useBodyScrollLock: () => ({}),
+    useEscapeKeydown: () => ({}),
+    useFocusGuards: () => ({}),
+    useForwardExpose: () => ({}),
+    useForwardProps: () => ({}),
+    useForwardPropsEmits: () => ({}),
+    useId: () => 'test-id',
+    useStateMachine: () => ({
+      state: { value: 'closed' },
+      send: vi.fn()
+    }),
+    // Mock Button component to avoid $listeners issues
+    Button: {
+      name: 'Button',
+      template: '<button><slot /></button>',
+      props: ['variant', 'size', 'disabled', 'type'],
+      emits: ['click']
+    },
+    // Mock Input component
+    Input: {
+      name: 'Input',
+      template: '<input />',
+      props: ['modelValue', 'type', 'placeholder', 'disabled'],
+      emits: ['update:modelValue', 'input', 'change']
+    }
   }
 })
 

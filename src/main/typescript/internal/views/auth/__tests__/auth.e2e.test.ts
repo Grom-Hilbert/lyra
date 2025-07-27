@@ -28,6 +28,7 @@ describe('Authentication E2E Tests', () => {
     router = createRouter({
       history: createWebHistory(),
       routes: [
+        { path: '/', component: { template: '<div>Home</div>' } },
         { path: '/login', component: LoginView },
         { path: '/register', component: RegisterView },
         { path: '/forgot-password', component: ForgotPasswordView },
@@ -302,8 +303,8 @@ describe('Authentication E2E Tests', () => {
       expect(registerLink.exists()).toBe(true)
 
       // Test navigation to forgot password
-      const forgotPasswordLink = wrapper.find('button:contains("忘记密码")')
-      expect(forgotPasswordLink.exists()).toBe(true)
+      const forgotPasswordLink = wrapper.findAll('button').find(btn => btn.text().includes('忘记密码'))
+      expect(forgotPasswordLink).toBeTruthy()
     })
 
     it('should redirect to intended page after login', async () => {

@@ -291,9 +291,19 @@ public interface FileVersionRepository extends JpaRepository<FileVersion, Long> 
 
     /**
      * 查询重复的版本（相同哈希值）
-     * 
+     *
      * @return 重复版本组（按哈希值分组）
      */
     @Query("SELECT fv.fileHash, COUNT(fv) FROM FileVersion fv WHERE fv.fileHash IS NOT NULL GROUP BY fv.fileHash HAVING COUNT(fv) > 1")
     List<Object[]> findDuplicateVersionsByHash();
-} 
+
+    /**
+     * 根据文件查找最新版本（分页支持）
+     *
+     * @param file 文件实体
+     * @param pageable 分页参数
+     * @return 最新版本列表
+     */
+    @Query("SELECT fv FROM FileVersion fv WHERE fv.file = :file ORDER BY fv.versionNumber DESC")
+    List<FileVersion> findLatestByFile(@Param("file") FileEntity file, Pageable pageable);
+}

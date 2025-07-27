@@ -13,8 +13,8 @@ import {
   FileCode,
   File,
   FileSpreadsheet,
-  FilePresentation,
-  FilePdf
+  Presentation,
+  FileType
 } from 'lucide-vue-next'
 
 interface Props {
@@ -36,7 +36,7 @@ const iconComponent = computed(() => {
   if (mimeType.startsWith('image/')) return FileImage
   if (mimeType.startsWith('video/')) return FileVideo
   if (mimeType.startsWith('audio/')) return FileAudio
-  if (mimeType === 'application/pdf') return FilePdf
+  if (mimeType === 'application/pdf') return FileType
 
   // 根据文件扩展名判断
   switch (extension) {
@@ -122,11 +122,11 @@ const iconComponent = computed(() => {
     case 'pptx':
     case 'ppt':
     case 'odp':
-      return FilePresentation
+      return Presentation
 
     // PDF
     case 'pdf':
-      return FilePdf
+      return FileType
 
     // 文档
     case 'docx':
