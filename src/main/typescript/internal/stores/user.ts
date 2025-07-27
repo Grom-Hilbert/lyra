@@ -43,7 +43,7 @@ export const useUserStore = defineStore('user', {
 
   actions: {
     // 登录
-    async login(loginForm: ILoginForm) {
+    async login(loginForm: ILoginForm & { rememberMe?: boolean }) {
       this.loading = true
       try {
         const response = await authApi.login(loginForm)
@@ -54,15 +54,22 @@ export const useUserStore = defineStore('user', {
           this.user = response.data.user || null
           this.isAuthenticated = true
 
-          // 保存到本地存储
+          // 根据记住我选项决定存储方式
+          const storage = loginForm.rememberMe ? localStorage : sessionStorage
+
+          // 保存到存储
           if (response.data.accessToken) {
-            localStorage.setItem('token', response.data.accessToken)
+            storage.setItem('token', response.data.accessToken)
+            // 如果选择记住我，也保存到localStorage作为备份
+            if (loginForm.rememberMe) {
+              localStorage.setItem('rememberMe', 'true')
+            }
           }
           if (response.data.refreshToken) {
-            localStorage.setItem('refreshToken', response.data.refreshToken)
+            storage.setItem('refreshToken', response.data.refreshToken)
           }
         }
-        
+
         return response
       } catch (error) {
         this.clearAuth()
@@ -185,24 +192,29 @@ export const useUserStore = defineStore('user', {
       this.token = null
       this.refreshToken = null
       this.isAuthenticated = false
-      
+
+      // 清除所有存储
       localStorage.removeItem('token')
       localStorage.removeItem('refreshToken')
+      localStorage.removeItem('rememberMe')
+      sessionStorage.removeItem('token')
+      sessionStorage.removeItem('refreshToken')
     },
 
     // 初始化认证状态
     async initAuth() {
-      const token = localStorage.getItem('token')
-      const refreshToken = localStorage.getItem('refreshToken')
-      
+      // 优先从localStorage获取，然后从sessionStorage获取
+      let token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      let refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken')
+
       if (!token || !refreshToken) {
         this.clearAuth()
         return false
       }
-      
+
       this.token = token
       this.refreshToken = refreshToken
-      
+
       // 尝试获取用户信息
       const success = await this.fetchCurrentUser()
       if (!success) {
@@ -212,7 +224,7 @@ export const useUserStore = defineStore('user', {
           return await this.fetchCurrentUser()
         }
       }
-      
+
       return success
     }
   }

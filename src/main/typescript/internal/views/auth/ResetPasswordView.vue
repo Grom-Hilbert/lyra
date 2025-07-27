@@ -253,9 +253,17 @@ const validateResetToken = async () => {
     return
   }
 
-  // 这里可以调用API验证令牌是否有效
-  // 暂时跳过验证，假设令牌有效
-  console.log('Validating reset token:', resetToken.value)
+  try {
+    // 调用API验证令牌是否有效
+    await authApi.validateResetToken(resetToken.value)
+  } catch (error: any) {
+    console.error('Token validation failed:', error)
+    if (error.response?.status === 404 || error.response?.status === 400) {
+      tokenError.value = '重置链接无效或已过期，请重新申请密码重置'
+    } else {
+      tokenError.value = '验证重置链接时出错，请稍后再试'
+    }
+  }
 }
 
 // 处理密码重置

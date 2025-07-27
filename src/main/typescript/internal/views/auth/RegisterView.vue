@@ -287,7 +287,24 @@ const handleRegister = async (values: any) => {
 
   } catch (error: any) {
     console.error('注册失败:', error)
-    errorMessage.value = error.response?.data?.message || '注册失败，请检查输入信息或稍后再试'
+
+    // 处理不同类型的错误
+    if (error.response?.status === 409) {
+      const message = error.response?.data?.message || ''
+      if (message.includes('username')) {
+        errorMessage.value = '用户名已存在，请选择其他用户名'
+      } else if (message.includes('email')) {
+        errorMessage.value = '邮箱已被注册，请使用其他邮箱或直接登录'
+      } else {
+        errorMessage.value = '用户名或邮箱已存在'
+      }
+    } else if (error.response?.status === 400) {
+      errorMessage.value = error.response?.data?.message || '输入信息有误，请检查后重试'
+    } else if (error.response?.status === 429) {
+      errorMessage.value = '注册请求过于频繁，请稍后再试'
+    } else {
+      errorMessage.value = error.response?.data?.message || '注册失败，请检查网络连接或稍后再试'
+    }
   } finally {
     loading.value = false
   }

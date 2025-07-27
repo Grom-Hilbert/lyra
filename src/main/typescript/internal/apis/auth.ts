@@ -81,4 +81,10 @@ export const authApi = {
     const response = await request.post('/api/auth/password/reset-confirm', data)
     return response.data
   },
+
+  // 验证重置令牌
+  async validateResetToken(token: string): Promise<IApiResponse<void>> {
+    const response = await request.get(`/api/auth/password/reset-validate?token=${token}`)
+    return response.data
+  },
 }

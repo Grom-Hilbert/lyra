@@ -87,14 +87,21 @@
                   id="remember"
                   type="checkbox"
                   :checked="value"
-                  @change="handleChange"
-                  class="w-4 h-4 text-tech-blue bg-background border-border rounded focus:ring-tech-blue focus:ring-2"
+                  @change="(e) => handleChange((e.target as HTMLInputElement)?.checked)"
+                  :disabled="loading"
+                  class="w-4 h-4 text-primary bg-background border-border rounded focus:ring-primary focus:ring-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 />
-                <FormLabel for="remember" class="text-sm text-muted-foreground cursor-pointer">
+                <FormLabel
+                  for="remember"
+                  :class="[
+                    'text-sm cursor-pointer transition-colors duration-200',
+                    loading ? 'text-muted-foreground/50 cursor-not-allowed' : 'text-muted-foreground hover:text-foreground'
+                  ]"
+                >
                   记住我
                 </FormLabel>
               </div>
-              <Button variant="link" size="sm" class="text-sm text-tech-blue hover:text-tech-purple" @click="$router.push('/forgot-password')">
+              <Button variant="link" size="sm" class="text-sm text-primary hover:text-primary/80" @click="$router.push('/forgot-password')">
                 忘记密码？
               </Button>
             </FormItem>
@@ -141,7 +148,6 @@ import * as z from 'zod'
 
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
@@ -170,14 +176,32 @@ const handleLogin = async (values: any) => {
   try {
     await userStore.login({
       usernameOrEmail: values.username,
-      password: values.password
+      password: values.password,
+      rememberMe: values.rememberMe || false
     })
 
-    // 登录成功，跳转到仪表板
-    router.push('/dashboard')
+    // 登录成功，检查是否有重定向目标
+    const redirectTo = router.currentRoute.value.query.redirect as string
+    if (redirectTo && redirectTo !== '/login') {
+      router.push(redirectTo)
+    } else {
+      router.push('/dashboard')
+    }
   } catch (error: any) {
     console.error('Login error:', error)
-    errorMessage.value = error.response?.data?.message || '登录失败，请检查用户名和密码'
+
+    // 处理不同类型的错误
+    if (error.response?.status === 401) {
+      errorMessage.value = '用户名或密码错误'
+    } else if (error.response?.status === 403) {
+      errorMessage.value = '账户已被禁用，请联系管理员'
+    } else if (error.response?.status === 423) {
+      errorMessage.value = '账户已被锁定，请稍后再试或联系管理员'
+    } else if (error.response?.status === 429) {
+      errorMessage.value = '登录尝试过于频繁，请稍后再试'
+    } else {
+      errorMessage.value = error.response?.data?.message || '登录失败，请检查网络连接或稍后再试'
+    }
   } finally {
     loading.value = false
   }
