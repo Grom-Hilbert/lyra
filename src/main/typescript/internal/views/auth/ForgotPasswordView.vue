@@ -186,7 +186,17 @@ const handlePasswordReset = async (values: any) => {
     
   } catch (error: any) {
     console.error('Password reset request failed:', error)
-    errorMessage.value = error.response?.data?.message || '发送失败，请检查邮箱地址或稍后再试'
+
+    // 处理不同类型的错误
+    if (error.response?.status === 404) {
+      errorMessage.value = '该邮箱地址未注册，请检查邮箱地址或先注册账号'
+    } else if (error.response?.status === 429) {
+      errorMessage.value = '重置请求过于频繁，请稍后再试'
+    } else if (error.response?.status === 400) {
+      errorMessage.value = '邮箱地址格式不正确，请检查后重试'
+    } else {
+      errorMessage.value = error.response?.data?.message || '发送失败，请检查网络连接或稍后再试'
+    }
   } finally {
     loading.value = false
   }

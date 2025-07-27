@@ -36,22 +36,43 @@
               <div class="text-center space-y-4">
                 <!-- 用户头像 -->
                 <div class="relative">
-                  <div class="w-24 h-24 bg-gradient-to-br from-tech-blue to-tech-purple rounded-full flex items-center justify-center mx-auto">
-                    <span class="text-2xl font-bold text-white">
+                  <div class="w-24 h-24 bg-gradient-to-br from-primary to-primary/80 rounded-full flex items-center justify-center mx-auto overflow-hidden">
+                    <img
+                      v-if="userStore.user?.avatar"
+                      :src="userStore.user.avatar"
+                      :alt="userStore.user.displayName"
+                      class="w-full h-full object-cover"
+                    />
+                    <span
+                      v-else
+                      class="text-2xl font-bold text-primary-foreground"
+                    >
                       {{ userStore.user?.displayName?.charAt(0)?.toUpperCase() || 'U' }}
                     </span>
                   </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
+                  <Button
+                    size="sm"
+                    variant="outline"
                     class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 h-8 w-8 rounded-full p-0"
                     @click="handleAvatarClick"
+                    :disabled="avatarUploading"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg v-if="avatarUploading" class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                    <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     </svg>
                   </Button>
+                  <!-- 隐藏的文件输入 -->
+                  <input
+                    ref="avatarInput"
+                    type="file"
+                    accept="image/*"
+                    class="hidden"
+                    @change="handleAvatarChange"
+                  />
                 </div>
 
                 <!-- 用户基本信息 -->
@@ -177,20 +198,20 @@
             </CardHeader>
             <CardContent>
               <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div class="text-center p-4 rounded-lg bg-muted/50">
-                  <div class="text-2xl font-bold text-tech-blue">0</div>
+                <div class="text-center p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <div class="text-2xl font-bold text-primary">{{ accountStats.fileCount }}</div>
                   <div class="text-sm text-muted-foreground">文件数量</div>
                 </div>
-                <div class="text-center p-4 rounded-lg bg-muted/50">
-                  <div class="text-2xl font-bold text-tech-purple">0 MB</div>
+                <div class="text-center p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <div class="text-2xl font-bold text-primary">{{ formatFileSize(accountStats.usedSpace) }}</div>
                   <div class="text-sm text-muted-foreground">已用空间</div>
                 </div>
-                <div class="text-center p-4 rounded-lg bg-muted/50">
-                  <div class="text-2xl font-bold text-tech-cyan">0</div>
+                <div class="text-center p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <div class="text-2xl font-bold text-primary">{{ accountStats.sharedFiles }}</div>
                   <div class="text-sm text-muted-foreground">共享文件</div>
                 </div>
-                <div class="text-center p-4 rounded-lg bg-muted/50">
-                  <div class="text-2xl font-bold text-neon-green">0</div>
+                <div class="text-center p-4 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors">
+                  <div class="text-2xl font-bold text-primary">{{ accountStats.recentActivity }}</div>
                   <div class="text-sm text-muted-foreground">最近活动</div>
                 </div>
               </div>
@@ -247,10 +268,57 @@ const getRoleDisplayName = (role: string) => {
   return roleMap[role] || role
 }
 
+// 头像上传相关
+const avatarInput = ref<HTMLInputElement>()
+const avatarUploading = ref(false)
+
 // 处理头像点击
 const handleAvatarClick = () => {
-  // TODO: 实现头像上传功能
-  console.log('Avatar upload not implemented yet')
+  avatarInput.value?.click()
+}
+
+// 处理头像文件选择
+const handleAvatarChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    errorMessage.value = '请选择图片文件'
+    return
+  }
+
+  // 验证文件大小 (5MB)
+  if (file.size > 5 * 1024 * 1024) {
+    errorMessage.value = '图片文件不能超过5MB'
+    return
+  }
+
+  avatarUploading.value = true
+  errorMessage.value = ''
+
+  try {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    await userStore.uploadAvatar(formData)
+    successMessage.value = '头像更新成功！'
+
+    // 3秒后清除成功消息
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+
+  } catch (error: any) {
+    console.error('Avatar upload failed:', error)
+    errorMessage.value = error.response?.data?.message || '头像上传失败，请稍后再试'
+  } finally {
+    avatarUploading.value = false
+    // 清空文件输入
+    if (target) target.value = ''
+  }
 }
 
 // 处理更新个人信息
@@ -280,10 +348,53 @@ const handleUpdateProfile = async (values: any) => {
   }
 }
 
-// 组件挂载时设置表单初始值
-onMounted(() => {
-  // 这里可以设置表单的初始值
-  // TODO: 使用vee-validate的setValues方法设置初始值
+// 账户统计信息
+const accountStats = ref({
+  fileCount: 0,
+  usedSpace: 0,
+  sharedFiles: 0,
+  recentActivity: 0
+})
+
+// 获取账户统计信息
+const fetchAccountStats = async () => {
+  try {
+    // 这里可以调用API获取统计信息
+    // const response = await userApi.getAccountStats()
+    // accountStats.value = response.data
+
+    // 暂时使用模拟数据
+    accountStats.value = {
+      fileCount: 42,
+      usedSpace: 1024 * 1024 * 256, // 256MB
+      sharedFiles: 8,
+      recentActivity: 15
+    }
+  } catch (error) {
+    console.error('Failed to fetch account stats:', error)
+  }
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes: number) => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 组件挂载时设置表单初始值和获取统计信息
+onMounted(async () => {
+  // 获取账户统计信息
+  await fetchAccountStats()
+
+  // 设置表单初始值
+  // 注意：这里需要等待用户信息加载完成
+  if (userStore.user) {
+    // 可以使用vee-validate的setValues方法设置初始值
+    // 或者在表单组件中直接绑定userStore.user的值
+  }
 })
 </script>
 

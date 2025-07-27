@@ -84,8 +84,8 @@
                 <el-icon><Document /></el-icon>
               </div>
               <div class="file-info">
-                <h4>{{ file.name }}</h4>
-                <p>{{ formatFileSize(file.size) }} · {{ formatDate(file.updatedAt) }}</p>
+                <h4>{{ file.filename || file.originalName }}</h4>
+                <p>{{ formatFileSize(file.sizeBytes) }} · {{ formatDate(file.updatedAt) }}</p>
               </div>
               <div class="file-actions">
                 <el-button text size="small">打开</el-button>
@@ -216,42 +216,48 @@ const loadData = async () => {
     
     recentFiles.value = [
       {
-        id: '1',
-        name: '项目需求文档.docx',
+        id: 1,
+        filename: '项目需求文档.docx',
+        originalName: '项目需求文档.docx',
         path: '/personal/documents/项目需求文档.docx',
-        size: 2048000,
-        type: 'file',
+        sizeBytes: 2048000,
         mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        isVersioned: true,
-        permissions: [],
+        fileHash: 'hash1',
+        version: 1,
+        isPublic: false,
+        downloadCount: 0,
+        spaceId: 1,
+        uploaderId: 1,
+        status: 'ACTIVE' as const,
         createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'user1',
-        modifiedBy: 'user1'
+        updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
       },
       {
-        id: '2',
-        name: '系统架构图.png',
+        id: 2,
+        filename: '系统架构图.png',
+        originalName: '系统架构图.png',
         path: '/shared/diagrams/系统架构图.png',
-        size: 512000,
-        type: 'file',
+        sizeBytes: 512000,
         mimeType: 'image/png',
-        isVersioned: false,
-        permissions: [],
+        fileHash: 'hash2',
+        version: 1,
+        isPublic: false,
+        downloadCount: 0,
+        spaceId: 2,
+        uploaderId: 1,
+        status: 'ACTIVE' as const,
         createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-        createdBy: 'user1',
-        modifiedBy: 'user1'
+        updatedAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
       }
     ]
     
     mySpaces.value = [
       {
-        id: '1',
+        id: 1,
         name: '个人空间',
         description: '我的个人文档存储空间',
         type: 'personal',
-        ownerId: 'user1',
+        ownerId: 1,
         members: [],
         settings: {
           isPublic: false,
@@ -264,11 +270,11 @@ const loadData = async () => {
         updatedAt: new Date().toISOString()
       },
       {
-        id: '2',
+        id: 2,
         name: '团队协作',
         description: '团队共享文档空间',
         type: 'shared',
-        ownerId: 'user1',
+        ownerId: 1,
         members: [],
         settings: {
           isPublic: false,

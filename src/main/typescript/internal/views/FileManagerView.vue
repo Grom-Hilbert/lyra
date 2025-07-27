@@ -32,7 +32,7 @@
                 <p class="text-sm font-medium truncate">{{ space.name }}</p>
                 <p class="text-xs text-muted-foreground">{{ space.type }}</p>
               </div>
-              <div v-if="space.isDefault" class="flex-shrink-0">
+              <div v-if="(space as any).isDefault" class="flex-shrink-0">
                 <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                   默认
                 </span>
@@ -48,7 +48,7 @@
             :space-id="currentSpaceId"
             :current-folder-id="currentFolderId"
             @folder-select="selectFolder"
-            @folder-create="showCreateFolderDialog"
+            @folder-create="() => showCreateFolderDialog = true"
             @folder-rename="handleFolderRename"
             @folder-delete="handleFolderDelete"
           />
@@ -122,7 +122,7 @@
             <button
               type="button"
               class="inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-background hover:bg-muted focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-              @click="showCreateFolderDialog"
+              @click="showCreateFolderDialog = true"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
@@ -231,7 +231,7 @@
             <button
               type="button"
               class="inline-flex items-center px-4 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-background hover:bg-muted"
-              @click="showCreateFolderDialog"
+              @click="showCreateFolderDialog = true"
             >
               新建文件夹
             </button>
@@ -284,9 +284,9 @@
                 <div class="flex-shrink-0 mb-3">
                   <!-- 文件缩略图或图标 -->
                   <img
-                    v-if="file.thumbnailUrl"
-                    :src="file.thumbnailUrl"
-                    :alt="file.name"
+                    v-if="getThumbnailUrl(file)"
+                    :src="getThumbnailUrl(file) || ''"
+                    :alt="getFileName(file)"
                     class="w-12 h-12 object-cover rounded-lg"
                   />
                   <div v-else class="w-12 h-12 flex items-center justify-center rounded-lg bg-muted">
@@ -296,8 +296,8 @@
                   </div>
                 </div>
                 <div class="text-center w-full">
-                  <p class="text-sm font-medium text-foreground truncate" :title="file.name">{{ file.name }}</p>
-                  <p class="text-xs text-muted-foreground mt-1">{{ file.sizeReadable }}</p>
+                  <p class="text-sm font-medium text-foreground truncate" :title="getFileName(file)">{{ getFileName(file) }}</p>
+                  <p class="text-xs text-muted-foreground mt-1">{{ getFileSizeReadable(file) }}</p>
                 </div>
                 <!-- 选择框 -->
                 <div class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -389,9 +389,9 @@
                   <td class="px-6 py-4 whitespace-nowrap">
                     <div class="flex items-center">
                       <img
-                        v-if="file.thumbnailUrl"
-                        :src="file.thumbnailUrl"
-                        :alt="file.name"
+                        v-if="getThumbnailUrl(file)"
+                        :src="getThumbnailUrl(file) || ''"
+                        :alt="getFileName(file)"
                         class="w-8 h-8 object-cover rounded mr-3"
                       />
                       <div v-else class="w-8 h-8 flex items-center justify-center rounded bg-muted mr-3">
@@ -400,12 +400,12 @@
                         </svg>
                       </div>
                       <div>
-                        <div class="text-sm font-medium text-foreground" :title="file.name">{{ file.name }}</div>
-                        <div class="text-sm text-muted-foreground">{{ file.extension?.toUpperCase() || 'FILE' }}</div>
+                        <div class="text-sm font-medium text-foreground" :title="getFileName(file)">{{ getFileName(file) }}</div>
+                        <div class="text-sm text-muted-foreground">{{ getFileExtension(file).toUpperCase() || 'FILE' }}</div>
                       </div>
                     </div>
                   </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{{ file.sizeReadable }}</td>
+                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{{ getFileSizeReadable(file) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{{ formatDate(file.updatedAt) }}</td>
                   <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
                     <button
@@ -455,12 +455,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fileApi, folderApi, spaceApi } from '@/apis/fileApi'
+import { fileApi, folderApi, spaceApi, searchApi } from '@/apis'
 import FileUpload from '@/components/FileUpload.vue'
 import FolderTree from '@/components/FolderTree.vue'
-import type { FileInfo, FolderInfo, SpaceInfo } from '@/types/file'
+import type {
+  IFileInfo,
+  IFolderInfo,
+  ISpace,
+  FileUploadRequest,
+  CreateFolderRequest
+} from '@/types/index'
 
 // 路由
 const route = useRoute()
@@ -468,19 +474,23 @@ const router = useRouter()
 
 // 响应式数据
 const loading = ref(false)
-const spaces = ref<SpaceInfo[]>([])
-const files = ref<FileInfo[]>([])
-const folders = ref<FolderInfo[]>([])
+const spaces = ref<ISpace[]>([])
+const files = ref<IFileInfo[]>([])
+const folders = ref<IFolderInfo[]>([])
 const breadcrumbs = ref<Array<{ id: number; name: string; path: string }>>([])
 const selectedItems = ref<Array<{ id: number; type: 'file' | 'folder' }>>([])
 const searchQuery = ref('')
 const viewMode = ref<'grid' | 'list'>('grid')
 const showUploadDialog = ref(false)
+const showCreateFolderDialog = ref(false)
+const newFolderName = ref('')
+const isSearchMode = ref(false)
+const searchResults = ref<IFileInfo[]>([])
+const storageInfo = ref<any>(null)
 
 // 当前状态
 const currentSpaceId = ref<number | null>(null)
 const currentFolderId = ref<number | undefined>(undefined)
-const storageInfo = ref<any>(null)
 
 // 计算属性
 const currentSpace = computed(() => {
@@ -518,10 +528,13 @@ watch(() => route.params, handleRouteChange)
 
 const loadSpaces = async () => {
   try {
-    spaces.value = await spaceApi.getUserSpaces()
+    const spacesResponse = await spaceApi.getUserSpaces()
+    if (spacesResponse.success && spacesResponse.data) {
+      spaces.value = spacesResponse.data
+    }
     if (spaces.value.length > 0 && !currentSpaceId.value) {
       // 选择默认空间或第一个空间
-      const defaultSpace = spaces.value.find(s => s.isDefault) || spaces.value[0]
+      const defaultSpace = spaces.value.find((s: any) => s.isDefault) || spaces.value[0]
       currentSpaceId.value = defaultSpace.id
     }
   } catch (error) {
@@ -550,30 +563,28 @@ const loadFolderContent = async () => {
   selectedItems.value = []
 
   try {
-    if (currentFolderId.value) {
-      // 加载文件夹内容
-      const content = await folderApi.getFolderContent(currentFolderId.value)
-      files.value = content.files
-      folders.value = content.subfolders
-      breadcrumbs.value = content.breadcrumb
-    } else {
-      // 加载空间根目录
-      const rootContent = await folderApi.getFolders({
-        spaceId: currentSpaceId.value,
-        parentId: undefined
-      })
-      folders.value = rootContent.content
-      
-      // 加载根目录文件（需要额外API调用）
-      const fileContent = await fileApi.searchFiles({
-        spaceId: currentSpaceId.value,
-        folderId: undefined,
-        page: 0,
-        size: 100
-      })
-      files.value = fileContent.content
-      breadcrumbs.value = []
+    // 加载文件夹列表
+    const foldersResponse = await folderApi.getFolders({
+      spaceId: currentSpaceId.value,
+      parentId: currentFolderId.value
+    })
+    if (foldersResponse.success && foldersResponse.data) {
+      folders.value = foldersResponse.data || []
     }
+
+    // 加载文件列表
+    const filesResponse = await fileApi.getFilesBySpace({
+      spaceId: currentSpaceId.value,
+      folderId: currentFolderId.value,
+      page: 0,
+      size: 100
+    })
+    if (filesResponse.success && filesResponse.data) {
+      files.value = filesResponse.data.content || []
+    }
+
+    // 设置面包屑导航
+    breadcrumbs.value = []
   } catch (error) {
     console.error('Failed to load folder content:', error)
   } finally {
@@ -581,14 +592,26 @@ const loadFolderContent = async () => {
   }
 }
 
-const handleFileClick = (file: FileInfo) => {
+const handleFileClick = async (file: IFileInfo) => {
   // 处理文件点击事件，可以预览或下载
-  if (file.previewUrl) {
-    // 打开预览
-    window.open(file.previewUrl, '_blank')
-  } else {
-    // 下载文件
-    window.open(file.downloadUrl, '_blank')
+  try {
+    // 检查文件类型是否支持预览
+    const supportedPreviewTypes = ['image/', 'text/', 'application/pdf']
+    const canPreview = supportedPreviewTypes.some(type => file.mimeType.startsWith(type))
+
+    if (canPreview) {
+      // 获取预览URL并打开
+      const previewUrl = fileApi.getPreviewUrl(file.id)
+      window.open(previewUrl, '_blank')
+    } else {
+      // 直接下载文件
+      const downloadUrl = fileApi.getDownloadUrl(file.id)
+      window.open(downloadUrl, '_blank')
+    }
+  } catch (error) {
+    console.error('Failed to open file:', error)
+    // 直接使用API端点下载
+    window.open(`/api/files/${file.id}/download`, '_blank')
   }
 }
 
@@ -616,7 +639,7 @@ const toggleSelectAll = () => {
   }
 }
 
-const showCreateFolderDialog = () => {
+const handleCreateFolder = () => {
   const name = prompt('请输入文件夹名称：')
   if (name && name.trim()) {
     createFolder(name.trim())
@@ -630,7 +653,7 @@ const createFolder = async (name: string) => {
     await folderApi.createFolder({
       name,
       spaceId: currentSpaceId.value,
-      parentId: currentFolderId.value
+      parentFolderId: currentFolderId.value
     })
     await loadFolderContent()
   } catch (error) {
@@ -639,7 +662,7 @@ const createFolder = async (name: string) => {
   }
 }
 
-const handleUploadSuccess = (uploadedFiles: FileInfo[]) => {
+const handleUploadSuccess = (_uploadedFiles: IFileInfo[]) => {
   showUploadDialog.value = false
   loadFolderContent()
 }
@@ -653,7 +676,8 @@ const batchDownload = () => {
   fileItems.forEach(item => {
     const file = files.value.find(f => f.id === item.id)
     if (file) {
-      window.open(file.downloadUrl, '_blank')
+      const downloadUrl = fileApi.getDownloadUrl(file.id)
+      window.open(downloadUrl, '_blank')
     }
   })
 }
@@ -666,10 +690,13 @@ const batchDelete = async () => {
 
   try {
     if (fileIds.length > 0) {
-      await fileApi.batchDeleteFiles(fileIds)
+      await fileApi.batchDeleteFiles({ fileIds })
     }
     if (folderIds.length > 0) {
-      await folderApi.batchDeleteFolders(folderIds)
+      // 逐个删除文件夹，因为没有批量删除API
+      for (const folderId of folderIds) {
+        await folderApi.deleteFolder(folderId)
+      }
     }
     selectedItems.value = []
     await loadFolderContent()
@@ -696,7 +723,9 @@ const handleSearch = async () => {
       page: 0,
       size: 100
     })
-    files.value = searchResults.content
+    if (searchResults.success && searchResults.data) {
+      files.value = searchResults.data.content || []
+    }
     folders.value = [] // 搜索结果只显示文件
   } catch (error) {
     console.error('Search failed:', error)
@@ -715,15 +744,120 @@ const formatDate = (dateString: string): string => {
   })
 }
 
-const handleFolderRename = (folderId: number, name: string) => {
-  // TODO: 实现文件夹重命名功能
-  console.log('Rename folder:', folderId, name)
+const handleFolderRename = async (folderId: number, name: string) => {
+  try {
+    await folderApi.updateFolder(folderId, { name })
+    await loadFolderContent()
+  } catch (error) {
+    console.error('Failed to rename folder:', error)
+    alert('重命名失败')
+  }
 }
 
-const handleFolderDelete = (folderId: number) => {
-  // TODO: 实现文件夹删除功能
-  console.log('Delete folder:', folderId)
+const handleFolderDelete = async (folderId: number) => {
+  if (confirm('确定要删除这个文件夹吗？')) {
+    try {
+      await folderApi.deleteFolder(folderId)
+      await loadFolderContent()
+    } catch (error) {
+      console.error('Failed to delete folder:', error)
+      alert('删除失败')
+    }
+  }
 }
+
+// 新增功能方法
+const refreshContent = async () => {
+  await loadFolderContent()
+}
+
+const handleSpaceChange = async () => {
+  currentFolderId.value = undefined
+  await loadFolderContent()
+}
+
+const navigateToFolder = async (folderId: number | null) => {
+  currentFolderId.value = folderId || undefined
+  await loadFolderContent()
+}
+
+const handleSearchInput = () => {
+  // 实时搜索建议可以在这里实现
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
+  isSearchMode.value = false
+  loadFolderContent()
+}
+
+const selectAll = () => {
+  if (isAllSelected.value) {
+    selectedItems.value = []
+  } else {
+    selectedItems.value = [
+      ...files.value.map(f => ({ id: f.id, type: 'file' as const })),
+      ...folders.value.map(f => ({ id: f.id, type: 'folder' as const }))
+    ]
+  }
+}
+
+const clearSelection = () => {
+  selectedItems.value = []
+}
+
+const handleBatchMove = () => {
+  // TODO: 实现批量移动功能
+  console.log('Batch move:', selectedItems.value)
+}
+
+const handleBatchCopy = () => {
+  // TODO: 实现批量复制功能
+  console.log('Batch copy:', selectedItems.value)
+}
+
+// 权限检查
+const canUpload = computed(() => {
+  // TODO: 根据当前空间权限检查
+  return currentSpaceId.value !== null
+})
+
+const canCreateFolder = computed(() => {
+  // TODO: 根据当前空间权限检查
+  return currentSpaceId.value !== null
+})
+
+// 文件属性计算函数
+const getFileName = (file: IFileInfo): string => {
+  return file.filename || file.originalName
+}
+
+const getFileExtension = (file: IFileInfo): string => {
+  const name = getFileName(file)
+  return name.split('.').pop()?.toLowerCase() || ''
+}
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const getFileSizeReadable = (file: IFileInfo): string => {
+  return formatFileSize(file.sizeBytes)
+}
+
+const getThumbnailUrl = (file: IFileInfo): string | null => {
+  // 检查是否是图片文件
+  if (file.mimeType.startsWith('image/')) {
+    return `/api/files/${file.id}/thumbnail`
+  }
+  return null
+}
+
+
 </script>
 
 <style scoped>
