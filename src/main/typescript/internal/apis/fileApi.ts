@@ -222,6 +222,60 @@ export const fileApi = {
   getThumbnailUrl(fileId: number): string {
     return `/api/files/${fileId}/thumbnail`
   },
+
+  // ==================== 分享功能API ====================
+
+  // 创建文件分享链接
+  async createFileShare(fileId: number, data: {
+    accessType?: 'read' | 'write'
+    password?: string
+    expiresAt?: string
+    downloadLimit?: number
+  }): Promise<IApiResponse<{
+    id: number
+    token: string
+    shareUrl: string
+    accessType: string
+    expiresAt?: string
+    downloadLimit?: number
+  }>> {
+    const response = await request.post(`/api/files/${fileId}/share`, data)
+    return response.data
+  },
+
+  // 获取文件分享链接列表
+  async getFileShares(fileId: number): Promise<IApiResponse<Array<{
+    id: number
+    token: string
+    shareUrl: string
+    accessType: string
+    downloadCount: number
+    downloadLimit?: number
+    expiresAt?: string
+    isActive: boolean
+    createdAt: string
+  }>>> {
+    const response = await request.get(`/api/files/${fileId}/shares`)
+    return response.data
+  },
+
+  // 删除文件分享链接
+  async deleteFileShare(fileId: number, shareId: number): Promise<IApiResponse<void>> {
+    const response = await request.delete(`/api/files/${fileId}/shares/${shareId}`)
+    return response.data
+  },
+
+  // 更新文件分享链接
+  async updateFileShare(fileId: number, shareId: number, data: {
+    accessType?: 'read' | 'write'
+    password?: string
+    expiresAt?: string
+    downloadLimit?: number
+    isActive?: boolean
+  }): Promise<IApiResponse<void>> {
+    const response = await request.put(`/api/files/${fileId}/shares/${shareId}`, data)
+    return response.data
+  },
 }
 
 // ==================== 文件夹管理API ====================
@@ -271,6 +325,72 @@ export const folderApi = {
     const response = await request.get('/api/folders/tree', { params })
     return response.data
   },
+
+  // 移动文件夹
+  async moveFolder(folderId: number, data: {
+    targetParentFolderId?: number
+    targetSpaceId?: number
+  }): Promise<IApiResponse<any>> {
+    const response = await request.post('/api/folders/move', {
+      folderId,
+      ...data
+    })
+    return response.data
+  },
+
+  // ==================== 文件夹分享功能API ====================
+
+  // 创建文件夹分享链接
+  async createFolderShare(folderId: number, data: {
+    accessType?: 'read' | 'write'
+    password?: string
+    expiresAt?: string
+    downloadLimit?: number
+  }): Promise<IApiResponse<{
+    id: number
+    token: string
+    shareUrl: string
+    accessType: string
+    expiresAt?: string
+    downloadLimit?: number
+  }>> {
+    const response = await request.post(`/api/folders/${folderId}/share`, data)
+    return response.data
+  },
+
+  // 获取文件夹分享链接列表
+  async getFolderShares(folderId: number): Promise<IApiResponse<Array<{
+    id: number
+    token: string
+    shareUrl: string
+    accessType: string
+    downloadCount: number
+    downloadLimit?: number
+    expiresAt?: string
+    isActive: boolean
+    createdAt: string
+  }>>> {
+    const response = await request.get(`/api/folders/${folderId}/shares`)
+    return response.data
+  },
+
+  // 删除文件夹分享链接
+  async deleteFolderShare(folderId: number, shareId: number): Promise<IApiResponse<void>> {
+    const response = await request.delete(`/api/folders/${folderId}/shares/${shareId}`)
+    return response.data
+  },
+
+  // 更新文件夹分享链接
+  async updateFolderShare(folderId: number, shareId: number, data: {
+    accessType?: 'read' | 'write'
+    password?: string
+    expiresAt?: string
+    downloadLimit?: number
+    isActive?: boolean
+  }): Promise<IApiResponse<void>> {
+    const response = await request.put(`/api/folders/${folderId}/shares/${shareId}`, data)
+    return response.data
+  },
 }
 
 // ==================== 空间管理API (简化版) ====================
@@ -297,6 +417,20 @@ export const spaceApi = {
   // 获取空间根文件夹
   async getSpaceRootFolder(spaceId: number): Promise<IApiResponse<IFolderInfo>> {
     const response = await request.get(`/api/spaces/${spaceId}/root`)
+    return response.data
+  },
+
+  // 获取空间存储配额信息
+  async getSpaceQuota(spaceId: number): Promise<IApiResponse<{
+    used: number
+    total: number
+    usedReadable: string
+    totalReadable: string
+    usagePercentage: number
+    fileCount: number
+    folderCount: number
+  }>> {
+    const response = await request.get(`/api/spaces/${spaceId}/quota`)
     return response.data
   },
 }

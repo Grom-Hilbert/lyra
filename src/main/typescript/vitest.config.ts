@@ -13,5 +13,13 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './internal')
     }
+  },
+  define: {
+    'import.meta.env': JSON.stringify({
+      MODE: 'test',
+      DEV: false,
+      PROD: false,
+      SSR: false
+    })
   }
 })

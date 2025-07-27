@@ -30,6 +30,7 @@ target/
 .cursorignore
 .augment/
 .vibedev/
+.VSCodeCounter/
 *.iws
 *.iml
 *.ipr

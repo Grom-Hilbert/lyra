@@ -43,3 +43,37 @@ Object.defineProperty(window, 'location', {
   },
   writable: true,
 })
+
+// Mock import.meta.env for reka-ui
+Object.defineProperty(globalThis, 'import', {
+  value: {
+    meta: {
+      env: {
+        MODE: 'test',
+        DEV: false,
+        PROD: false,
+        SSR: false
+      }
+    }
+  },
+  writable: true,
+})
+
+// Mock reka-ui's problematic modules
+vi.mock('reka-ui', async (importOriginal) => {
+  const actual = await importOriginal() as any
+  return {
+    ...actual,
+    useHideOthers: () => ({})
+  }
+})
+
+// Mock focus-trap
+vi.mock('focus-trap', () => ({
+  createFocusTrap: () => ({
+    activate: vi.fn(),
+    deactivate: vi.fn(),
+    pause: vi.fn(),
+    unpause: vi.fn()
+  })
+}))

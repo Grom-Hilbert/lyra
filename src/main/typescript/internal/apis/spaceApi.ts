@@ -131,6 +131,20 @@ export const spaceApi = {
     return response.data
   },
 
+  // 获取空间存储配额信息
+  async getSpaceQuota(spaceId: number): Promise<IApiResponse<{
+    used: number
+    total: number
+    usedReadable: string
+    totalReadable: string
+    usagePercentage: number
+    fileCount: number
+    folderCount: number
+  }>> {
+    const response = await request.get(`/api/spaces/${spaceId}/quota`)
+    return response.data
+  },
+
   // 生成空间邀请链接
   async generateInviteLink(spaceId: number, data: {
     role: string

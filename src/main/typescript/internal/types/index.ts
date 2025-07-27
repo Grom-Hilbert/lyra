@@ -295,3 +295,47 @@ export interface CompleteUploadRequest {
   spaceId: number
   folderId?: number
 }
+
+// ==================== 分享相关类型 ====================
+export interface IShareLink {
+  id: number
+  token: string
+  shareUrl: string
+  fileId?: number
+  folderId?: number
+  spaceId: number
+  accessType: 'read' | 'write'
+  passwordHash?: string
+  downloadLimit?: number
+  downloadCount: number
+  expiresAt?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface CreateShareRequest {
+  accessType?: 'read' | 'write'
+  password?: string
+  expiresAt?: string
+  downloadLimit?: number
+}
+
+export interface UpdateShareRequest {
+  accessType?: 'read' | 'write'
+  password?: string
+  expiresAt?: string
+  downloadLimit?: number
+  isActive?: boolean
+}
+
+// ==================== 存储配额相关类型 ====================
+export interface IStorageQuota {
+  used: number
+  total: number
+  usedReadable: string
+  totalReadable: string
+  usagePercentage: number
+  fileCount: number
+  folderCount: number
+}

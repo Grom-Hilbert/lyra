@@ -67,6 +67,9 @@
         <div class="text-xs text-muted-foreground">
           {{ storageInfo.usedReadable }} / {{ storageInfo.totalReadable }}
         </div>
+        <div class="text-xs text-muted-foreground mt-1">
+          {{ storageInfo.fileCount }} 个文件，{{ storageInfo.folderCount }} 个文件夹
+        </div>
       </div>
     </div>
 
@@ -141,6 +144,26 @@
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 下载 ({{ selectedItems.length }})
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center px-3 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-background hover:bg-muted"
+                @click="handleBatchMove"
+              >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                </svg>
+                移动 ({{ selectedItems.length }})
+              </button>
+              <button
+                type="button"
+                class="inline-flex items-center px-3 py-2 border border-border text-sm font-medium rounded-md text-foreground bg-background hover:bg-muted"
+                @click="handleBatchCopy"
+              >
+                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+                </svg>
+                复制 ({{ selectedItems.length }})
               </button>
               <button
                 type="button"
@@ -280,7 +303,7 @@
               </svg>
             </button>
           </div>
-          
+
           <FileUpload
             v-if="currentSpaceId"
             :space-id="currentSpaceId"
@@ -291,22 +314,54 @@
         </div>
       </div>
     </div>
+
+    <!-- 新建文件夹对话框 -->
+    <CreateFolderDialog
+      v-model:open="showCreateFolderDialog"
+      :space-id="currentSpaceId || 0"
+      :parent-folder-id="currentFolderId"
+      @success="handleCreateFolderSuccess"
+      @error="handleCreateFolderError"
+    />
+
+    <!-- 文件操作对话框 -->
+    <FileOperationDialog
+      v-model:open="showFileOperationDialog"
+      :operation="fileOperation"
+      :item="selectedFileItem"
+      :item-type="selectedItemType"
+      :current-space-id="currentSpaceId || 0"
+      @success="handleFileOperationSuccess"
+      @error="handleFileOperationError"
+    />
+
+    <!-- 右键菜单 -->
+    <ContextMenu
+      :visible="showContextMenu"
+      :x="contextMenuX"
+      :y="contextMenuY"
+      :item="contextMenuItem"
+      :item-type="contextMenuType"
+      @action="handleContextMenuAction"
+      @close="hideContextMenu"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fileApi, folderApi, spaceApi, searchApi } from '@/apis'
+import { fileApi, folderApi, spaceApi } from '@/apis'
 import FileUpload from '@/components/FileUpload.vue'
 import FolderTree from '@/components/FolderTree.vue'
 import FileList from '@/components/FileList.vue'
+import CreateFolderDialog from '@/components/CreateFolderDialog.vue'
+import FileOperationDialog from '@/components/FileOperationDialog.vue'
+import ContextMenu from '@/components/ContextMenu.vue'
 import type {
   IFileInfo,
   IFolderInfo,
-  ISpace,
-  FileUploadRequest,
-  CreateFolderRequest
+  ISpace
 } from '@/types/index'
 
 // 路由
@@ -328,6 +383,19 @@ const newFolderName = ref('')
 const isSearchMode = ref(false)
 const searchResults = ref<IFileInfo[]>([])
 const storageInfo = ref<any>(null)
+
+// 文件操作相关
+const showFileOperationDialog = ref(false)
+const fileOperation = ref<'move' | 'copy' | 'share' | 'rename'>('move')
+const selectedFileItem = ref<IFileInfo | IFolderInfo | null>(null)
+const selectedItemType = ref<'file' | 'folder'>('file')
+
+// 右键菜单相关
+const showContextMenu = ref(false)
+const contextMenuX = ref(0)
+const contextMenuY = ref(0)
+const contextMenuItem = ref<IFileInfo | IFolderInfo | null>(null)
+const contextMenuType = ref<'file' | 'folder' | 'empty'>('empty')
 
 // 当前状态
 const currentSpaceId = ref<number | null>(null)
@@ -377,9 +445,34 @@ const loadSpaces = async () => {
       // 选择默认空间或第一个空间
       const defaultSpace = spaces.value.find((s: any) => s.isDefault) || spaces.value[0]
       currentSpaceId.value = defaultSpace.id
+      // 加载存储配额信息
+      await loadStorageInfo()
     }
   } catch (error) {
     console.error('Failed to load spaces:', error)
+  }
+}
+
+const loadStorageInfo = async () => {
+  if (!currentSpaceId.value) return
+
+  try {
+    const quotaResponse = await spaceApi.getSpaceQuota(currentSpaceId.value)
+    if (quotaResponse.success && quotaResponse.data) {
+      storageInfo.value = quotaResponse.data
+    }
+  } catch (error) {
+    console.error('Failed to load storage info:', error)
+    // 如果API不存在，使用默认值
+    storageInfo.value = {
+      used: 0,
+      total: 1024 * 1024 * 1024, // 1GB
+      usedReadable: '0 B',
+      totalReadable: '1 GB',
+      usagePercentage: 0,
+      fileCount: 0,
+      folderCount: 0
+    }
   }
 }
 
@@ -387,6 +480,7 @@ const selectSpace = async (spaceId: number) => {
   currentSpaceId.value = spaceId
   currentFolderId.value = undefined
   router.push(`/files/${spaceId}`)
+  await loadStorageInfo()
   await loadFolderContent()
 }
 
@@ -395,6 +489,53 @@ const selectFolder = async (folderId: number | null) => {
   const path = folderId ? `/files/${currentSpaceId.value}/${folderId}` : `/files/${currentSpaceId.value}`
   router.push(path)
   await loadFolderContent()
+}
+
+const buildBreadcrumbs = async () => {
+  breadcrumbs.value = []
+
+  if (!currentFolderId.value) {
+    return
+  }
+
+  try {
+    // 获取当前文件夹信息
+    const folderResponse = await folderApi.getFolderDetail(currentFolderId.value)
+    if (folderResponse.success && folderResponse.data) {
+      const folder = folderResponse.data
+
+      // 构建面包屑路径
+      const pathParts = folder.path.split('/').filter(part => part.length > 0)
+      const crumbs: Array<{ id: number; name: string; path: string }> = []
+
+      // 获取路径中每个文件夹的信息
+      let currentPath = ''
+      for (const part of pathParts) {
+        currentPath += '/' + part
+
+        // 查找对应的文件夹
+        const pathFolders = await folderApi.getFolders({
+          spaceId: currentSpaceId.value!,
+          parentId: undefined
+        })
+
+        if (pathFolders.success && pathFolders.data) {
+          const pathFolder = pathFolders.data.find(f => f.path === currentPath)
+          if (pathFolder) {
+            crumbs.push({
+              id: pathFolder.id,
+              name: pathFolder.name,
+              path: currentPath
+            })
+          }
+        }
+      }
+
+      breadcrumbs.value = crumbs
+    }
+  } catch (error) {
+    console.error('Failed to build breadcrumbs:', error)
+  }
 }
 
 const loadFolderContent = async () => {
@@ -425,7 +566,7 @@ const loadFolderContent = async () => {
     }
 
     // 设置面包屑导航
-    breadcrumbs.value = []
+    await buildBreadcrumbs()
   } catch (error) {
     console.error('Failed to load folder content:', error)
   } finally {
@@ -512,45 +653,185 @@ const handleUploadError = (error: string) => {
   alert(`上传失败：${error}`)
 }
 
+const handleCreateFolderSuccess = (folder: any) => {
+  console.log('文件夹创建成功:', folder)
+  loadFolderContent()
+}
+
+const handleCreateFolderError = (error: string) => {
+  alert(`创建文件夹失败：${error}`)
+}
+
+// 文件操作处理函数
+const openFileOperation = (operation: 'move' | 'copy' | 'share' | 'rename', item: IFileInfo | IFolderInfo, type: 'file' | 'folder') => {
+  fileOperation.value = operation
+  selectedFileItem.value = item
+  selectedItemType.value = type
+  showFileOperationDialog.value = true
+}
+
+const handleFileOperationSuccess = (result: any) => {
+  console.log('文件操作成功:', result)
+  if (fileOperation.value === 'share') {
+    // 显示分享链接
+    alert(`分享链接已创建：${result.shareUrl}`)
+  }
+  loadFolderContent()
+}
+
+const handleFileOperationError = (error: string) => {
+  alert(`操作失败：${error}`)
+}
+
 const batchDownload = () => {
   const fileItems = selectedItems.value.filter(item => item.type === 'file')
+  if (fileItems.length === 0) {
+    alert('请选择要下载的文件')
+    return
+  }
+
   fileItems.forEach(item => {
     const file = files.value.find(f => f.id === item.id)
     if (file) {
       const downloadUrl = fileApi.getDownloadUrl(file.id)
-      window.open(downloadUrl, '_blank')
+      // 使用延迟下载避免浏览器阻止多个下载
+      setTimeout(() => {
+        window.open(downloadUrl, '_blank')
+      }, 100 * fileItems.indexOf(item))
     }
   })
+
+  // 清除选择
+  selectedItems.value = []
 }
 
 const batchDelete = async () => {
-  if (!confirm('确定要删除选中的项目吗？此操作不可撤销。')) return
+  if (selectedItems.value.length === 0) {
+    alert('请选择要删除的项目')
+    return
+  }
+
+  const fileCount = selectedItems.value.filter(item => item.type === 'file').length
+  const folderCount = selectedItems.value.filter(item => item.type === 'folder').length
+  const message = `确定要删除选中的 ${fileCount} 个文件和 ${folderCount} 个文件夹吗？此操作不可撤销。`
+
+  if (!confirm(message)) return
 
   const fileIds = selectedItems.value.filter(item => item.type === 'file').map(item => item.id)
   const folderIds = selectedItems.value.filter(item => item.type === 'folder').map(item => item.id)
 
   try {
+    let successCount = 0
+    let errorCount = 0
+
+    // 批量删除文件
     if (fileIds.length > 0) {
-      await fileApi.batchDeleteFiles({ fileIds })
-    }
-    if (folderIds.length > 0) {
-      // 逐个删除文件夹，因为没有批量删除API
-      for (const folderId of folderIds) {
-        await folderApi.deleteFolder(folderId)
+      try {
+        await fileApi.batchDeleteFiles({ fileIds })
+        successCount += fileIds.length
+      } catch (error) {
+        console.error('批量删除文件失败:', error)
+        errorCount += fileIds.length
       }
     }
+
+    // 逐个删除文件夹
+    if (folderIds.length > 0) {
+      for (const folderId of folderIds) {
+        try {
+          await folderApi.deleteFolder(folderId)
+          successCount++
+        } catch (error) {
+          console.error(`删除文件夹 ${folderId} 失败:`, error)
+          errorCount++
+        }
+      }
+    }
+
+    // 显示结果
+    if (errorCount === 0) {
+      alert(`成功删除 ${successCount} 个项目`)
+    } else {
+      alert(`删除完成：成功 ${successCount} 个，失败 ${errorCount} 个`)
+    }
+
     selectedItems.value = []
     await loadFolderContent()
   } catch (error) {
-    console.error('Failed to delete items:', error)
-    alert('删除失败')
+    console.error('批量删除失败:', error)
+    alert('删除操作失败')
   }
 }
 
-const showContextMenu = (event: MouseEvent, item: any, type: 'file' | 'folder') => {
+const openContextMenu = (event: MouseEvent, item: any, type: 'file' | 'folder') => {
   event.preventDefault()
-  // TODO: 实现右键菜单
-  console.log('Context menu for', type, item)
+  contextMenuX.value = event.clientX
+  contextMenuY.value = event.clientY
+  contextMenuItem.value = item
+  contextMenuType.value = type
+  showContextMenu.value = true
+}
+
+const hideContextMenu = () => {
+  showContextMenu.value = false
+  contextMenuItem.value = null
+}
+
+const handleContextMenuAction = (action: string, item?: IFileInfo | IFolderInfo | null) => {
+  switch (action) {
+    case 'open':
+      if (item) {
+        if (contextMenuType.value === 'file') {
+          handleFileOpen(item as IFileInfo)
+        } else {
+          handleFolderOpen(item as IFolderInfo)
+        }
+      }
+      break
+    case 'download':
+      if (item && contextMenuType.value === 'file') {
+        handleFileDownload(item as IFileInfo)
+      }
+      break
+    case 'rename':
+      if (item && contextMenuType.value !== 'empty') {
+        openFileOperation('rename', item, contextMenuType.value as 'file' | 'folder')
+      }
+      break
+    case 'move':
+      if (item && contextMenuType.value !== 'empty') {
+        openFileOperation('move', item, contextMenuType.value as 'file' | 'folder')
+      }
+      break
+    case 'copy':
+      if (item && contextMenuType.value === 'file') {
+        openFileOperation('copy', item, 'file')
+      }
+      break
+    case 'share':
+      if (item && contextMenuType.value !== 'empty') {
+        openFileOperation('share', item, contextMenuType.value as 'file' | 'folder')
+      }
+      break
+    case 'delete':
+      if (item) {
+        if (contextMenuType.value === 'file') {
+          handleFileDelete(item as IFileInfo)
+        } else {
+          handleFolderDelete(item as IFolderInfo)
+        }
+      }
+      break
+    case 'upload':
+      showUploadDialog.value = true
+      break
+    case 'createFolder':
+      showCreateFolderDialog.value = true
+      break
+    case 'refresh':
+      loadFolderContent()
+      break
+  }
 }
 
 const handleSearch = async () => {
@@ -628,13 +909,116 @@ const clearSelection = () => {
 }
 
 const handleBatchMove = () => {
-  // TODO: 实现批量移动功能
-  console.log('Batch move:', selectedItems.value)
+  if (selectedItems.value.length === 0) {
+    alert('请选择要移动的项目')
+    return
+  }
+
+  // 打开批量移动对话框
+  openBatchOperation('move')
 }
 
 const handleBatchCopy = () => {
-  // TODO: 实现批量复制功能
-  console.log('Batch copy:', selectedItems.value)
+  if (selectedItems.value.length === 0) {
+    alert('请选择要复制的项目')
+    return
+  }
+
+  // 打开批量复制对话框
+  openBatchOperation('copy')
+}
+
+const openBatchOperation = (operation: 'move' | 'copy') => {
+  // 这里可以创建一个专门的批量操作对话框
+  // 暂时使用简单的实现
+  const targetSpaceId = prompt('请输入目标空间ID:')
+  const targetFolderId = prompt('请输入目标文件夹ID (留空表示根目录):')
+
+  if (targetSpaceId) {
+    if (operation === 'move') {
+      batchMoveItems(parseInt(targetSpaceId), targetFolderId ? parseInt(targetFolderId) : undefined)
+    } else {
+      batchCopyItems(parseInt(targetSpaceId), targetFolderId ? parseInt(targetFolderId) : undefined)
+    }
+  }
+}
+
+const batchMoveItems = async (targetSpaceId: number, targetFolderId?: number) => {
+  const fileIds = selectedItems.value.filter(item => item.type === 'file').map(item => item.id)
+  const folderIds = selectedItems.value.filter(item => item.type === 'folder').map(item => item.id)
+
+  try {
+    let successCount = 0
+    let errorCount = 0
+
+    // 批量移动文件
+    if (fileIds.length > 0) {
+      try {
+        await fileApi.batchMoveFiles({
+          fileIds,
+          targetSpaceId,
+          targetFolderId
+        })
+        successCount += fileIds.length
+      } catch (error) {
+        console.error('批量移动文件失败:', error)
+        errorCount += fileIds.length
+      }
+    }
+
+    // 逐个移动文件夹
+    if (folderIds.length > 0) {
+      for (const folderId of folderIds) {
+        try {
+          await folderApi.moveFolder(folderId, {
+            targetSpaceId,
+            targetParentFolderId: targetFolderId
+          })
+          successCount++
+        } catch (error) {
+          console.error(`移动文件夹 ${folderId} 失败:`, error)
+          errorCount++
+        }
+      }
+    }
+
+    // 显示结果
+    if (errorCount === 0) {
+      alert(`成功移动 ${successCount} 个项目`)
+    } else {
+      alert(`移动完成：成功 ${successCount} 个，失败 ${errorCount} 个`)
+    }
+
+    selectedItems.value = []
+    await loadFolderContent()
+  } catch (error) {
+    console.error('批量移动失败:', error)
+    alert('移动操作失败')
+  }
+}
+
+const batchCopyItems = async (targetSpaceId: number, targetFolderId?: number) => {
+  const fileIds = selectedItems.value.filter(item => item.type === 'file').map(item => item.id)
+
+  if (fileIds.length === 0) {
+    alert('当前只支持批量复制文件')
+    return
+  }
+
+  try {
+    await fileApi.batchCopyFiles({
+      fileIds,
+      targetSpaceId,
+      targetFolderId
+    })
+
+    alert(`成功复制 ${fileIds.length} 个文件`)
+    selectedItems.value = []
+    await loadFolderContent()
+  } catch (error) {
+    console.error('批量复制失败:', error)
+    alert('复制操作失败')
+  }
 }
 
 // 权限检查
