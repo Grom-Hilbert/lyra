@@ -50,6 +50,24 @@
           
           <!-- 账户安全 -->
           <div v-if="activeTab === 'security'" class="space-y-6">
+            <!-- 错误提示 -->
+            <Alert v-if="errorMessage" variant="destructive" class="animate-in slide-in-from-top-2">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+              <AlertDescription>{{ errorMessage }}</AlertDescription>
+            </Alert>
+
+            <!-- 成功提示 -->
+            <Alert v-if="successMessage" class="animate-in slide-in-from-top-2 border-green-500 text-green-700">
+              <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+              <AlertDescription>{{ successMessage }}</AlertDescription>
+            </Alert>
+
             <Card>
               <CardHeader>
                 <CardTitle class="flex items-center">
@@ -64,47 +82,43 @@
               </CardHeader>
               <CardContent class="space-y-4">
                 <form @submit.prevent="updatePassword" class="space-y-4">
-                  <FormField v-slot="{ field }" name="currentPassword">
-                    <FormItem>
-                      <FormLabel>当前密码</FormLabel>
-                      <FormControl>
-                        <Input 
-                          v-bind="field"
-                          type="password" 
-                          placeholder="输入当前密码"
-                          class="transition-all"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </FormField>
+                  <div class="space-y-4">
+                    <div>
+                      <Label for="currentPassword">当前密码</Label>
+                      <Input
+                        id="currentPassword"
+                        v-model="passwordFormData.currentPassword"
+                        type="password"
+                        placeholder="输入当前密码"
+                        :disabled="passwordForm.isSubmitting"
+                        class="transition-all"
+                      />
+                    </div>
 
-                  <FormField v-slot="{ field }" name="newPassword">
-                    <FormItem>
-                      <FormLabel>新密码</FormLabel>
-                      <FormControl>
-                        <Input 
-                          v-bind="field"
-                          type="password" 
-                          placeholder="输入新密码"
-                          class="transition-all"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </FormField>
+                    <div>
+                      <Label for="newPassword">新密码</Label>
+                      <Input
+                        id="newPassword"
+                        v-model="passwordFormData.newPassword"
+                        type="password"
+                        placeholder="输入新密码（至少6个字符）"
+                        :disabled="passwordForm.isSubmitting"
+                        class="transition-all"
+                      />
+                    </div>
 
-                  <FormField v-slot="{ field }" name="confirmPassword">
-                    <FormItem>
-                      <FormLabel>确认新密码</FormLabel>
-                      <FormControl>
-                        <Input 
-                          v-bind="field"
-                          type="password" 
-                          placeholder="再次输入新密码"
-                          class="transition-all"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  </FormField>
+                    <div>
+                      <Label for="confirmPassword">确认新密码</Label>
+                      <Input
+                        id="confirmPassword"
+                        v-model="passwordFormData.confirmPassword"
+                        type="password"
+                        placeholder="再次输入新密码"
+                        :disabled="passwordForm.isSubmitting"
+                        class="transition-all"
+                      />
+                    </div>
+                  </div>
 
                   <Button 
                     type="submit"
@@ -242,6 +256,16 @@
                 </div>
               </CardContent>
             </Card>
+
+            <!-- 保存偏好设置 -->
+            <div class="flex justify-end">
+              <Button
+                @click="savePreferences"
+                class="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
+              >
+                保存偏好设置
+              </Button>
+            </div>
           </div>
 
           <!-- 存储设置 -->
@@ -296,6 +320,34 @@
                   </div>
                   <Button variant="outline" size="sm">
                     清空
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <!-- 数据管理 -->
+            <Card>
+              <CardHeader>
+                <CardTitle>数据管理</CardTitle>
+                <CardDescription>
+                  导出或备份您的数据
+                </CardDescription>
+              </CardHeader>
+              <CardContent class="space-y-4">
+                <div class="flex justify-between items-center">
+                  <div>
+                    <p class="font-medium">导出用户数据</p>
+                    <p class="text-sm text-muted-foreground">下载包含您所有数据的JSON文件</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    @click="exportUserData"
+                  >
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    导出数据
                   </Button>
                 </div>
               </CardContent>
@@ -370,11 +422,15 @@
 
 <script setup lang="ts">
 import { ref, reactive, h } from 'vue'
+import { useUserStore } from '@/stores/user'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form'
+
+import { Alert, AlertDescription } from '@/components/ui/alert'
+
+const userStore = useUserStore()
 
 // 页面元数据
 defineOptions({
@@ -490,15 +546,60 @@ const buildInfo = reactive({
   buildTime: new Date().toLocaleDateString()
 })
 
+// 错误和成功消息
+const errorMessage = ref('')
+const successMessage = ref('')
+
+// 密码表单数据
+const passwordFormData = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
 // 方法
 const updatePassword = async () => {
+  // 验证表单
+  if (!passwordFormData.currentPassword || !passwordFormData.newPassword || !passwordFormData.confirmPassword) {
+    errorMessage.value = '请填写所有密码字段'
+    return
+  }
+
+  if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+    errorMessage.value = '新密码和确认密码不匹配'
+    return
+  }
+
+  if (passwordFormData.newPassword.length < 6) {
+    errorMessage.value = '新密码长度至少6个字符'
+    return
+  }
+
   passwordForm.isSubmitting = true
+  errorMessage.value = ''
+  successMessage.value = ''
+
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    console.log('Password updated successfully')
-  } catch (error) {
+    await userStore.changePassword(passwordFormData.currentPassword, passwordFormData.newPassword)
+    successMessage.value = '密码修改成功！'
+
+    // 清空表单
+    passwordFormData.currentPassword = ''
+    passwordFormData.newPassword = ''
+    passwordFormData.confirmPassword = ''
+
+    // 3秒后清除成功消息
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+
+  } catch (error: any) {
     console.error('Failed to update password:', error)
+    if (error.response?.status === 400) {
+      errorMessage.value = '当前密码不正确'
+    } else {
+      errorMessage.value = error.response?.data?.message || '密码修改失败，请稍后再试'
+    }
   } finally {
     passwordForm.isSubmitting = false
   }
@@ -514,6 +615,79 @@ const toggleTwoFactor = async () => {
     console.error('Failed to toggle two-factor authentication:', error)
   } finally {
     twoFactorLoading.value = false
+  }
+}
+
+// 保存偏好设置
+const savePreferences = async () => {
+  try {
+    // 这里可以调用API保存偏好设置
+    // await userApi.updatePreferences(preferences)
+
+    // 应用主题设置
+    applyTheme(preferences.theme)
+
+    successMessage.value = '偏好设置已保存！'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+
+  } catch (error: any) {
+    console.error('Failed to save preferences:', error)
+    errorMessage.value = '保存偏好设置失败，请稍后再试'
+  }
+}
+
+// 应用主题设置
+const applyTheme = (theme: string) => {
+  const root = document.documentElement
+
+  if (theme === 'dark') {
+    root.classList.add('dark')
+  } else if (theme === 'light') {
+    root.classList.remove('dark')
+  } else {
+    // 跟随系统
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+    if (prefersDark) {
+      root.classList.add('dark')
+    } else {
+      root.classList.remove('dark')
+    }
+  }
+}
+
+// 数据导出功能
+const exportUserData = async () => {
+  try {
+    // 这里可以调用API导出用户数据
+    // const response = await userApi.exportData()
+
+    // 模拟导出
+    const userData = {
+      profile: userStore.user,
+      preferences: preferences,
+      exportDate: new Date().toISOString()
+    }
+
+    const blob = new Blob([JSON.stringify(userData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `lyra-user-data-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    successMessage.value = '用户数据导出成功！'
+    setTimeout(() => {
+      successMessage.value = ''
+    }, 3000)
+
+  } catch (error: any) {
+    console.error('Failed to export user data:', error)
+    errorMessage.value = '导出用户数据失败，请稍后再试'
   }
 }
 

@@ -87,4 +87,14 @@ export const authApi = {
     const response = await request.get(`/api/auth/password/reset-validate?token=${token}`)
     return response.data
   },
+
+  // 上传头像
+  async uploadAvatar(formData: FormData): Promise<IApiResponse<{ avatarUrl: string }>> {
+    const response = await request.post('/api/auth/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+    return response.data
+  },
 }

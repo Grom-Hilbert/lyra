@@ -186,6 +186,21 @@ export const useUserStore = defineStore('user', {
       }
     },
 
+    // 上传头像
+    async uploadAvatar(formData: FormData): Promise<void> {
+      try {
+        const response = await authApi.uploadAvatar(formData)
+        if (response.success && response.data) {
+          // 更新用户信息中的头像URL
+          if (this.user) {
+            this.user.avatar = response.data.avatarUrl
+          }
+        }
+      } catch (error) {
+        throw error
+      }
+    },
+
     // 清除认证信息
     clearAuth() {
       this.user = null
