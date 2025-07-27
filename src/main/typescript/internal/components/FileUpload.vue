@@ -171,7 +171,7 @@
 
 <script setup lang="ts">
 import { ref, computed, defineEmits, defineProps } from 'vue'
-import { fileApi, fileUtils } from '@/apis/fileApi'
+import { fileApi, fileUtils } from '@/apis'
 import type { IFileInfo, FileUploadRequest } from '@/types/index'
 
 interface Props {
@@ -380,7 +380,7 @@ const uploadSingleFile = async (uploadFile: LocalUploadProgress): Promise<IFileI
   const formData = new FormData()
   formData.append('file', uploadFile.file)
   formData.append('spaceId', props.spaceId.toString())
-  
+
   if (props.folderId) {
     formData.append('folderId', props.folderId.toString())
   }

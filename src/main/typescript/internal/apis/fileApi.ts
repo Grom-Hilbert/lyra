@@ -375,4 +375,42 @@ export const fileUtils = {
     const baseUrl = `/api/files/${fileId}/download`
     return filename ? `${baseUrl}?filename=${encodeURIComponent(filename)}` : baseUrl
   },
+
+  // 检查上传状态（断点续传）
+  async checkUploadStatus(data: {
+    fileHash: string
+    filename: string
+    size: number
+    spaceId: number
+    folderId?: number
+  }): Promise<IApiResponse<{ uploadedBytes: number; uploadId: string }>> {
+    const response = await request.post('/api/files/check-upload', data)
+    return response.data
+  },
+
+  // 分片上传
+  async uploadChunk(data: FormData | ChunkedUploadChunkRequest): Promise<IApiResponse<void>> {
+    if (data instanceof FormData) {
+      const response = await request.post('/api/files/upload-chunk', data, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      })
+      return response.data
+    } else {
+      const response = await request.post('/api/files/upload/chunked/chunk', data)
+      return response.data
+    }
+  },
+
+  // 完成分片上传
+  async completeUpload(data: {
+    filename: string
+    totalChunks: number
+    spaceId: number
+    folderId?: number
+  }): Promise<IApiResponse<IFileInfo>> {
+    const response = await request.post('/api/files/complete-upload', data)
+    return response.data
+  },
 }

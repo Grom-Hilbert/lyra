@@ -49,8 +49,8 @@
             :current-folder-id="currentFolderId"
             @folder-select="selectFolder"
             @folder-create="() => showCreateFolderDialog = true"
-            @folder-rename="handleFolderRename"
-            @folder-delete="handleFolderDelete"
+            @folder-rename="handleFolderTreeRename"
+            @folder-delete="handleFolderTreeDelete"
           />
         </div>
       </div>
@@ -240,186 +240,26 @@
 
         <!-- 文件和文件夹列表 -->
         <div v-else>
-          <!-- 网格视图 -->
-          <div v-if="viewMode === 'grid'" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <!-- 文件夹 -->
-            <div
-              v-for="folder in folders"
-              :key="`folder-${folder.id}`"
-              class="relative group cursor-pointer"
-              @click="selectFolder(folder.id)"
-              @contextmenu="showContextMenu($event, folder, 'folder')"
-            >
-              <div class="flex flex-col items-center p-4 rounded-lg border-2 border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all">
-                <div class="flex-shrink-0 mb-3">
-                  <svg class="w-12 h-12 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                  </svg>
-                </div>
-                <div class="text-center w-full">
-                  <p class="text-sm font-medium text-foreground truncate">{{ folder.name }}</p>
-                  <p class="text-xs text-muted-foreground mt-1">{{ folder.fileCount }} 个文件</p>
-                </div>
-                <!-- 选择框 -->
-                <div class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <input
-                    type="checkbox"
-                    class="rounded border-border text-primary focus:ring-primary"
-                    :checked="isSelected(folder.id, 'folder')"
-                    @click.stop="toggleSelection(folder.id, 'folder')"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- 文件 -->
-            <div
-              v-for="file in files"
-              :key="`file-${file.id}`"
-              class="relative group cursor-pointer"
-              @click="handleFileClick(file)"
-              @contextmenu="showContextMenu($event, file, 'file')"
-            >
-              <div class="flex flex-col items-center p-4 rounded-lg border-2 border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all">
-                <div class="flex-shrink-0 mb-3">
-                  <!-- 文件缩略图或图标 -->
-                  <img
-                    v-if="getThumbnailUrl(file)"
-                    :src="getThumbnailUrl(file) || ''"
-                    :alt="getFileName(file)"
-                    class="w-12 h-12 object-cover rounded-lg"
-                  />
-                  <div v-else class="w-12 h-12 flex items-center justify-center rounded-lg bg-muted">
-                    <svg class="w-8 h-8 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
-                      <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clip-rule="evenodd"/>
-                    </svg>
-                  </div>
-                </div>
-                <div class="text-center w-full">
-                  <p class="text-sm font-medium text-foreground truncate" :title="getFileName(file)">{{ getFileName(file) }}</p>
-                  <p class="text-xs text-muted-foreground mt-1">{{ getFileSizeReadable(file) }}</p>
-                </div>
-                <!-- 选择框 -->
-                <div class="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <input
-                    type="checkbox"
-                    class="rounded border-border text-primary focus:ring-primary"
-                    :checked="isSelected(file.id, 'file')"
-                    @click.stop="toggleSelection(file.id, 'file')"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 列表视图 -->
-          <div v-else class="bg-card rounded-lg border border-border">
-            <table class="min-w-full divide-y divide-border">
-              <thead class="bg-muted/50">
-                <tr>
-                  <th class="px-6 py-3 text-left">
-                    <input
-                      type="checkbox"
-                      class="rounded border-border text-primary focus:ring-primary"
-                      :checked="isAllSelected"
-                      @change="toggleSelectAll"
-                    />
-                  </th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">名称</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">大小</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">修改时间</th>
-                  <th class="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">操作</th>
-                </tr>
-              </thead>
-              <tbody class="bg-card divide-y divide-border">
-                <!-- 文件夹行 -->
-                <tr
-                  v-for="folder in folders"
-                  :key="`folder-${folder.id}`"
-                  class="hover:bg-muted/50 cursor-pointer"
-                  @click="selectFolder(folder.id)"
-                >
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      class="rounded border-border text-primary focus:ring-primary"
-                      :checked="isSelected(folder.id, 'folder')"
-                      @click.stop="toggleSelection(folder.id, 'folder')"
-                    />
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                      <svg class="w-5 h-5 text-primary mr-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z"/>
-                      </svg>
-                      <div>
-                        <div class="text-sm font-medium text-foreground">{{ folder.name }}</div>
-                        <div class="text-sm text-muted-foreground">{{ folder.fileCount }} 个文件</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">-</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{{ formatDate(folder.updatedAt) }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    <button
-                      type="button"
-                      class="text-primary hover:text-primary/80"
-                      @click.stop="showContextMenu($event, folder, 'folder')"
-                    >
-                      更多
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- 文件行 -->
-                <tr
-                  v-for="file in files"
-                  :key="`file-${file.id}`"
-                  class="hover:bg-muted/50 cursor-pointer"
-                  @click="handleFileClick(file)"
-                >
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <input
-                      type="checkbox"
-                      class="rounded border-border text-primary focus:ring-primary"
-                      :checked="isSelected(file.id, 'file')"
-                      @click.stop="toggleSelection(file.id, 'file')"
-                    />
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="flex items-center">
-                      <img
-                        v-if="getThumbnailUrl(file)"
-                        :src="getThumbnailUrl(file) || ''"
-                        :alt="getFileName(file)"
-                        class="w-8 h-8 object-cover rounded mr-3"
-                      />
-                      <div v-else class="w-8 h-8 flex items-center justify-center rounded bg-muted mr-3">
-                        <svg class="w-4 h-4 text-muted-foreground" fill="currentColor" viewBox="0 0 20 20">
-                          <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd"/>
-                        </svg>
-                      </div>
-                      <div>
-                        <div class="text-sm font-medium text-foreground" :title="getFileName(file)">{{ getFileName(file) }}</div>
-                        <div class="text-sm text-muted-foreground">{{ getFileExtension(file).toUpperCase() || 'FILE' }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{{ getFileSizeReadable(file) }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">{{ formatDate(file.updatedAt) }}</td>
-                  <td class="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
-                    <button
-                      type="button"
-                      class="text-primary hover:text-primary/80"
-                      @click.stop="showContextMenu($event, file, 'file')"
-                    >
-                      更多
-                    </button>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <FileList
+            :files="files"
+            :folders="folders"
+            :view-mode="viewMode"
+            :loading="loading"
+            :selectable="true"
+            @file-select="handleFileSelect"
+            @file-open="handleFileOpen"
+            @file-download="handleFileDownload"
+            @file-delete="handleFileDelete"
+            @file-rename="handleFileRename"
+            @folder-open="handleFolderOpen"
+            @folder-delete="handleFolderDelete"
+            @folder-rename="handleFolderRename"
+            @selection-change="handleSelectionChange"
+            @batch-download="handleBatchDownload"
+            @batch-delete="handleBatchDelete"
+            @view-mode-change="handleViewModeChange"
+            @sort-change="handleSortChange"
+          />
         </div>
       </div>
     </div>
@@ -460,6 +300,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { fileApi, folderApi, spaceApi, searchApi } from '@/apis'
 import FileUpload from '@/components/FileUpload.vue'
 import FolderTree from '@/components/FolderTree.vue'
+import FileList from '@/components/FileList.vue'
 import type {
   IFileInfo,
   IFolderInfo,
@@ -744,27 +585,7 @@ const formatDate = (dateString: string): string => {
   })
 }
 
-const handleFolderRename = async (folderId: number, name: string) => {
-  try {
-    await folderApi.updateFolder(folderId, { name })
-    await loadFolderContent()
-  } catch (error) {
-    console.error('Failed to rename folder:', error)
-    alert('重命名失败')
-  }
-}
 
-const handleFolderDelete = async (folderId: number) => {
-  if (confirm('确定要删除这个文件夹吗？')) {
-    try {
-      await folderApi.deleteFolder(folderId)
-      await loadFolderContent()
-    } catch (error) {
-      console.error('Failed to delete folder:', error)
-      alert('删除失败')
-    }
-  }
-}
 
 // 新增功能方法
 const refreshContent = async () => {
@@ -857,6 +678,115 @@ const getThumbnailUrl = (file: IFileInfo): string | null => {
   return null
 }
 
+// FileList组件事件处理
+const handleFileSelect = (file: IFileInfo) => {
+  console.log('File selected:', file)
+}
+
+const handleFileOpen = (file: IFileInfo) => {
+  // TODO: 实现文件预览功能
+  console.log('Open file:', file)
+}
+
+const handleFileDownload = (file: IFileInfo) => {
+  const downloadUrl = fileApi.getDownloadUrl(file.id)
+  window.open(downloadUrl, '_blank')
+}
+
+const handleFileDelete = async (file: IFileInfo) => {
+  try {
+    const response = await fileApi.deleteFile(file.id)
+    if (response.success) {
+      await loadFolderContent()
+    }
+  } catch (error) {
+    console.error('Failed to delete file:', error)
+  }
+}
+
+const handleFileRename = async (file: IFileInfo, newName: string) => {
+  try {
+    const response = await fileApi.updateFile(file.id, { filename: newName })
+    if (response.success) {
+      await loadFolderContent()
+    }
+  } catch (error) {
+    console.error('Failed to rename file:', error)
+  }
+}
+
+const handleFolderOpen = (folder: IFolderInfo) => {
+  selectFolder(folder.id)
+}
+
+const handleFolderDelete = async (folder: IFolderInfo) => {
+  try {
+    const response = await folderApi.deleteFolder(folder.id)
+    if (response.success) {
+      await loadFolderContent()
+    }
+  } catch (error) {
+    console.error('Failed to delete folder:', error)
+  }
+}
+
+const handleFolderRename = async (folder: IFolderInfo, newName: string) => {
+  try {
+    const response = await folderApi.updateFolder(folder.id, { name: newName })
+    if (response.success) {
+      await loadFolderContent()
+    }
+  } catch (error) {
+    console.error('Failed to rename folder:', error)
+  }
+}
+
+const handleSelectionChange = (selectedItems: Array<{ type: 'file' | 'folder', id: number, item: IFileInfo | IFolderInfo }>) => {
+  // 更新选择状态
+  console.log('Selection changed:', selectedItems)
+}
+
+const handleBatchDownload = (selectedItems: Array<{ type: 'file' | 'folder', id: number }>) => {
+  // TODO: 实现批量下载
+  console.log('Batch download:', selectedItems)
+}
+
+const handleBatchDelete = async (selectedItems: Array<{ type: 'file' | 'folder', id: number }>) => {
+  // TODO: 实现批量删除
+  console.log('Batch delete:', selectedItems)
+}
+
+const handleViewModeChange = (mode: 'grid' | 'list') => {
+  viewMode.value = mode
+}
+
+const handleSortChange = (sortBy: string, direction: 'asc' | 'desc') => {
+  // TODO: 实现排序功能
+  console.log('Sort change:', sortBy, direction)
+}
+
+// FolderTree组件的适配器函数
+const handleFolderTreeRename = async (folderId: number, newName: string) => {
+  try {
+    const response = await folderApi.updateFolder(folderId, { name: newName })
+    if (response.success) {
+      await loadFolderContent()
+    }
+  } catch (error) {
+    console.error('Failed to rename folder:', error)
+  }
+}
+
+const handleFolderTreeDelete = async (folderId: number) => {
+  try {
+    const response = await folderApi.deleteFolder(folderId)
+    if (response.success) {
+      await loadFolderContent()
+    }
+  } catch (error) {
+    console.error('Failed to delete folder:', error)
+  }
+}
 
 </script>
 

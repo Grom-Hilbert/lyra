@@ -265,3 +265,33 @@ export interface SystemStatistics {
     usagePercentage: number
   }
 }
+
+// ==================== 断点续传相关类型 ====================
+export interface UploadStatusRequest {
+  fileHash: string
+  filename: string
+  size: number
+  spaceId: number
+  folderId?: number
+}
+
+export interface UploadStatusResponse {
+  uploadedBytes: number
+  uploadId: string
+}
+
+export interface ChunkUploadRequest {
+  chunk: Blob
+  chunkIndex: number
+  totalChunks: number
+  filename: string
+  spaceId: number
+  folderId?: number
+}
+
+export interface CompleteUploadRequest {
+  filename: string
+  totalChunks: number
+  spaceId: number
+  folderId?: number
+}
