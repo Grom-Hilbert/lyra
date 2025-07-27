@@ -120,7 +120,7 @@ class VersionServiceTest {
 
         when(storageService.store(any(InputStream.class), eq(testFile.getName()), eq(testFile.getMimeType())))
             .thenReturn(storageResult);
-        when(fileVersionRepository.findLatestByFile(testFile)).thenReturn(latestVersion);
+        when(fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(testFile)).thenReturn(latestVersion);
         when(fileVersionRepository.save(any(FileVersion.class))).thenReturn(newVersion);
 
         // When
@@ -194,7 +194,7 @@ class VersionServiceTest {
         newVersion.setChangeComment(changeComment);
 
         when(storageService.exists(storagePath)).thenReturn(true);
-        when(fileVersionRepository.findLatestByFile(testFile)).thenReturn(latestVersion);
+        when(fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(testFile)).thenReturn(latestVersion);
         when(fileVersionRepository.save(any(FileVersion.class))).thenReturn(newVersion);
 
         // When
@@ -269,7 +269,7 @@ class VersionServiceTest {
     @DisplayName("获取最新版本成功")
     void should_GetLatestVersionSuccessfully_When_VersionExists() {
         // Given
-        when(fileVersionRepository.findLatestByFile(testFile)).thenReturn(Optional.of(testVersion));
+        when(fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(testFile)).thenReturn(Optional.of(testVersion));
 
         // When
         Optional<FileVersion> result = versionService.getLatestVersion(testFile);
@@ -278,7 +278,7 @@ class VersionServiceTest {
         assertThat(result).isPresent();
         assertThat(result.get()).isEqualTo(testVersion);
 
-        verify(fileVersionRepository).findLatestByFile(testFile);
+        verify(fileVersionRepository).findFirstByFileOrderByVersionNumberDesc(testFile);
     }
 
     @Test
@@ -386,7 +386,7 @@ class VersionServiceTest {
         when(storageService.load(testVersion.getStoragePath())).thenReturn(Optional.of(contentStream));
         when(storageService.store(any(InputStream.class), eq(testFile.getName()), eq(testFile.getMimeType())))
             .thenReturn(storageResult);
-        when(fileVersionRepository.findLatestByFile(testFile)).thenReturn(Optional.of(testVersion));
+        when(fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(testFile)).thenReturn(Optional.of(testVersion));
         when(fileVersionRepository.save(any(FileVersion.class))).thenReturn(newVersion);
 
         // When
@@ -517,7 +517,7 @@ class VersionServiceTest {
     @DisplayName("获取下一个版本号成功")
     void should_GetNextVersionNumberSuccessfully_When_VersionsExist() {
         // Given
-        when(fileVersionRepository.findLatestByFile(testFile)).thenReturn(Optional.of(testVersion));
+        when(fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(testFile)).thenReturn(Optional.of(testVersion));
 
         // When
         Integer nextVersion = versionService.getNextVersionNumber(testFile);
@@ -525,14 +525,14 @@ class VersionServiceTest {
         // Then
         assertThat(nextVersion).isEqualTo(2);
 
-        verify(fileVersionRepository).findLatestByFile(testFile);
+        verify(fileVersionRepository).findFirstByFileOrderByVersionNumberDesc(testFile);
     }
 
     @Test
     @DisplayName("获取下一个版本号 - 无版本时返回1")
     void should_ReturnVersionOne_When_NoVersionsExist() {
         // Given
-        when(fileVersionRepository.findLatestByFile(testFile)).thenReturn(Optional.empty());
+        when(fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(testFile)).thenReturn(Optional.empty());
 
         // When
         Integer nextVersion = versionService.getNextVersionNumber(testFile);
@@ -540,7 +540,7 @@ class VersionServiceTest {
         // Then
         assertThat(nextVersion).isEqualTo(1);
 
-        verify(fileVersionRepository).findLatestByFile(testFile);
+        verify(fileVersionRepository).findFirstByFileOrderByVersionNumberDesc(testFile);
     }
 
     // ==================== 版本清理测试 ====================

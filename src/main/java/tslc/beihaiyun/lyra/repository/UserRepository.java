@@ -338,8 +338,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @return 更新行数
      */
     @Modifying
-    @Query("UPDATE User u SET u.status = :status WHERE u.id IN :userIds")
-    int updateStatusByIds(@Param("userIds") List<Long> userIds, @Param("status") User.UserStatus status);
+    @Query(value = "UPDATE users SET status = :status WHERE id IN :userIds AND is_deleted = false", nativeQuery = true)
+    int updateStatusByIds(@Param("userIds") List<Long> userIds, @Param("status") String status);
 
     /**
      * 查找活跃用户（指定天数内有登录记录的用户）

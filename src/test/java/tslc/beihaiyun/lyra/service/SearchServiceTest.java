@@ -143,7 +143,7 @@ class SearchServiceTest {
     void testGetSearchHistory() {
         // 准备测试数据
         List<SearchHistory> histories = Arrays.asList(testHistory);
-        when(searchHistoryRepository.findRecentByUserId(1L, 10)).thenReturn(histories);
+        when(searchHistoryRepository.findRecentByUserId(eq(1L), any(Pageable.class))).thenReturn(histories);
 
         // 执行测试
         List<SearchResponse.SearchHistory> results = searchService.getSearchHistory(1L, 10);
@@ -161,9 +161,9 @@ class SearchServiceTest {
         List<String> userSuggestions = Arrays.asList("test file", "test document");
         List<String> popularKeywords = Arrays.asList("popular", "trending");
         
-        when(searchHistoryRepository.findKeywordSuggestionsByUserIdAndPrefix(1L, "test", 5))
+        when(searchHistoryRepository.findKeywordSuggestionsByUserIdAndPrefix(eq(1L), eq("test"), any(Pageable.class)))
                 .thenReturn(userSuggestions);
-        when(searchHistoryRepository.findPopularKeywords(any(LocalDateTime.class), eq(5)))
+        when(searchHistoryRepository.findPopularKeywords(any(LocalDateTime.class), any(Pageable.class)))
                 .thenReturn(popularKeywords);
 
         // 执行测试
@@ -197,7 +197,7 @@ class SearchServiceTest {
     void testGetPopularKeywords() {
         // 准备测试数据
         List<String> keywords = Arrays.asList("popular", "trending", "search");
-        when(searchHistoryRepository.findPopularKeywords(any(LocalDateTime.class), eq(10)))
+        when(searchHistoryRepository.findPopularKeywords(any(LocalDateTime.class), any(Pageable.class)))
                 .thenReturn(keywords);
 
         // 执行测试

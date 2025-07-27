@@ -303,10 +303,10 @@ public class UserService {
     @Transactional
     public int batchUpdateUserStatus(List<Long> userIds, User.UserStatus status) {
         log.info("批量更新用户状态: {} -> {}", userIds.size(), status);
-        
-        int updatedCount = userRepository.updateStatusByIds(userIds, status);
+
+        int updatedCount = userRepository.updateStatusByIds(userIds, status.name());
         log.info("批量状态更新完成，影响行数: {}", updatedCount);
-        
+
         return updatedCount;
     }
 

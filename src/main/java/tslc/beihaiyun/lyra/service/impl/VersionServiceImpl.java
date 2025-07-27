@@ -4,6 +4,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -224,7 +225,7 @@ public class VersionServiceImpl implements VersionService {
         if (file == null) {
             return Optional.empty();
         }
-        return fileVersionRepository.findLatestByFile(file);
+        return fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(file);
     }
 
     @Override
@@ -233,7 +234,7 @@ public class VersionServiceImpl implements VersionService {
         if (file == null) {
             return Optional.empty();
         }
-        return fileVersionRepository.findFirstByFile(file);
+        return fileVersionRepository.findFirstByFileOrderByVersionNumberAsc(file);
     }
 
     @Override
@@ -265,7 +266,7 @@ public class VersionServiceImpl implements VersionService {
         if (file == null || limit <= 0) {
             return new ArrayList<>();
         }
-        return fileVersionRepository.findLatestVersionsByFile(file, limit);
+        return fileVersionRepository.findLatestVersionsByFile(file, PageRequest.of(0, limit));
     }
 
     @Override

@@ -333,7 +333,7 @@ class ComprehensiveRepositoryTest {
         List<FileVersion> versions = fileVersionRepository.findByFile(file);
         assertThat(versions).hasSize(1);
 
-        Optional<FileVersion> latestVersion = fileVersionRepository.findLatestByFile(file);
+        Optional<FileVersion> latestVersion = fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(file);
         assertThat(latestVersion).isPresent();
         assertThat(latestVersion.get().getVersionNumber()).isEqualTo(1);
     }

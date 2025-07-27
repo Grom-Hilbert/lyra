@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
@@ -74,6 +75,9 @@ class SystemManagementControllerTest {
     @Autowired
     private UserDetailsService userDetailsService;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     private static final String BASE_URL = "/api/admin/system";
     private static final String ADMIN_USERNAME = "admin";
     private static final String USER_USERNAME = "normaluser";
@@ -88,10 +92,10 @@ class SystemManagementControllerTest {
 
     @BeforeEach
     void setUp() {
-        // 清理数据
-        userRoleRepository.deleteAll();
-        userRepository.deleteAll();
-        roleRepository.deleteAll();
+        // 清理数据 - 使用物理删除避免软删除导致的唯一约束冲突
+        jdbcTemplate.execute("DELETE FROM user_roles");
+        jdbcTemplate.execute("DELETE FROM users");
+        jdbcTemplate.execute("DELETE FROM roles");
 
         // 创建角色
         adminRole = new Role();

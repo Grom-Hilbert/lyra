@@ -7,7 +7,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
@@ -39,6 +39,9 @@ public class DatabaseInitializationConfig {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    @Autowired
+    private DatabaseProperties databaseProperties;
+
     /**
      * 数据库初始化器
      * 在应用启动时执行数据库初始化脚本
@@ -48,7 +51,6 @@ public class DatabaseInitializationConfig {
      * @return 命令行执行器
      */
     @Bean
-    @Profile("!test")
     @ConditionalOnProperty(value = "lyra.database.init.enabled", havingValue = "true", matchIfMissing = true)
     public CommandLineRunner databaseInitializer(DataSource dataSource, JdbcTemplate jdbcTemplate) {
         return args -> {
@@ -127,7 +129,7 @@ public class DatabaseInitializationConfig {
 
     /**
      * 执行数据库初始化脚本
-     * 
+     *
      * @param dataSource 数据源
      */
     @Transactional
@@ -136,15 +138,22 @@ public class DatabaseInitializationConfig {
             ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
             populator.setContinueOnError(false);
             populator.setIgnoreFailedDrops(true);
-            
-            // 执行数据库模式脚本（如果需要）
-            log.info("执行数据库模式脚本");
-            populator.addScript(new ClassPathResource("db/schema.sql"));
-            
-            // 总是执行数据初始化脚本
-            log.info("执行数据初始化脚本");
-            populator.addScript(new ClassPathResource("db/data.sql"));
-            
+
+            // 根据数据库类型选择对应的SQL脚本
+            DatabaseType dbType = databaseProperties.getType();
+            String schemaSuffix = getSchemaSuffix(dbType);
+            String dataSuffix = getDataSuffix(dbType);
+
+            // 执行数据库模式脚本
+            String schemaScript = "db/schema" + schemaSuffix + ".sql";
+            log.info("执行数据库模式脚本: {}", schemaScript);
+            populator.addScript(new ClassPathResource(schemaScript));
+
+            // 执行数据初始化脚本
+            String dataScript = "db/data" + dataSuffix + ".sql";
+            log.info("执行数据初始化脚本: {}", dataScript);
+            populator.addScript(new ClassPathResource(dataScript));
+
             populator.execute(dataSource);
             log.info("数据库初始化脚本执行成功");
 
@@ -154,6 +163,36 @@ public class DatabaseInitializationConfig {
         } catch (Exception e) {
             log.error("执行数据库初始化脚本失败", e);
             throw new RuntimeException("数据库初始化脚本执行失败", e);
+        }
+    }
+
+    /**
+     * 根据数据库类型获取schema脚本后缀
+     */
+    private String getSchemaSuffix(DatabaseType dbType) {
+        switch (dbType) {
+            case MYSQL:
+                return "-mysql";
+            case POSTGRESQL:
+                return "-postgresql";
+            case SQLITE:
+            default:
+                return ""; // 默认使用原始的schema.sql（SQLite版本）
+        }
+    }
+
+    /**
+     * 根据数据库类型获取data脚本后缀
+     */
+    private String getDataSuffix(DatabaseType dbType) {
+        switch (dbType) {
+            case MYSQL:
+                return "-mysql";
+            case POSTGRESQL:
+                return "-postgresql";
+            case SQLITE:
+            default:
+                return ""; // 默认使用原始的data.sql（SQLite版本）
         }
     }
 

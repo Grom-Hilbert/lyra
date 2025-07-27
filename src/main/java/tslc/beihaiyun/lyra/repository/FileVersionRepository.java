@@ -43,21 +43,19 @@ public interface FileVersionRepository extends JpaRepository<FileVersion, Long> 
 
     /**
      * 根据文件查找最新版本
-     * 
+     *
      * @param file 文件实体
      * @return 最新版本（可选）
      */
-    @Query("SELECT fv FROM FileVersion fv WHERE fv.file = :file ORDER BY fv.versionNumber DESC LIMIT 1")
-    Optional<FileVersion> findLatestByFile(@Param("file") FileEntity file);
+    Optional<FileVersion> findFirstByFileOrderByVersionNumberDesc(FileEntity file);
 
     /**
      * 根据文件查找第一个版本
-     * 
+     *
      * @param file 文件实体
      * @return 第一个版本（可选）
      */
-    @Query("SELECT fv FROM FileVersion fv WHERE fv.file = :file ORDER BY fv.versionNumber ASC LIMIT 1")
-    Optional<FileVersion> findFirstByFile(@Param("file") FileEntity file);
+    Optional<FileVersion> findFirstByFileOrderByVersionNumberAsc(FileEntity file);
 
     /**
      * 根据文件分页查询版本列表
@@ -128,13 +126,13 @@ public interface FileVersionRepository extends JpaRepository<FileVersion, Long> 
 
     /**
      * 查询文件的指定数量的最新版本
-     * 
+     *
      * @param file 文件实体
-     * @param limit 限制数量
+     * @param pageable 分页参数
      * @return 最新版本列表
      */
-    @Query("SELECT fv FROM FileVersion fv WHERE fv.file = :file ORDER BY fv.versionNumber DESC LIMIT :limit")
-    List<FileVersion> findLatestVersionsByFile(@Param("file") FileEntity file, @Param("limit") int limit);
+    @Query("SELECT fv FROM FileVersion fv WHERE fv.file = :file ORDER BY fv.versionNumber DESC")
+    List<FileVersion> findLatestVersionsByFile(@Param("file") FileEntity file, Pageable pageable);
 
     /**
      * 查询文件指定版本号范围的版本
@@ -284,12 +282,12 @@ public interface FileVersionRepository extends JpaRepository<FileVersion, Long> 
 
     /**
      * 查询系统中最大的版本文件
-     * 
-     * @param limit 限制数量
+     *
+     * @param pageable 分页参数
      * @return 最大版本文件列表
      */
-    @Query("SELECT fv FROM FileVersion fv ORDER BY fv.sizeBytes DESC LIMIT :limit")
-    List<FileVersion> findLargestVersions(@Param("limit") int limit);
+    @Query("SELECT fv FROM FileVersion fv ORDER BY fv.sizeBytes DESC")
+    List<FileVersion> findLargestVersions(Pageable pageable);
 
     /**
      * 查询重复的版本（相同哈希值）

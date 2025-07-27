@@ -305,14 +305,14 @@ class UserServiceTest {
         // Arrange
         List<Long> userIds = Arrays.asList(1L, 2L, 3L);
         User.UserStatus newStatus = User.UserStatus.DISABLED;
-        when(userRepository.updateStatusByIds(userIds, newStatus)).thenReturn(3);
+        when(userRepository.updateStatusByIds(userIds, newStatus.name())).thenReturn(3);
 
         // Act
         int result = userService.batchUpdateUserStatus(userIds, newStatus);
 
         // Assert
         assertEquals(3, result);
-        verify(userRepository).updateStatusByIds(userIds, newStatus);
+        verify(userRepository).updateStatusByIds(userIds, newStatus.name());
     }
 
     // ========== 配额管理测试 ==========

@@ -9,6 +9,7 @@ import tslc.beihaiyun.lyra.service.PermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -111,7 +112,7 @@ public class SearchServiceImpl implements SearchService {
      */
     @Override
     public List<SearchResponse.SearchHistory> getSearchHistory(Long userId, int limit) {
-        List<SearchHistory> histories = searchHistoryRepository.findRecentByUserId(userId, limit);
+        List<SearchHistory> histories = searchHistoryRepository.findRecentByUserId(userId, PageRequest.of(0, limit));
         
         return histories.stream()
                 .map(this::convertToSearchHistoryDto)
@@ -129,7 +130,7 @@ public class SearchServiceImpl implements SearchService {
         
         // 基于用户历史的建议
         List<String> userSuggestions = searchHistoryRepository
-                .findKeywordSuggestionsByUserIdAndPrefix(userId, keyword, limit / 2);
+                .findKeywordSuggestionsByUserIdAndPrefix(userId, keyword, PageRequest.of(0, limit / 2));
         
         // 基于全局热门的建议
         List<String> globalSuggestions = getPopularKeywords(limit / 2);
@@ -169,7 +170,7 @@ public class SearchServiceImpl implements SearchService {
     @Override
     public List<String> getPopularKeywords(int limit) {
         LocalDateTime since = LocalDateTime.now().minusDays(30); // 最近30天的热门搜索
-        return searchHistoryRepository.findPopularKeywords(since, limit);
+        return searchHistoryRepository.findPopularKeywords(since, PageRequest.of(0, limit));
     }
 
     /**

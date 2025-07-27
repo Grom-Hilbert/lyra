@@ -105,7 +105,7 @@ public class DiffServiceImpl implements DiffService {
     @Override
     public DiffResult compareWithCurrentVersion(FileEntity file, Integer versionNumber) {
         try {
-            Optional<FileVersion> currentVersion = fileVersionRepository.findLatestByFile(file);
+            Optional<FileVersion> currentVersion = fileVersionRepository.findFirstByFileOrderByVersionNumberDesc(file);
             if (currentVersion.isEmpty()) {
                 return new DiffResult(DiffType.TEXT, "当前文件没有版本");
             }

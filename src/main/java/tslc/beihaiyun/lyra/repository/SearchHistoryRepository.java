@@ -30,13 +30,13 @@ public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Lo
 
     /**
      * 根据用户ID查询最近的搜索历史
-     * 
+     *
      * @param userId 用户ID
-     * @param limit 限制数量
+     * @param pageable 分页参数
      * @return 搜索历史列表
      */
-    @Query("SELECT sh FROM SearchHistory sh WHERE sh.userId = :userId ORDER BY sh.createdAt DESC LIMIT :limit")
-    List<SearchHistory> findRecentByUserId(@Param("userId") Long userId, @Param("limit") int limit);
+    @Query("SELECT sh FROM SearchHistory sh WHERE sh.userId = :userId ORDER BY sh.createdAt DESC")
+    List<SearchHistory> findRecentByUserId(@Param("userId") Long userId, Pageable pageable);
 
     /**
      * 根据用户ID和关键词查询搜索历史
@@ -49,30 +49,31 @@ public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Lo
 
     /**
      * 获取用户的搜索建议（基于历史关键词）
-     * 
+     *
      * @param userId 用户ID
      * @param prefix 关键词前缀
-     * @param limit 限制数量
+     * @param pageable 分页参数
      * @return 关键词列表
      */
     @Query("SELECT DISTINCT sh.keyword FROM SearchHistory sh WHERE sh.userId = :userId " +
            "AND LOWER(sh.keyword) LIKE LOWER(CONCAT(:prefix, '%')) " +
-           "ORDER BY sh.createdAt DESC LIMIT :limit")
-    List<String> findKeywordSuggestionsByUserIdAndPrefix(@Param("userId") Long userId, 
+           "ORDER BY sh.createdAt DESC")
+    List<String> findKeywordSuggestionsByUserIdAndPrefix(@Param("userId") Long userId,
                                                          @Param("prefix") String prefix,
-                                                         @Param("limit") int limit);
+                                                         Pageable pageable);
 
     /**
      * 获取全局热门搜索关键词
-     * 
-     * @param limit 限制数量
+     *
+     * @param since 起始时间
+     * @param pageable 分页参数
      * @return 关键词列表
      */
     @Query("SELECT sh.keyword, COUNT(sh.keyword) as cnt FROM SearchHistory sh " +
            "WHERE sh.createdAt >= :since " +
            "GROUP BY sh.keyword " +
-           "ORDER BY cnt DESC LIMIT :limit")
-    List<String> findPopularKeywords(@Param("since") LocalDateTime since, @Param("limit") int limit);
+           "ORDER BY cnt DESC")
+    List<String> findPopularKeywords(@Param("since") LocalDateTime since, Pageable pageable);
 
     /**
      * 根据用户ID删除搜索历史
@@ -115,16 +116,16 @@ public interface SearchHistoryRepository extends JpaRepository<SearchHistory, Lo
 
     /**
      * 查询用户最频繁搜索的关键词
-     * 
+     *
      * @param userId 用户ID
-     * @param limit 限制数量
+     * @param pageable 分页参数
      * @return 关键词列表
      */
     @Query("SELECT sh.keyword, COUNT(sh.keyword) as cnt FROM SearchHistory sh " +
            "WHERE sh.userId = :userId " +
            "GROUP BY sh.keyword " +
-           "ORDER BY cnt DESC LIMIT :limit")
-    List<String> findMostSearchedKeywordsByUserId(@Param("userId") Long userId, @Param("limit") int limit);
+           "ORDER BY cnt DESC")
+    List<String> findMostSearchedKeywordsByUserId(@Param("userId") Long userId, Pageable pageable);
 
     /**
      * 检查用户是否搜索过某个关键词
