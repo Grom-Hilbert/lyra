@@ -172,7 +172,7 @@
 <script setup lang="ts">
 import { ref, computed, defineEmits, defineProps } from 'vue'
 import { fileApi, fileUtils } from '@/apis/fileApi'
-import type { FileInfo, UploadProgress } from '@/types/file'
+import type { IFileInfo, FileUploadRequest } from '@/types/index'
 
 interface Props {
   spaceId: number
@@ -183,10 +183,21 @@ interface Props {
   disabled?: boolean
 }
 
+interface LocalUploadProgress {
+  id: string
+  filename: string
+  name: string
+  progress: number
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'completed'
+  file: File
+  size: number
+  error?: string
+}
+
 interface Emits {
-  (e: 'upload-success', files: FileInfo[]): void
+  (e: 'upload-success', files: IFileInfo[]): void
   (e: 'upload-error', error: string): void
-  (e: 'upload-progress', progress: UploadProgress[]): void
+  (e: 'upload-progress', progress: LocalUploadProgress[]): void
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -202,7 +213,7 @@ const emit = defineEmits<Emits>()
 const dropZone = ref<HTMLElement>()
 const fileInput = ref<HTMLInputElement>()
 const isDragOver = ref(false)
-const uploadFiles = ref<UploadProgress[]>([])
+const uploadFiles = ref<LocalUploadProgress[]>([])
 const isUploading = ref(false)
 
 // 计算属性
@@ -211,7 +222,7 @@ const acceptedFileTypes = computed(() => {
 })
 
 const totalSize = computed(() => {
-  return uploadFiles.value.reduce((sum, file) => sum + (file.size || 0), 0)
+  return uploadFiles.value.reduce((sum: number, file: LocalUploadProgress) => sum + (file.size || 0), 0)
 })
 
 // 格式化文件大小
@@ -304,7 +315,7 @@ const validateFile = (file: File): boolean => {
 
 // 移除文件
 const removeFile = (fileId: string) => {
-  const index = uploadFiles.value.findIndex(f => f.id === fileId)
+  const index = uploadFiles.value.findIndex((f: LocalUploadProgress) => f.id === fileId)
   if (index > -1) {
     uploadFiles.value.splice(index, 1)
   }
@@ -321,7 +332,7 @@ const startUpload = async () => {
 
   isUploading.value = true
   const uploadPromises: Promise<void>[] = []
-  const successFiles: FileInfo[] = []
+  const successFiles: IFileInfo[] = []
 
   for (const uploadFile of uploadFiles.value) {
     if (uploadFile.status === 'completed') continue
@@ -363,7 +374,7 @@ const startUpload = async () => {
 }
 
 // 上传单个文件
-const uploadSingleFile = async (uploadFile: UploadProgress): Promise<FileInfo | null> => {
+const uploadSingleFile = async (uploadFile: LocalUploadProgress): Promise<IFileInfo | null> => {
   if (!uploadFile.file) return null
 
   const formData = new FormData()
@@ -375,12 +386,21 @@ const uploadSingleFile = async (uploadFile: UploadProgress): Promise<FileInfo | 
   }
 
   try {
-    const response = await fileApi.upload(formData, (progress) => {
+    const uploadRequest: FileUploadRequest = {
+      file: uploadFile.file,
+      spaceId: props.spaceId,
+      folderId: props.folderId
+    }
+
+    const response = await fileApi.upload(uploadRequest, (progress) => {
       uploadFile.progress = progress
       emit('upload-progress', uploadFiles.value)
     })
 
-    return response.file
+    if (response.success && response.data) {
+      return response.data
+    }
+    throw new Error('上传失败')
   } catch (error) {
     throw error
   }

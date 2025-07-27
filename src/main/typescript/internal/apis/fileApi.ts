@@ -1,37 +1,35 @@
 import request from './request'
 import type {
-  FileInfo,
+  IFileInfo,
   FileUploadRequest,
   FileUploadResponse,
   ChunkedUploadInitRequest,
   ChunkedUploadInitResponse,
-  FileUpdateRequest,
-  FileCopyRequest,
-  FileMoveRequest,
+  ChunkedUploadChunkRequest,
+  ChunkedUploadCompleteRequest,
   FileSearchRequest,
-  FileStatistics,
-  FolderInfo,
+  IFolderInfo,
   CreateFolderRequest,
-  UpdateFolderRequest,
-  MoveFolderRequest,
-  CopyFolderRequest,
   FolderTreeNode,
-  FolderContent,
-  FolderSearchRequest,
-  BatchFolderOperationRequest,
-  BatchFileOperationRequest,
-  ApiResponse,
-  PageResponse,
-  PaginationParams,
-  FilterOption,
-  SortOption
-} from '@/types/file'
+  IApiResponse,
+  IPagedResponse
+} from '@/types/index'
 
-// 文件相关API
+// ==================== 文件管理API ====================
 export const fileApi = {
   // 上传文件
-  async upload(data: FormData, onProgress?: (progress: number) => void): Promise<FileUploadResponse> {
-    const response = await request.post('/files/upload', data, {
+  async upload(data: FileUploadRequest, onProgress?: (progress: number) => void): Promise<IApiResponse<IFileInfo>> {
+    const formData = new FormData()
+    formData.append('file', data.file)
+    formData.append('spaceId', data.spaceId.toString())
+    if (data.folderId) {
+      formData.append('folderId', data.folderId.toString())
+    }
+    if (data.description) {
+      formData.append('description', data.description)
+    }
+
+    const response = await request.post('/api/files/upload', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -46,108 +44,173 @@ export const fileApi = {
   },
 
   // 分块上传初始化
-  async initChunkedUpload(data: ChunkedUploadInitRequest): Promise<ChunkedUploadInitResponse> {
-    const response = await request.post('/files/upload/chunked/init', data)
+  async initChunkedUpload(data: ChunkedUploadInitRequest): Promise<IApiResponse<ChunkedUploadInitResponse>> {
+    const response = await request.post('/api/files/upload/chunked/init', data)
     return response.data
   },
 
   // 上传分块
-  async uploadChunk(uploadId: string, chunkNumber: number, chunk: Blob, chunkMd5?: string): Promise<void> {
+  async uploadChunk(data: ChunkedUploadChunkRequest): Promise<IApiResponse<void>> {
     const formData = new FormData()
-    formData.append('uploadId', uploadId)
-    formData.append('chunkNumber', chunkNumber.toString())
-    formData.append('chunk', chunk)
-    if (chunkMd5) {
-      formData.append('chunkMd5', chunkMd5)
-    }
+    formData.append('uploadId', data.uploadId)
+    formData.append('chunkIndex', data.chunkIndex.toString())
+    formData.append('chunk', data.chunk)
 
-    await request.post('/files/upload/chunked/chunk', formData, {
+    const response = await request.post('/api/files/upload/chunked/chunk', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
     })
+    return response.data
   },
 
   // 完成分块上传
-  async completeChunkedUpload(uploadId: string, totalChunks: number): Promise<FileInfo> {
-    const response = await request.post('/files/upload/chunked/complete', {
-      uploadId,
-      totalChunks,
-    })
+  async completeChunkedUpload(data: ChunkedUploadCompleteRequest): Promise<IApiResponse<IFileInfo>> {
+    const response = await request.post('/api/files/upload/chunked/complete', data)
     return response.data
   },
 
   // 获取文件信息
-  async getFileInfo(fileId: number): Promise<FileInfo> {
-    const response = await request.get(`/files/${fileId}`)
+  async getFileInfo(fileId: number): Promise<IApiResponse<IFileInfo>> {
+    const response = await request.get(`/api/files/${fileId}`)
     return response.data
   },
 
   // 更新文件信息
-  async updateFile(fileId: number, data: FileUpdateRequest): Promise<FileInfo> {
-    const response = await request.put(`/files/${fileId}`, data)
+  async updateFile(fileId: number, data: { filename?: string; description?: string }): Promise<IApiResponse<IFileInfo>> {
+    const response = await request.put(`/api/files/${fileId}`, data)
     return response.data
   },
 
   // 删除文件
-  async deleteFile(fileId: number): Promise<void> {
-    await request.delete(`/files/${fileId}`)
+  async deleteFile(fileId: number): Promise<IApiResponse<void>> {
+    const response = await request.delete(`/api/files/${fileId}`)
+    return response.data
   },
 
-  // 下载文件
-  downloadFile(fileId: number): string {
+  // 下载文件URL
+  getDownloadUrl(fileId: number): string {
     return `/api/files/${fileId}/download`
   },
 
-  // 复制文件
-  async copyFile(fileId: number, data: FileCopyRequest): Promise<FileInfo> {
-    const response = await request.post(`/files/${fileId}/copy`, data)
+  // 搜索文件 (GET方式)
+  async searchFiles(params: {
+    spaceId: number
+    query?: string
+    mimeType?: string
+    includeDeleted?: boolean
+    page?: number
+    size?: number
+    sort?: string
+    direction?: 'asc' | 'desc'
+  }): Promise<IApiResponse<any>> {
+    const response = await request.get('/api/files/search', { params })
     return response.data
   },
 
-  // 移动文件
-  async moveFile(fileId: number, data: FileMoveRequest): Promise<FileInfo> {
-    const response = await request.post(`/files/${fileId}/move`, data)
+  // 搜索文件 (POST方式)
+  async searchFilesPost(data: FileSearchRequest): Promise<IApiResponse<any>> {
+    const response = await request.post('/api/files/search', data)
     return response.data
   },
 
-  // 搜索文件
-  async searchFiles(
-    params: FileSearchRequest & PaginationParams
-  ): Promise<PageResponse<FileInfo>> {
-    const response = await request.get('/files/search', { params })
+  // 获取空间文件列表
+  async getFilesBySpace(params: {
+    spaceId: number
+    folderId?: number
+    page?: number
+    size?: number
+    sort?: string
+    direction?: 'asc' | 'desc'
+  }): Promise<IApiResponse<any>> {
+    const response = await request.get(`/api/files/space/${params.spaceId}`, {
+      params: { ...params, spaceId: undefined }
+    })
     return response.data
   },
 
   // 获取文件统计
-  async getFileStatistics(spaceId?: number): Promise<FileStatistics> {
-    const response = await request.get('/files/statistics', {
-      params: spaceId ? { spaceId } : undefined,
+  async getFileStatistics(spaceId: number): Promise<IApiResponse<any>> {
+    const response = await request.get(`/api/files/space/${spaceId}/statistics`)
+    return response.data
+  },
+
+  // 批量上传文件
+  async batchUpload(data: {
+    files: File[]
+    spaceId: number
+    folderId?: number
+  }, onProgress?: (progress: number) => void): Promise<IApiResponse<any>> {
+    const formData = new FormData()
+    data.files.forEach(file => formData.append('files', file))
+    formData.append('spaceId', data.spaceId.toString())
+    if (data.folderId) {
+      formData.append('folderId', data.folderId.toString())
+    }
+
+    const response = await request.post('/api/files/batch-upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      onUploadProgress: (progressEvent) => {
+        if (onProgress && progressEvent.total) {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total)
+          onProgress(progress)
+        }
+      },
     })
     return response.data
   },
 
   // 批量删除文件
-  async batchDeleteFiles(fileIds: number[]): Promise<void> {
-    await request.post('/files/batch/delete', { fileIds })
+  async batchDeleteFiles(data: { fileIds: number[] }): Promise<IApiResponse<any>> {
+    const response = await request.post('/api/files/batch/delete', data)
+    return response.data
   },
 
   // 批量移动文件
-  async batchMoveFiles(fileIds: number[], targetFolderId: number, targetSpaceId?: number): Promise<void> {
-    await request.post('/files/batch/move', {
-      fileIds,
-      targetFolderId,
-      targetSpaceId,
-    })
+  async batchMoveFiles(data: {
+    fileIds: number[]
+    targetFolderId?: number
+    targetSpaceId?: number
+  }): Promise<IApiResponse<any>> {
+    const response = await request.post('/api/files/batch/move', data)
+    return response.data
   },
 
   // 批量复制文件
-  async batchCopyFiles(fileIds: number[], targetFolderId: number, targetSpaceId?: number): Promise<void> {
-    await request.post('/files/batch/copy', {
-      fileIds,
-      targetFolderId,
-      targetSpaceId,
-    })
+  async batchCopyFiles(data: {
+    fileIds: number[]
+    targetFolderId?: number
+    targetSpaceId?: number
+  }): Promise<IApiResponse<any>> {
+    const response = await request.post('/api/files/batch/copy', data)
+    return response.data
+  },
+
+  // 移动文件
+  async moveFile(fileId: number, data: {
+    targetFolderId?: number
+    targetSpaceId?: number
+  }): Promise<IApiResponse<any>> {
+    const response = await request.post(`/api/files/${fileId}/move`, data)
+    return response.data
+  },
+
+  // 复制文件
+  async copyFile(fileId: number, data: {
+    targetFolderId?: number
+    targetSpaceId?: number
+    newName?: string
+  }): Promise<IApiResponse<any>> {
+    const response = await request.post(`/api/files/${fileId}/copy`, data)
+    return response.data
+  },
+
+  // 重命名文件
+  async renameFile(fileId: number, data: { newName: string }): Promise<IApiResponse<any>> {
+    const response = await request.post(`/api/files/${fileId}/rename`, data)
+    return response.data
   },
 
   // 获取文件预览URL
@@ -161,109 +224,59 @@ export const fileApi = {
   },
 }
 
-// 文件夹相关API
+// ==================== 文件夹管理API ====================
 export const folderApi = {
   // 创建文件夹
-  async createFolder(data: CreateFolderRequest): Promise<FolderInfo> {
-    const response = await request.post('/folders', data)
+  async createFolder(data: CreateFolderRequest): Promise<IApiResponse<IFolderInfo>> {
+    const response = await request.post('/api/folders', data)
     return response.data
   },
 
   // 获取文件夹列表
   async getFolders(params: {
-    spaceId?: number
+    spaceId: number
     parentId?: number
     page?: number
     size?: number
-    sort?: SortOption
-  } = {}): Promise<PageResponse<FolderInfo>> {
-    const response = await request.get('/folders', { params })
+    sort?: string
+    direction?: 'asc' | 'desc'
+  }): Promise<IPagedResponse<IFolderInfo>> {
+    const response = await request.get('/api/folders', { params })
     return response.data
   },
 
   // 获取文件夹详情
-  async getFolderDetail(folderId: number): Promise<FolderInfo> {
-    const response = await request.get(`/folders/${folderId}`)
-    return response.data
-  },
-
-  // 获取文件夹内容
-  async getFolderContent(
-    folderId: number,
-    params: PaginationParams & FilterOption = { page: 0, size: 20 }
-  ): Promise<FolderContent> {
-    const response = await request.get(`/folders/${folderId}/content`, { params })
+  async getFolderDetail(folderId: number): Promise<IApiResponse<IFolderInfo>> {
+    const response = await request.get(`/api/folders/${folderId}`)
     return response.data
   },
 
   // 更新文件夹
-  async updateFolder(folderId: number, data: UpdateFolderRequest): Promise<FolderInfo> {
-    const response = await request.put(`/folders/${folderId}`, data)
+  async updateFolder(folderId: number, data: { name?: string; description?: string }): Promise<IApiResponse<IFolderInfo>> {
+    const response = await request.put(`/api/folders/${folderId}`, data)
     return response.data
   },
 
   // 删除文件夹
-  async deleteFolder(folderId: number): Promise<void> {
-    await request.delete(`/folders/${folderId}`)
-  },
-
-  // 移动文件夹
-  async moveFolder(folderId: number, data: MoveFolderRequest): Promise<FolderInfo> {
-    const response = await request.post(`/folders/${folderId}/move`, data)
+  async deleteFolder(folderId: number): Promise<IApiResponse<void>> {
+    const response = await request.delete(`/api/folders/${folderId}`)
     return response.data
   },
 
-  // 复制文件夹
-  async copyFolder(folderId: number, data: CopyFolderRequest): Promise<FolderInfo> {
-    const response = await request.post(`/folders/${folderId}/copy`, data)
-    return response.data
-  },
-
-  // 获取文件夹树
-  async getFolderTree(spaceId?: number, maxDepth?: number): Promise<FolderTreeNode[]> {
-    const response = await request.get('/folders/tree', {
-      params: { spaceId, maxDepth },
-    })
-    return response.data
-  },
-
-  // 搜索文件夹
-  async searchFolders(
-    params: FolderSearchRequest & PaginationParams
-  ): Promise<PageResponse<FolderInfo>> {
-    const response = await request.get('/folders/search', { params })
-    return response.data
-  },
-
-  // 批量删除文件夹
-  async batchDeleteFolders(folderIds: number[]): Promise<void> {
-    await request.post('/folders/batch/delete', { folderIds })
-  },
-
-  // 批量移动文件夹
-  async batchMoveFolders(
-    folderIds: number[], 
-    targetParentId: number, 
-    targetSpaceId?: number
-  ): Promise<void> {
-    await request.post('/folders/batch/move', {
-      folderIds,
-      targetParentId,
-      targetSpaceId,
-    })
-  },
-
-  // 获取面包屑导航
-  async getBreadcrumb(folderId: number): Promise<Array<{ id: number; name: string; path: string }>> {
-    const response = await request.get(`/folders/${folderId}/breadcrumb`)
+  // 获取文件夹树结构
+  async getFolderTree(params: {
+    spaceId: number
+    maxDepth?: number
+  }): Promise<IApiResponse<FolderTreeNode[]>> {
+    const response = await request.get('/api/folders/tree', { params })
     return response.data
   },
 }
 
-// 空间相关API（简化版，用于文件管理）
+// ==================== 空间管理API (简化版) ====================
 export const spaceApi = {
   // 获取用户空间列表
-  async getUserSpaces(): Promise<Array<{
+  async getUserSpaces(): Promise<IApiResponse<Array<{
     id: number
     name: string
     type: 'PERSONAL' | 'TEAM' | 'PUBLIC'
@@ -276,19 +289,19 @@ export const spaceApi = {
       totalReadable: string
       usagePercentage: number
     }
-  }>> {
-    const response = await request.get('/spaces/user')
+  }>>> {
+    const response = await request.get('/api/spaces/user')
     return response.data
   },
 
   // 获取空间根文件夹
-  async getSpaceRootFolder(spaceId: number): Promise<FolderInfo> {
-    const response = await request.get(`/spaces/${spaceId}/root`)
+  async getSpaceRootFolder(spaceId: number): Promise<IApiResponse<IFolderInfo>> {
+    const response = await request.get(`/api/spaces/${spaceId}/root`)
     return response.data
   },
 }
 
-// 工具函数
+// ==================== 工具函数 ====================
 export const fileUtils = {
   // 格式化文件大小
   formatFileSize(bytes: number): string {
@@ -337,11 +350,6 @@ export const fileUtils = {
     return editableTypes.some(type => mimeType.startsWith(type))
   },
 
-  // 生成文件缩略图URL
-  generateThumbnailUrl(fileId: number, size: 'small' | 'medium' | 'large' = 'medium'): string {
-    return `/api/files/${fileId}/thumbnail?size=${size}`
-  },
-
   // 验证文件名
   validateFileName(name: string): { isValid: boolean; error?: string } {
     if (!name.trim()) {
@@ -367,4 +375,4 @@ export const fileUtils = {
     const baseUrl = `/api/files/${fileId}/download`
     return filename ? `${baseUrl}?filename=${encodeURIComponent(filename)}` : baseUrl
   },
-} 
+}

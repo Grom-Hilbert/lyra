@@ -47,18 +47,20 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       try {
         const response = await authApi.login(loginForm)
-        
-        this.token = response.token || null
-        this.refreshToken = response.refreshToken || null
-        this.user = response.user || null
-        this.isAuthenticated = true
 
-        // 保存到本地存储
-        if (response.token) {
-          localStorage.setItem('token', response.token)
-        }
-        if (response.refreshToken) {
-          localStorage.setItem('refreshToken', response.refreshToken)
+        if (response.success && response.data) {
+          this.token = response.data.accessToken || null
+          this.refreshToken = response.data.refreshToken || null
+          this.user = response.data.user || null
+          this.isAuthenticated = true
+
+          // 保存到本地存储
+          if (response.data.accessToken) {
+            localStorage.setItem('token', response.data.accessToken)
+          }
+          if (response.data.refreshToken) {
+            localStorage.setItem('refreshToken', response.data.refreshToken)
+          }
         }
         
         return response
@@ -75,17 +77,9 @@ export const useUserStore = defineStore('user', {
       this.loading = true
       try {
         const response = await authApi.register(registerForm)
-        
-        // 注册成功后自动登录
-        if (response.autoLogin && response.token && response.refreshToken && response.user) {
-          this.token = response.token
-          this.refreshToken = response.refreshToken
-          this.user = response.user
-          this.isAuthenticated = true
 
-          localStorage.setItem('token', response.token)
-          localStorage.setItem('refreshToken', response.refreshToken)
-        }
+        // 注册成功，但通常需要邮箱验证，不自动登录
+        // 如果后端返回了用户信息，说明注册成功
         
         return response
       } catch (error) {
@@ -117,15 +111,17 @@ export const useUserStore = defineStore('user', {
 
       try {
         const response = await authApi.refreshToken(this.refreshToken)
-        
-        this.token = response.token || null
-        this.refreshToken = response.refreshToken || null
-        
-        if (response.token) {
-          localStorage.setItem('token', response.token)
-        }
-        if (response.refreshToken) {
-          localStorage.setItem('refreshToken', response.refreshToken)
+
+        if (response.success && response.data) {
+          this.token = response.data.accessToken || null
+          this.refreshToken = response.data.refreshToken || null
+
+          if (response.data.accessToken) {
+            localStorage.setItem('token', response.data.accessToken)
+          }
+          if (response.data.refreshToken) {
+            localStorage.setItem('refreshToken', response.data.refreshToken)
+          }
         }
         
         return true
@@ -142,10 +138,13 @@ export const useUserStore = defineStore('user', {
       }
 
       try {
-        const user = await authApi.getCurrentUser()
-        this.user = user
-        this.isAuthenticated = true
-        return true
+        const response = await authApi.getCurrentUser()
+        if (response.success && response.data) {
+          this.user = response.data
+          this.isAuthenticated = true
+          return true
+        }
+        return false
       } catch (error) {
         this.clearAuth()
         return false
@@ -155,9 +154,12 @@ export const useUserStore = defineStore('user', {
     // 更新用户信息
     async updateProfile(userInfo: Partial<IUser>) {
       try {
-        const updatedUser = await authApi.updateProfile(userInfo)
-        this.user = updatedUser
-        return updatedUser
+        const response = await authApi.updateProfile(userInfo)
+        if (response.success && response.data) {
+          this.user = response.data
+          return response.data
+        }
+        throw new Error('更新失败')
       } catch (error) {
         throw error
       }
@@ -166,7 +168,11 @@ export const useUserStore = defineStore('user', {
     // 修改密码
     async changePassword(oldPassword: string, newPassword: string) {
       try {
-        await authApi.changePassword(oldPassword, newPassword)
+        await authApi.changePassword({
+          oldPassword,
+          newPassword,
+          confirmPassword: newPassword
+        })
         return true
       } catch (error) {
         throw error

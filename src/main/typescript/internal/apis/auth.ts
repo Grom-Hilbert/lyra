@@ -1,87 +1,84 @@
 import request from './request'
-import type { IUser, ILoginForm, IRegisterForm, IApiResponse } from '@/types'
+import type {
+  IUser,
+  ILoginForm,
+  IRegisterForm,
+  IApiResponse,
+  LoginResponse,
+  RegisterResponse,
+  RefreshTokenResponse
+} from '@/types/index'
 
-// 登录响应
-export interface LoginResponse {
-  token: string
-  refreshToken: string
-  user: IUser
-}
-
-// 注册响应
-export interface RegisterResponse {
-  message: string
-  autoLogin?: boolean
-  token?: string
-  refreshToken?: string
-  user?: IUser
-}
-
-// 刷新令牌响应
-export interface RefreshTokenResponse {
-  token: string
-  refreshToken: string
-}
-
+// ==================== 认证API ====================
 export const authApi = {
   // 用户登录
-  login: (data: ILoginForm): Promise<LoginResponse> => {
-    return request.post('/api/auth/login', data)
+  async login(data: ILoginForm): Promise<IApiResponse<LoginResponse>> {
+    const response = await request.post('/api/auth/login', data)
+    return response.data
   },
 
   // 用户注册
-  register: (data: IRegisterForm): Promise<RegisterResponse> => {
-    return request.post('/api/auth/register', data)
+  async register(data: IRegisterForm): Promise<IApiResponse<RegisterResponse>> {
+    const response = await request.post('/api/auth/register', data)
+    return response.data
   },
 
   // 用户登出
-  logout: (): Promise<IApiResponse> => {
-    return request.post('/api/auth/logout')
+  async logout(data?: { logoutAllDevices?: boolean }): Promise<IApiResponse<void>> {
+    const response = await request.post('/api/auth/logout', data)
+    return response.data
   },
 
   // 刷新令牌
-  refreshToken: (refreshToken: string): Promise<RefreshTokenResponse> => {
-    return request.post('/api/auth/refresh', { refreshToken })
+  async refreshToken(refreshToken: string): Promise<IApiResponse<RefreshTokenResponse>> {
+    const response = await request.post('/api/auth/refresh', { refreshToken })
+    return response.data
   },
 
   // 获取当前用户信息
-  getCurrentUser: (): Promise<IUser> => {
-    return request.get('/api/auth/me')
+  async getCurrentUser(): Promise<IApiResponse<IUser>> {
+    const response = await request.get('/api/auth/me')
+    return response.data
   },
 
   // 更新用户资料
-  updateProfile: (data: Partial<IUser>): Promise<IUser> => {
-    return request.put('/api/auth/profile', data)
+  async updateProfile(data: {
+    displayName?: string
+    avatar?: string
+    bio?: string
+    preferences?: {
+      theme?: string
+      language?: string
+      timezone?: string
+    }
+  }): Promise<IApiResponse<IUser>> {
+    const response = await request.put('/api/auth/profile', data)
+    return response.data
   },
 
   // 修改密码
-  changePassword: (oldPassword: string, newPassword: string): Promise<IApiResponse> => {
-    return request.put('/api/auth/password', {
-      oldPassword,
-      newPassword
-    })
+  async changePassword(data: {
+    oldPassword: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<IApiResponse<void>> {
+    const response = await request.put('/api/auth/password', data)
+    return response.data
   },
 
   // 重置密码请求
-  requestPasswordReset: (email: string): Promise<IApiResponse> => {
-    return request.post('/api/auth/password/reset-request', { email })
+  async requestPasswordReset(data: { email: string }): Promise<IApiResponse<void>> {
+    const response = await request.post('/api/auth/password/reset-request', data)
+    return response.data
   },
 
   // 重置密码确认
-  resetPassword: (token: string, newPassword: string): Promise<IApiResponse> => {
-    return request.post('/api/auth/password/reset-confirm', {
-      token,
-      newPassword
-    })
+  async resetPassword(data: {
+    token: string
+    newPassword: string
+    confirmPassword: string
+  }): Promise<IApiResponse<void>> {
+    const response = await request.post('/api/auth/password/reset-confirm', data)
+    return response.data
   },
-
-  // 验证邮箱
-  verifyEmail: (token: string): Promise<IApiResponse> => {
-    return request.post('/api/auth/email/verify', { token })
-  },
-
-  // 重新发送验证邮件
-  resendVerificationEmail: (): Promise<IApiResponse> => {
-    return request.post('/api/auth/email/resend')
-  }
-} 
+}

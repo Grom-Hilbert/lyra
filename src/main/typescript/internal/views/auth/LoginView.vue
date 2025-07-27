@@ -169,7 +169,7 @@ const handleLogin = async (values: any) => {
 
   try {
     await userStore.login({
-      username: values.username,
+      usernameOrEmail: values.username,
       password: values.password
     })
 

@@ -265,7 +265,11 @@ const handlePasswordReset = async (values: any) => {
   successMessage.value = ''
 
   try {
-    await authApi.resetPassword(resetToken.value, values.newPassword)
+    await authApi.resetPassword({
+      token: resetToken.value,
+      newPassword: values.newPassword,
+      confirmPassword: values.confirmPassword
+    })
     
     isPasswordReset.value = true
     successMessage.value = '密码重置成功！'
