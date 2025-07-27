@@ -180,18 +180,11 @@
 
           <div class="flex items-center space-x-3">
             <!-- 搜索框 -->
-            <div class="relative">
-              <input
-                v-model="searchQuery"
-                type="text"
-                placeholder="搜索文件和文件夹..."
-                class="w-64 pl-10 pr-4 py-2 border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-                @keyup.enter="handleSearch"
-              />
-              <svg class="absolute left-3 top-2.5 w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-              </svg>
-            </div>
+            <SearchBox
+              :space-id="currentSpaceId || undefined"
+              @search="handleQuickSearch"
+              @clear="clearSearch"
+            />
 
             <!-- 视图切换 -->
             <div class="flex border border-border rounded-md">
@@ -358,6 +351,7 @@ import FileList from '@/components/FileList.vue'
 import CreateFolderDialog from '@/components/CreateFolderDialog.vue'
 import FileOperationDialog from '@/components/FileOperationDialog.vue'
 import ContextMenu from '@/components/ContextMenu.vue'
+import SearchBox from '@/components/SearchBox.vue'
 import type {
   IFileInfo,
   IFolderInfo,
@@ -834,6 +828,19 @@ const handleContextMenuAction = (action: string, item?: IFileInfo | IFolderInfo 
   }
 }
 
+// 快速搜索处理（由SearchBox组件触发）
+const handleQuickSearch = (query: string) => {
+  // 导航到搜索页面
+  router.push({
+    name: 'Search',
+    query: {
+      q: query,
+      spaceId: currentSpaceId.value?.toString()
+    }
+  })
+}
+
+// 原有的搜索方法（保留用于兼容性）
 const handleSearch = async () => {
   if (!searchQuery.value.trim() || !currentSpaceId.value) return
 
@@ -890,7 +897,15 @@ const handleSearchInput = () => {
 const clearSearch = () => {
   searchQuery.value = ''
   isSearchMode.value = false
-  loadFolderContent()
+  // 如果当前在搜索页面，返回文件管理页面
+  if (route.name === 'Search') {
+    router.push({
+      name: 'Files',
+      params: currentSpaceId.value ? { spaceId: currentSpaceId.value.toString() } : {}
+    })
+  } else {
+    loadFolderContent()
+  }
 }
 
 const selectAll = () => {

@@ -104,6 +104,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/search',
+    name: 'Search',
+    component: () => import('@/views/SearchView.vue'),
+    meta: {
+      requiresAuth: true,
+      title: '搜索'
+    }
+  },
+  {
     path: '/about',
     name: 'About',
     component: () => import('@/views/AboutView.vue'),
