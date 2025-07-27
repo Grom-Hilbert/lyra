@@ -24,20 +24,20 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  
+
   /* 图表色彩 */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  
+
   /* 圆角半径 */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  
+
   /* 侧边栏色彩 */
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -47,7 +47,7 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  
+
   /* 自定义科技风颜色 */
   --color-tech-blue: var(--tech-blue);
   --color-tech-purple: var(--tech-purple);
@@ -56,7 +56,7 @@
   --color-warning: var(--warning);
   --color-info: var(--info);
   --color-success: var(--success);
-  
+
   /* 动画持续时间 */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -81,7 +81,7 @@
       height: 0;
     }
   }
-  
+
   @keyframes fade-in {
     from {
       opacity: 0;
@@ -90,7 +90,7 @@
       opacity: 1;
     }
   }
-  
+
   @keyframes slide-up {
     from {
       transform: translateY(100%);
@@ -101,7 +101,7 @@
       opacity: 1;
     }
   }
-  
+
   @keyframes pulse-slow {
     0%, 100% {
       opacity: 1;
@@ -121,42 +121,42 @@
   --card-foreground: oklch(0.15 0.014 264.53);   /* 深蓝灰色卡片文字 */
   --popover: oklch(1 0 0);                       /* 纯白弹窗 */
   --popover-foreground: oklch(0.15 0.014 264.53); /* 深蓝灰色弹窗文字 */
-  
+
   /* 主要品牌色 - 科技蓝 */
   --primary: oklch(0.55 0.18 264.53);           /* 鲜明科技蓝 */
   --primary-foreground: oklch(0.98 0.002 264.53); /* 淡蓝白色文字 */
-  
+
   /* 次要色 - 淡紫色 */
   --secondary: oklch(0.94 0.02 280);             /* 淡紫色背景 */
   --secondary-foreground: oklch(0.25 0.03 280);  /* 深紫色文字 */
-  
+
   /* 静音色 */
   --muted: oklch(0.96 0.01 264.53);             /* 极淡蓝灰色 */
   --muted-foreground: oklch(0.45 0.02 264.53);   /* 中蓝灰色文字 */
-  
+
   /* 强调色 - 青色 */
   --accent: oklch(0.92 0.04 200);               /* 淡青色强调 */
   --accent-foreground: oklch(0.2 0.05 200);     /* 深青色文字 */
-  
+
   /* 危险色 */
   --destructive: oklch(0.62 0.25 27.33);        /* 橙红色 */
   --destructive-foreground: oklch(0.98 0.01 27.33); /* 淡橙色文字 */
-  
+
   /* 边框和输入 */
   --border: oklch(0.9 0.005 264.53);            /* 淡蓝灰边框 */
   --input: oklch(0.9 0.005 264.53);             /* 淡蓝灰输入框 */
   --ring: oklch(0.55 0.18 264.53);              /* 科技蓝焦点环 */
-  
+
   /* 图表色彩 - 活泼科技风 */
   --chart-1: oklch(0.55 0.18 264.53);          /* 科技蓝 */
   --chart-2: oklch(0.65 0.15 320);             /* 紫色 */
   --chart-3: oklch(0.6 0.2 180);               /* 青色 */
   --chart-4: oklch(0.7 0.18 120);              /* 绿色 */
   --chart-5: oklch(0.65 0.2 40);               /* 橙色 */
-  
+
   /* 圆角 */
   --radius: 0.75rem;                            /* 稍大的圆角，更现代 */
-  
+
   /* 侧边栏 */
   --sidebar: oklch(0.97 0.01 264.53);           /* 极淡蓝色侧边栏 */
   --sidebar-foreground: oklch(0.2 0.02 264.53); /* 深蓝色侧边栏文字 */
@@ -166,7 +166,7 @@
   --sidebar-accent-foreground: oklch(0.2 0.05 200); /* 深青色文字 */
   --sidebar-border: oklch(0.9 0.005 264.53);    /* 淡蓝灰边框 */
   --sidebar-ring: oklch(0.55 0.18 264.53);      /* 科技蓝焦点环 */
-  
+
   /* 自定义科技风颜色 */
   --tech-blue: oklch(0.55 0.18 264.53);         /* 主科技蓝 */
   --tech-purple: oklch(0.6 0.2 300);            /* 科技紫 */
@@ -186,39 +186,39 @@
   --card-foreground: oklch(0.92 0.01 264.53);   /* 淡蓝白色卡片文字 */
   --popover: oklch(0.12 0.015 264.53);          /* 深蓝灰弹窗 */
   --popover-foreground: oklch(0.92 0.01 264.53); /* 淡蓝白色弹窗文字 */
-  
+
   /* 主要品牌色 - 更亮的科技蓝 */
   --primary: oklch(0.7 0.2 264.53);             /* 亮科技蓝 */
   --primary-foreground: oklch(0.08 0.01 264.53); /* 深蓝黑色文字 */
-  
+
   /* 次要色 */
   --secondary: oklch(0.18 0.02 280);            /* 深紫灰色 */
   --secondary-foreground: oklch(0.85 0.02 280); /* 淡紫色文字 */
-  
+
   /* 静音色 */
   --muted: oklch(0.15 0.015 264.53);            /* 深蓝灰色 */
   --muted-foreground: oklch(0.6 0.02 264.53);   /* 中淡蓝色文字 */
-  
+
   /* 强调色 - 亮青色 */
   --accent: oklch(0.25 0.06 200);               /* 深青色强调 */
   --accent-foreground: oklch(0.85 0.04 200);    /* 亮青色文字 */
-  
+
   /* 危险色 */
   --destructive: oklch(0.5 0.22 27.33);         /* 深橙红色 */
   --destructive-foreground: oklch(0.85 0.15 27.33); /* 亮橙色文字 */
-  
+
   /* 边框和输入 */
   --border: oklch(0.2 0.02 264.53);             /* 深蓝灰边框 */
   --input: oklch(0.2 0.02 264.53);              /* 深蓝灰输入框 */
   --ring: oklch(0.7 0.2 264.53);                /* 亮科技蓝焦点环 */
-  
+
   /* 图表色彩 - 深色主题活泼色 */
   --chart-1: oklch(0.7 0.2 264.53);            /* 亮科技蓝 */
   --chart-2: oklch(0.75 0.18 320);             /* 亮紫色 */
   --chart-3: oklch(0.75 0.22 180);             /* 亮青色 */
   --chart-4: oklch(0.8 0.2 120);               /* 亮绿色 */
   --chart-5: oklch(0.75 0.22 40);              /* 亮橙色 */
-  
+
   /* 侧边栏 */
   --sidebar: oklch(0.1 0.015 264.53);           /* 深蓝色侧边栏 */
   --sidebar-foreground: oklch(0.9 0.01 264.53); /* 淡蓝色侧边栏文字 */
@@ -228,7 +228,7 @@
   --sidebar-accent-foreground: oklch(0.85 0.04 200); /* 亮青色文字 */
   --sidebar-border: oklch(0.2 0.02 264.53);     /* 深蓝灰边框 */
   --sidebar-ring: oklch(0.7 0.2 264.53);        /* 亮科技蓝焦点环 */
-  
+
   /* 自定义科技风颜色 */
   --tech-blue: oklch(0.7 0.2 264.53);           /* 亮科技蓝 */
   --tech-purple: oklch(0.75 0.22 300);          /* 亮科技紫 */
@@ -243,35 +243,35 @@
   * {
     @apply border-border outline-ring/50;
   }
-  
+
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
   }
-  
+
   /* 自定义滚动条 - 科技风格 */
   ::-webkit-scrollbar {
     width: 8px;
     height: 8px;
   }
-  
+
   ::-webkit-scrollbar-track {
     @apply bg-muted;
   }
-  
+
   ::-webkit-scrollbar-thumb {
     @apply bg-muted-foreground/50 rounded-lg;
   }
-  
+
   ::-webkit-scrollbar-thumb:hover {
     @apply bg-muted-foreground/70;
   }
-  
+
   /* 选中文本样式 */
   ::selection {
     @apply bg-primary/20 text-primary-foreground;
   }
-  
+
   /* 焦点可见性 */
   .focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
